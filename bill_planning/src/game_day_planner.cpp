@@ -744,21 +744,23 @@ void startSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        if (desired_tile.x != sensor_readings.getCurrentTileX() && desired_tile.y != sensor_readings.getCurrentTileY())
         {
-            continue;
+            ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
+            planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+            waitToHitTile();
         }
 
-        ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
-        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
-        waitToHitTile();
-
         desired_heading = y == 5 ? 270 : 90;
-        planner.publishTurn(desired_heading);
 
-        while (shouldKeepTurning() && !KILL_SWITCH)
+        if (desired_heading != sensor_readings.getCurrentHeading())
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            planner.publishTurn(desired_heading);
+
+            while (shouldKeepTurning() && !KILL_SWITCH)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
         }
 
         float uf = sensor_readings.getUltraFwd();

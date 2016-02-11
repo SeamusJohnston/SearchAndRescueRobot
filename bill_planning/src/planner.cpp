@@ -361,11 +361,13 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 
                 // Scan at quarter driving speed
                 publishDrive(sensorReadings.getCurrentHeading(), 0.16);
+		return;
             }
 
             // Write an invalid target value
             // Maybe do this for position as well
             sensorReadings.setTargetHeading(-1);
+	    publishStop();
             ROS_INFO("Completed drive to point");
             return;
         }
