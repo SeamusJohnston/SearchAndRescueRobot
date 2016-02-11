@@ -4,7 +4,7 @@
 #include "wiringPi.h"
 #include "angles/angles.h"
 #include "bill_drivers/constant_definition.hpp"
-#include "bill_msgs/MotorCommands.h"
+#include "bill_msgs/MotorDirection.h"
 #include <cmath>
 
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
@@ -46,14 +46,13 @@ PI_THREAD(motorA_encoder)
     ROS_INFO("Thread A started!");
     while (1)
     {
-        // TODO: Check increment/decrement since the encoders are mounted in different directions for the two motors
         motorA_stateA = digitalRead(MOTORA_ENCA_PIN);
 
         // Check if a state change has occurred
         if (motorA_stateA != motorA_stateA_prev)
         {
             piLock(MOTORA_COUNTER_KEY);
-            motorA_Acounter++;
+            motorA_Acounter += direction_right;
             // If the states are different then the encoder is rotating clockwise
             /*if (digitalRead(MOTORA_ENCB_PIN) != motorA_stateA)
             {
@@ -77,14 +76,13 @@ PI_THREAD(motorB_encoder)
 
     while (1)
     {
-        // TODO: Check increment/decrement since the encoders are mounted in different directions for the two motors
         motorB_stateA = digitalRead(MOTORB_ENCA_PIN);
 
         // Check if a state change has occurred
         if (motorB_stateA != motorB_stateA_prev)
         {
             piLock(MOTORB_COUNTER_KEY);
-            motorB_Acounter++;
+            motorB_Acounter += direction_left;
             // If the states are different then the encoder is rotating clockwise
            /* if (digitalRead(MOTORB_ENCB_PIN) != motorB_stateA)
             {
@@ -102,46 +100,14 @@ PI_THREAD(motorB_encoder)
     }
 }
 
-void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
+void motorCallback(const bill_msgs::MotorDirection::ConstPtr& msg)
 {
-    if (msg->command == bill_msgs::MotorCommands::TURN)
-    {
-        float heading_delta = angles::from_degrees(msg->heading) - theta;
-
-        // Keep heading error centered at 0 between -180 and 180
-        if (heading_delta > M_PI)
-        {
-            heading_delta -= 2*M_PI;
-        }
-        else if (heading_delta < -1*M_PI)
-        {
-            heading_delta += 2*M_PI;
-        }
-
-        if (heading_delta >= 0)
-        {
-            direction_right = 1;
-            direction_left = -1;
-        }
-        else
-        {
-            direction_right = -1;
-            direction_left = 1;
-        }
-    }
-    else if(msg->command == bill_msgs::MotorCommands::DRIVE)
-    {
-        if (msg->speed >= 0)
-        {
-            direction_right = 1;
-            direction_left = 1;
-        }
-        else
-        {
-            direction_right = -1;
-            direction_left = -1;
-        }
-    }
+    piLock(MOTORA_COUNTER_KEY);
+    piLock(MOTORB_COUNTER_KEY);
+    direction_left = msg->left_motor;
+    direction_right = msg->right_motor;
+    piUnlock(MOTORA_COUNTER_KEY);
+    piUnlock(MOTORB_COUNTER_KEY);
 }
 
 nav_msgs::Odometry calculateOdometry(float dt)
@@ -149,12 +115,9 @@ nav_msgs::Odometry calculateOdometry(float dt)
     // TODO: Account and determine slip coeff, radius inequalities and wheelbase errors
     piLock(MOTORA_COUNTER_KEY);
     piLock(MOTORB_COUNTER_KEY);
-    int delta_right = direction_right * (motorA_Acounter - motorA_counter_prev);
-    int delta_left = direction_left * (motorB_Acounter - motorB_counter_prev);
+    int delta_right = motorA_Acounter - motorA_counter_prev;
+    int delta_left = motorB_Acounter - motorB_counter_prev;
     ROS_INFO("Delta Right: %i, Delta Left: %i", delta_right, delta_left);
-    //motorA_counter = 0;
-    //motorB_counter = 0;
-    //ROS_INFO("RightA: %i, LeftA: %i", motorA_Acounter, motorB_Acounter);
     motorA_Acounter = 0;
     motorB_Acounter = 0;
     motorA_counter_prev = motorA_Acounter;
@@ -221,7 +184,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 100);
     ros::Rate loop_rate(LOOP_RATE_ENCODER);
-    ros::Subscriber motor_sub = nh.subscribe("motor_cmd", 1, motorCallback);
+    ros::Subscriber motor_sub = nh.subscribe("motor_dir", 1, motorCallback);
 
     // Call sensor setup
     setup();

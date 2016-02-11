@@ -3,14 +3,15 @@
 #include "angles/angles.h"
 #include "bill_msgs/MotorCommands.h"
 #include "bill_msgs/Position.h"
+#include "bill_msgs/MotorDirection.h"
 #include "wiringPi.h"
 #include <softPwm.h>
 #include "bill_drivers/constant_definition.hpp"
 #include <chrono>
+#include <signal.h>
 
 const int PWM_RANGE = 100;  // Max pwm value
-const int MAX_TURNING_SPEED = 100;
-const float INT_CLAMP = 2.0;
+const float INT_CLAMP = 5.0;
 const float MAX_VEL = 0.4;
 float KP_TURNING;
 float KI_TURNING;
@@ -22,13 +23,31 @@ bill_msgs::MotorCommands last_command_msg;
 int last_heading = 90;
 float heading_error_drive_sum = 0;
 float heading_error_turn_sum = 0;
-
+ros::Publisher direction_pub;
+int right_direction = 0;
+int left_direction = 0;
+int right_dir_prev = 0;
+int left_dir_prev = 0;
 
 enum Direction
 {
     CW = 1,
     CCW = -1
 };
+
+void publishDirections()
+{
+    // Only publish if there is a directional change
+    if (left_direction != left_dir_prev || right_direction != right_dir_prev)
+    {
+        bill_msgs::MotorDirection msg;
+        msg.left_motor = left_direction;
+        msg.right_motor = right_direction;
+        direction_pub.publish(msg);
+        left_dir_prev = left_direction;
+        right_dir_prev = right_direction;
+    }
+}
 
 void stop()
 {
@@ -44,19 +63,27 @@ void drive(const int left_cmd, const int right_cmd)
     if (right_cmd >= 0)
     {
         digitalWrite(MOTORB_FORWARD, LOW);
+        right_direction = bill_msgs::MotorDirection::FORWARD;
     }
     else
     {
         digitalWrite(MOTORB_FORWARD, HIGH);
+        right_direction = bill_msgs::MotorDirection::BACKWARD;
+
     }
     if (left_cmd >= 0)
     {
         digitalWrite(MOTORA_FORWARD, LOW);
+        left_direction = bill_msgs::MotorDirection::FORWARD;
+
     }
     else
     {
         digitalWrite(MOTORA_FORWARD, HIGH);
+        left_direction = bill_msgs::MotorDirection::BACKWARD;
+
     }
+    publishDirections();
     softPwmWrite(MOTORA_PWM, std::abs(left_cmd));
     softPwmWrite(MOTORB_PWM, std::abs(right_cmd));
 
@@ -69,13 +96,20 @@ void turn(const Direction dir, const unsigned int speed)
         ROS_INFO("Turning CW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, LOW);
         digitalWrite(MOTORB_FORWARD, HIGH);
+        right_direction = bill_msgs::MotorDirection::BACKWARD;
+        left_direction = bill_msgs::MotorDirection::FORWARD;
+
     }
     else
     {
         ROS_INFO("Turning CCW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, HIGH);
         digitalWrite(MOTORB_FORWARD, LOW);
+        right_direction = bill_msgs::MotorDirection::FORWARD;
+        left_direction = bill_msgs::MotorDirection::BACKWARD;
+
     }
+    publishDirections();
     softPwmWrite(MOTORA_PWM, speed);
     softPwmWrite(MOTORB_PWM, speed);
 }
@@ -151,8 +185,8 @@ void turningCallback(int heading, float dt)
     }
 
     int turning_speed = (int)std::abs(heading_error * KP_TURNING + heading_error_turn_sum * KI_TURNING);
-    if (turning_speed > MAX_TURNING_SPEED)
-        turning_speed = MAX_TURNING_SPEED;
+    if (turning_speed > PWM_RANGE)
+        turning_speed = PWM_RANGE;
 
     if (heading_error >= 0)
     {
@@ -212,9 +246,15 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     }
 }
 
+void sigIntHandler(int sig)
+{
+    stop();
+    ros::shutdown();
+}
+
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "motor_driver");
+    ros::init(argc, argv, "motor_driver", ros::init_options::NoSigintHandler);
     wiringPiSetupGpio();
     pinMode(MOTORA_FORWARD, OUTPUT);
     pinMode(MOTORB_FORWARD, OUTPUT);
@@ -226,6 +266,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::Subscriber sub_motor = nh.subscribe("motor_cmd", 1, motorCallback);
     ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
+    direction_pub = nh.advertise<bill_msgs::MotorDirection>("motor_dir", 100);
 
     // Load parameters from yaml
     nh.getParam("/bill/motor_params/kp_turning", KP_TURNING);
@@ -233,6 +274,7 @@ int main(int argc, char** argv)
     nh.getParam("/bill/motor_params/kp_drive", KP_DRIVE);
     nh.getParam("/bill/motor_params/ki_drive", KI_DRIVE);
     last_command_msg.command = bill_msgs::MotorCommands::STOP;
+    signal(SIGINT, sigIntHandler);
 
     ros::spin();
     stop();
