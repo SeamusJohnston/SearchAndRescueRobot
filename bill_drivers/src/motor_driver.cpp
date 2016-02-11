@@ -11,7 +11,7 @@
 #include <signal.h>
 
 const int PWM_RANGE = 100;  // Max pwm value
-const int MAX_TURN_SPEED = 75;
+const int MAX_TURN_SPEED = 60;
 const float INT_CLAMP = 5.0;
 const float MAX_VEL = 0.4;
 float KP_TURNING;

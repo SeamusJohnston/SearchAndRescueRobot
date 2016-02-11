@@ -142,8 +142,11 @@ void updatePosition()
                 ultra_pos.y = average;
             }
         }
+    } else {
+        // If we are turning, update all axis' using odometry
+        ultra_pos.y += odom_pos.y - odom_pos_prev.y;
+        ultra_pos.x += odom_pos.x - odom_pos_prev.x;
     }
-
     ROS_INFO("Current ultrasonic position x: %f, y: %f, Heading: %i, Turning: %i", ultra_pos.x, ultra_pos.y, current_heading, turning);
     publishPosition();
 }

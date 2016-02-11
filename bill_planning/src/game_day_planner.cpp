@@ -78,7 +78,7 @@ const int FIRE_SCAN_ANGLE = 45;
 const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
-const float POSITION_ACCURACY_BUFFER = 0.09;
+const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
 const float HEADING_ACCURACY_BUFFER = 3.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
@@ -161,22 +161,22 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    driveForwardXTiles(1);
-    sensor_readings.setDetectedFireFwd(false);
-    desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
+//    driveForwardXTiles(1);
+//    sensor_readings.setDetectedFireFwd(false);
+//    desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
 
-    planner.publishTurn(desired_heading);
-    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+//    planner.publishTurn(desired_heading);
+//    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
+//    {
+//        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//    }
 
-    desired_heading = (sensor_readings.getCurrentHeading() - 2 * 90 - 5) % 360;
-    planner.publishTurn(desired_heading);
-    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+//    desired_heading = (sensor_readings.getCurrentHeading() - 2 * 90 - 5) % 360;
+//    planner.publishTurn(desired_heading);
+//    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
+//    {
+//        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+//    }
 
     fireOut();
 
@@ -685,7 +685,7 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
 void findMagnet()
 {
     ROS_INFO("Starting magnet search");
-    TilePosition poi[3] = {TilePosition(1,2), TilePosition(4,4), TilePosition(2,3)};
+    TilePosition poi[3] = {TilePosition(1,1), TilePosition(4,4), TilePosition(2,3)};
 
     for(int i = 0; i < 3; i++)
     {
@@ -736,9 +736,12 @@ void runBuildingSearch()
     if (x == 3 && y == 0)
     {
         startSearch();
-        
+
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
-        
+        // for now we should just say screw it and return home?
+        return;
+
+        // this wont run
         if(buildings_found < 2)
         {
             sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
