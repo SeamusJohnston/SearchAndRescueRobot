@@ -122,7 +122,7 @@ void robotPerformanceThread(int n)
     
     ROS_INFO("Starting tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
-
+    ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     runInitialSearch();
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
@@ -171,12 +171,14 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     if (isOnXTile)
     {
-        sensor_readings.setCurrentTileX(currentWholeX);
+        ROS_INFO("Setting x tile = %i", (int)currentWholeX);
+        sensor_readings.setCurrentTileX((int)currentWholeX);
     }
 
     if (isOnYTile)
     {
-        sensor_readings.setCurrentTileY(currentWholeY);
+        ROS_INFO("Setting y tile = %i", (int)currentWholeX);
+        sensor_readings.setCurrentTileY((int)currentWholeY);
     }
 
     // If there is a valid target heading that means we are turning
@@ -716,10 +718,11 @@ void runInitialSearch()
 
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
-    
+    ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     if ((x == 0 || x == 5)
         || (x == 2 && y == 5))
     {
+        ROS_INFO("Before Running X independant: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
         // TOP OR BOTTOM
         completeSearchXDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
@@ -733,6 +736,7 @@ void runInitialSearch()
     else if (y == 0 || y == 5)
     {
         //BOTTOM
+        ROS_INFO("Running y dependant");
         completeSearchYDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
 
@@ -744,6 +748,7 @@ void runInitialSearch()
     }
     else
     {
+        ROS_INFO("NOT RUNNING ANYTHING");
         ROS_WARN("OUR CURRENT POSITION IS WRONG AND WE CAN'T START");
     }
 }
@@ -825,7 +830,7 @@ void completeSecondSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
         if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
