@@ -66,7 +66,7 @@ TilePosition large_building_tile(-1,-1);
 int desired_heading = 90;
 
 // CONSTANTS
-const int FULL_COURSE_DETECTION_LENGTH = 1.70;
+const int FULL_COURSE_DETECTION_LENGTH = 1.60;
 const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 7; //cm
