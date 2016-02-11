@@ -13,6 +13,10 @@
   <node pkg="bill_drivers" type="serial_driver"
     name="serial_driver">
   </node>
+  
+  <node pkg="bill_drivers" type="localization_node"
+    name="localization_node">
+  </node>  
 <!--
   <node pkg="bill_drivers" type="led_driver"
     name="led_driver">
