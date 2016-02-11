@@ -3,13 +3,13 @@
 
 // Pins
 const int LED_PIN = 19;
-const int BUTTON_PIN = 26;
-const int RELAY_OUTPIN = 6;
+const int BUTTON_PIN = 6;
+const int RELAY_OUTPIN = 26;
 
 // Motors
 const int MOTORA_PWM = 12;      // PWMA
-const int MOTORB_PWM = 13;      // PWMB
-const int MOTORA_FORWARD = 10;  // MA
+const int MOTORB_PWM = 10;      // PWMB
+const int MOTORA_FORWARD = 13;  // MA
 const int MOTORB_FORWARD = 23;  // MB
 
 // Encoders

@@ -8,7 +8,7 @@
 #include <bitset>
 #include <stdexcept>
 
-const std::string port = "/dev/ttyACM0";
+const std::string port = "/dev/ttyUSB0";
 const int baud = 9600;
 const std::string delimiter = " ";
 const int msg_length = 13;
@@ -91,12 +91,12 @@ int main(int argc, char** argv)
             imu_msg.orientation.z = quatZ;
             imu_msg.orientation.w = quatW;
             imu_msg.orientation_covariance = {0.001, 0, 0,
-                                              0, 0.001, 0.
+                                              0, 0.001, 0,
                                               0, 0, 0.001};
 
             imu_msg.angular_velocity.z = zgyro;
             imu_msg.angular_velocity_covariance = {-1, 0, 0,
-                                                   0, -1, 0
+                                                   0, -1, 0,
                                                    0, 0, 0.05};
             imu_msg.linear_acceleration.x = xaccel;
             imu_msg.angular_velocity_covariance = {0.1, 0, 0,

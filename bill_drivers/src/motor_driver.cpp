@@ -9,7 +9,7 @@
 #include <chrono>
 
 const int PWM_RANGE = 100;  // Max pwm value
-const int MAX_TURNING_SPEED = 30;
+const int MAX_TURNING_SPEED = 100;
 const float INT_CLAMP = 2.0;
 const float MAX_VEL = 0.4;
 float KP_TURNING;
@@ -67,14 +67,14 @@ void turn(const Direction dir, const unsigned int speed)
     if (dir == CW)
     {
         ROS_INFO("Turning CW: Speed = %i", speed);
-        digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORB_FORWARD, LOW);
+        digitalWrite(MOTORA_FORWARD, LOW);
+        digitalWrite(MOTORB_FORWARD, HIGH);
     }
     else
     {
         ROS_INFO("Turning CCW: Speed = %i", speed);
-        digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORB_FORWARD, HIGH);
+        digitalWrite(MOTORA_FORWARD, HIGH);
+        digitalWrite(MOTORB_FORWARD, LOW);
     }
     softPwmWrite(MOTORA_PWM, speed);
     softPwmWrite(MOTORB_PWM, speed);

@@ -102,6 +102,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piLock(MOTORB_COUNTER_KEY);
     int delta_right = motorA_counter - motorA_counter_prev;
     int delta_left = motorB_counter - motorB_counter_prev;
+    ROS_INFO("Delta Right: %i, Delta Left: %i", delta_right, delta_left);
     motorA_counter = 0;
     motorB_counter = 0;
     motorA_counter_prev = motorA_counter;

@@ -3,7 +3,7 @@
   <rosparam file ="$(find bill_drivers)/config/parameters.yaml" command="load" />
 
   <node pkg="bill_drivers" type="encoder_driver"
-    name="encoder_driver">
+    name="encoder_driver" output="screen">
   </node>
 
   <node pkg="bill_drivers" type="fan_driver"
@@ -11,21 +11,21 @@
   </node>
 
   <node pkg="bill_drivers" type="serial_driver"
-    name="serial_driver" output="screen">
+    name="serial_driver">
   </node>
-
+<!--
   <node pkg="bill_drivers" type="led_driver"
     name="led_driver">
   </node>
-
+-->
   <node pkg="bill_drivers" type="motor_driver"
-    name="motor_driver">
+    name="motor_driver" output="screen">
   </node>
-
+<!--
   <node pkg="bill_drivers" type="reset_driver"
     name="reset_driver">
   </node>
-
+-->
   <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver_front">
     <param name="topic" value="/ultra_front"/>
     <param name="trigger_pin" value="17"/>
