@@ -21,7 +21,7 @@
   </node>
 
   <node pkg="bill_drivers" type="ir_driver"
-    name="ir_driver">
+    name="ir_driver" output="screen">
   </node>
 
   <node pkg="bill_drivers" type="led_driver"

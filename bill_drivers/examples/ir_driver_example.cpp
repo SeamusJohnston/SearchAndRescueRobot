@@ -1,9 +1,15 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
+#include "wiringPi.h"
+#include <iostream>
+#define FIRE_PIN 8
+
 
 void setup()
 {
     // TODO: Setup sensor
+    wiringPiSetupGpio();
+    pinMode(FIRE_PIN, INPUT);
 }
 
 std_msgs::Bool read()
@@ -12,6 +18,9 @@ std_msgs::Bool read()
 
     // Create message to publish
     std_msgs::Bool msg;
+    msg.data = digitalRead(FIRE_PIN) == HIGH;
+    std::cout << digitalRead(FIRE_PIN) << std::endl;
+    
     // TODO: Based on read data, determine what to publish
 
     return msg;

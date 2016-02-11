@@ -106,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES bill_drivers
   CATKIN_DEPENDS bill_msgs nav_msgs roscpp sensor_msgs std_msgs tf2_ros
 #  DEPENDS system_lib
@@ -116,17 +116,16 @@ catkin_package(
 ## Build ##
 ###########
 
+FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /home/ubuntu/wiringPi)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/bill_drivers.cpp
-# )
+add_library(pi2c src/pi2c.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -136,16 +135,14 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(colour_driver src/colour_driver.cpp)
 add_executable(encoder_driver src/encoder_driver.cpp)
-add_executable(hall_driver src/hall_driver.cpp)
 add_executable(imu_driver src/imu_driver.cpp)
-add_executable(ir_driver src/ir_driver.cpp)
 add_executable(reset_driver src/reset_driver.cpp)
 add_executable(ultrasonic_driver src/ultrasonic_driver.cpp)
 add_executable(led_driver src/led_driver.cpp)
 add_executable(fan_driver src/fan_driver.cpp)
 add_executable(motor_driver src/motor_driver.cpp)
+add_executable(i2c_driver src/i2c_driver.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,19 +152,17 @@ add_executable(motor_driver src/motor_driver.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(colour_driver bill_msgs)
+add_dependencies(i2c_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(colour_driver ${catkin_LIBRARIES})
-target_link_libraries(encoder_driver ${catkin_LIBRARIES})
-target_link_libraries(hall_driver ${catkin_LIBRARIES})
-target_link_libraries(imu_driver ${catkin_LIBRARIES})
-target_link_libraries(ir_driver ${catkin_LIBRARIES})
-target_link_libraries(reset_driver ${catkin_LIBRARIES})
-target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES})
-target_link_libraries(led_driver ${catkin_LIBRARIES})
-target_link_libraries(fan_driver ${catkin_LIBRARIES})
-target_link_libraries(motor_driver ${catkin_LIBRARIES})
+target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(imu_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(reset_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(i2c_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} pi2c)
 
 #############
 ## Install ##
