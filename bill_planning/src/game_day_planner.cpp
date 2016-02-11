@@ -93,8 +93,8 @@ int main(int argc, char** argv)
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
-    ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
-    ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
+    ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 3, fireCallbackLeft);
+    ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 3, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultra_front", 1, frontUltrasonicCallback);
     ros::Subscriber sub_ultrasonic_right = nh.subscribe("ultra_right", 1, rightUltrasonicCallback);
     ros::Subscriber sub_ultrasonic_left = nh.subscribe("ultra_left", 1, leftUltrasonicCallback);
@@ -142,9 +142,6 @@ void robotPerformanceThread(int n)
     ROS_INFO("Running Flame Search");
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
 
-    // Jiwoo's fire search method here
-    // Note to jiwoo, my current fireOut() puts out fire if we are close enough. we may need to add logic to drive closer to flame
-    // We shall test
     findAndExtinguishFire();
 
     // Wait until fire has been put out before moving on
@@ -152,6 +149,7 @@ void robotPerformanceThread(int n)
     {
         if (sensor_readings.getDetectedFireLeft() && !planner.is_moving)
         {
+            ROS_INFO("detected fire left, turning to heading %i", (sensor_readings.getCurrentHeading()+90)%360);
             desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
             planner.publishTurn(desired_heading);
         }
@@ -284,8 +282,8 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && ((sensor_readings.getUltraLeft() - msg->data) > DELTA)
-        || (previous_ultra_left - msg->data) > DELTA)
+        && (((sensor_readings.getUltraLeft() - msg->data) > DELTA)
+        || (previous_ultra_left - msg->data) > DELTA))
     {
         planner.publishStop();
         _building_left = true;
@@ -303,8 +301,8 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::BUILDING_SEARCH
-        && ((sensor_readings.getUltraRight() - msg->data) > DELTA)
-        || (previous_ultra_right - msg->data) > DELTA)
+        && (((sensor_readings.getUltraRight() - msg->data) > DELTA)
+        || (previous_ultra_right - msg->data) > DELTA))
     {
         _building_right = true;
         planner.publishStop();
@@ -347,13 +345,18 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH
-        && msg->data && !_extinguished_fire)
+    if (msg->data)
+    {
+        ROS_INFO("Flame left is true, we should be stopping");
+    }
+    if (sensor_readings.getCurrentState() == STATE::FLAME_SEARCH
+        && msg->data && !_extinguished_fire && !sensor_readings.getDetectedFireLeft())
     {
         planner.cancelDriveToTile(sensor_readings);
+        planner.publishStop();
         sensor_readings.setDetectedFireLeft(true);
     }
-    else
+    else if (!msg->data)
     {
         sensor_readings.setDetectedFireLeft(false);
     }
@@ -361,16 +364,22 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH
-      && msg->data && !_extinguished_fire)
+    if (msg->data)
+    {
+        ROS_INFO("Flame right is true, we should be stopping");
+    }
+    if (sensor_readings.getCurrentState() == STATE::FLAME_SEARCH
+        && msg->data && !_extinguished_fire && !sensor_readings.getDetectedFireRight())
     {
         planner.cancelDriveToTile(sensor_readings);
+        planner.publishStop();
         sensor_readings.setDetectedFireRight(true);
     }
-    else
+    else if (!msg->data)
     {
         sensor_readings.setDetectedFireRight(false);
     }
+
 }
 
 void hallCallback(const std_msgs::Bool::ConstPtr& msg)
