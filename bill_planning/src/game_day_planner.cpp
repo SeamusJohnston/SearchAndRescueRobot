@@ -783,6 +783,7 @@ void startSearchXDependent()
         }
     }
 
+    ROS_INFO("Found/Defaulted a path and driving forward now");
     ROS_INFO("Setting state to init search");
     sensor_readings.setCurrentState(STATE::INIT_SEARCH);
     
@@ -838,6 +839,12 @@ void completeSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
+        if (desired_tile.x == sensor_readings.getCurrentTileX() &&
+            desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
+
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
@@ -892,6 +899,12 @@ void completeSearchYDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && 
+            desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
 
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
