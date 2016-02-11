@@ -52,4 +52,8 @@
     <param name="echo_pin" value="21"/>
     <param name="filter_freq" value="1.0"/>
   </node>
+
+  <node pkg="bill_drivers" type="magnet_driver"
+    name="magnet_driver">
+  </node>
 </launch>
