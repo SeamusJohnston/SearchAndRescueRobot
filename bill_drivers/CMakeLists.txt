@@ -117,7 +117,7 @@ catkin_package(
 ## Build ##
 ###########
 
-FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /home/ubuntu/wiringPi)
+FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi ~/wiringPi)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
