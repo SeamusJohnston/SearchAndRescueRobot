@@ -17,7 +17,7 @@
 #define KI_SPEED 5
 #define MAX_VEL 0.4
 // Motor A is right motor
-#define MOTORA_PWM 20 //PWMA
+#define MOTORA_PWM 20 // PWMA
 #define MOTORA_FORWARD 21 // AIN1
 #define MOTORA_REVERSE 22 // AIN2
 // Motor B is left motor
@@ -25,7 +25,7 @@
 #define MOTORB_FORWARD 24 // BIN1
 #define MOTORB_REVERSE 25 // BIN2
 
-std::mutex mutex;
+//std::mutex mutex;
 bill_msgs::MotorCommands last_command_msg;
 int last_heading = 0;
 float last_speed = 0;
@@ -39,6 +39,7 @@ enum direction{
 
 void stop()
 {
+    ROS_INFO("Stop");
     digitalWrite(MOTORA_FORWARD, LOW);
     digitalWrite(MOTORA_REVERSE, LOW);
     digitalWrite(MOTORB_FORWARD, LOW);
@@ -49,6 +50,8 @@ void stop()
 
 void drive(const int left_cmd, const int right_cmd)
 {
+    ROS_INFO("Drive: Left = %i, Right = %i", left_cmd, right_cmd);
+
     if (right_cmd >= 0)
     {
         digitalWrite(MOTORA_FORWARD, HIGH);
@@ -77,6 +80,7 @@ void turn(const int dir, const unsigned int speed)
 {
     if (dir == direction::CW)
     {
+        ROS_INFO("Turning CW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, LOW);
         digitalWrite(MOTORA_REVERSE, HIGH);
         digitalWrite(MOTORB_FORWARD, HIGH);
@@ -84,6 +88,7 @@ void turn(const int dir, const unsigned int speed)
     }
     else
     {
+        ROS_INFO("Turning CCW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, HIGH);
         digitalWrite(MOTORA_REVERSE, LOW);
         digitalWrite(MOTORB_FORWARD, LOW);
@@ -96,7 +101,7 @@ void turn(const int dir, const unsigned int speed)
 void drivePI(int heading, float speed)
 {
     // NOTE: Writing speed PI for now, although open loop speed control may be good enough for our purposes
-    std::lock_guard<std::mutex> lk(mutex);
+    //std::lock_guard<std::mutex> lk(mutex);
     // TODO: Remove 0 when odom measurements work
     int heading_error = 0; //last_command_msg.heading - heading;
     // Keep heading error centered at 0 between -180 and 180
@@ -154,7 +159,8 @@ void drivePI(int heading, float speed)
 
 void turningCallback(int heading)
 {
-    std::lock_guard<std::mutex> lk(mutex);
+    ROS_INFO("In Turning Callback");
+    //std::lock_guard<std::mutex> lk(mutex);
     int error = last_command_msg.heading - heading;
     if (error >= 0 && error <= 180 || error < 0 && error >= -180)
     {
@@ -173,7 +179,7 @@ void turningCallback(int heading)
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     // TODO: Pull out heading as angle, (speed?) as PID input
-    std::lock_guard<std::mutex> lk(mutex);
+    //std::lock_guard<std::mutex> lk(mutex);
     tf::Pose pose;
     tf::poseMsgToTF(msg->pose.pose, pose);
     float heading = angles::to_degrees(tf::getYaw(pose.getRotation()));
@@ -193,22 +199,25 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
 {
-    std::lock_guard<std::mutex> lk(mutex);
+    //std::lock_guard<std::mutex> lk(mutex);
     last_command_msg.command = msg->command;
     last_command_msg.heading = msg->heading;
     last_command_msg.speed = msg->speed;
 
     if (msg->command == bill_msgs::MotorCommands::STOP)
     {
+        ROS_INFO("Calling Stop");
         stop();
     }
     else if (msg->command == bill_msgs::MotorCommands::TURN)
     {
+        ROS_INFO("Calling Turn");
         // Call these here to start a robots action, callback from odom continues the action until completion
         turningCallback(last_heading);
     }
     else
     {
+        ROS_INFO("Calling Drive");
         // Call these here to start a robots action, callback from odom continues the action until completion
         drivePI(last_heading, last_speed);
     }
