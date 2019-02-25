@@ -1,10 +1,17 @@
 #include "ros/ros.h"
 #include "bill_msgs/MotorCommands.h"
 #include "std_msgs/Bool.h"
+#include "std_msgs/Float32.h"
+#include "nav_msgs/Odometry.h"
 #include <iostream>
 #include <mutex>
 
 #define ULTRA_TRIGGER_DIST 30
+
+// Forward declarations 
+void publishStop();
+void publishDrive(const int heading, const float speed);
+void publishTurn(const int heading);
 
 enum machineStatus{
     STOPPED = 0,
@@ -12,15 +19,15 @@ enum machineStatus{
 };
 
 struct StateMachine{
-    const int num_states = 4;
+    const static int num_states = 4;
     machineStatus status = machineStatus::STOPPED;
-    int state = 0;
+    static int state;
     ros::Timer timer;
-    void timerCallback(const ros::TimerEvent&)
+    static void timerCallback(const ros::TimerEvent&)
     {
         advanceState();
     }
-    void advanceState()
+    static void advanceState()
     {
         switch (state)
         {
@@ -68,35 +75,37 @@ struct StateMachine{
 
 ros::Publisher motor_pub;
 ros::Publisher fan_pub;
-bill_msgs::MotorCommands *msg = NULL;
+bill_msgs::MotorCommands command_msg;
 StateMachine state_machine;
+int StateMachine::state = 0;
 std::mutex mutex;
+int current_heading = 0;
 
 void publishStop()
 {
     std::lock_guard<std::mutex> lk(mutex);
-    msg->command = bill_msgs::MotorCommands::STOP;
-    msg->heading = 0;
-    msg->speed = 0;
-    motor_pub.publish(&msg);
+    command_msg.command = bill_msgs::MotorCommands::STOP;
+    command_msg.heading = 0;
+    command_msg.speed = 0;
+    motor_pub.publish(command_msg);
 }
 
 void publishDrive(const int heading, const float speed)
 {
     std::lock_guard<std::mutex> lk(mutex);
-    msg->command = bill_msgs::MotorCommands::DRIVE;
-    msg->heading = heading;
-    msg->speed = speed;
-    motor_pub.publish(&msg);
+    command_msg.command = bill_msgs::MotorCommands::DRIVE;
+    command_msg.heading = heading;
+    command_msg.speed = speed;
+    motor_pub.publish(command_msg);
 }
 
 void publishTurn(const int heading)
 {
     std::lock_guard<std::mutex> lk(mutex);
-    msg->command = bill_msgs::MotorCommands::TURN;
-    msg->heading = heading;
-    msg->speed = 0; // Speed is hardcoded in the motor driver for turning
-    motor_pub.publish(&msg);
+    command_msg.command = bill_msgs::MotorCommands::TURN;
+    command_msg.heading = heading;
+    command_msg.speed = 0; // Speed is hardcoded in the motor driver for turning
+    motor_pub.publish(command_msg);
 }
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -134,7 +143,8 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         // Since IMU isn't operational, the heading published does nothing but set the direction
         // Therefore we have to start a short timer to actually represent the 10 degree turn
         ros::Duration(0.5).sleep();
-
+	// TODO: Current heading should update from IMU once working, so remove this when it does
+	current_heading += 10;
         publishStop();
         state_machine.runMachine();
     }
@@ -153,7 +163,7 @@ int main(int argc, char** argv)
 
     // Start state machine, then spin
     state_machine.status = machineStatus::RUNNING;
-    state_machine.timer = nh.createTimer(ros::Duration(5), state_machine::timerCallback);
+    state_machine.timer = nh.createTimer(ros::Duration(5), StateMachine::timerCallback);
     state_machine.advanceState();
     ros::spin();
     return 0;

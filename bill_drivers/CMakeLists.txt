@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   tf2_ros
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -108,7 +109,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
 #  LIBRARIES bill_drivers
-  CATKIN_DEPENDS bill_msgs nav_msgs roscpp sensor_msgs std_msgs tf2_ros
+  CATKIN_DEPENDS bill_msgs nav_msgs roscpp sensor_msgs std_msgs tf2_ros tf
 #  DEPENDS system_lib
 )
 
@@ -153,6 +154,7 @@ add_executable(i2c_driver src/i2c_driver.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(i2c_driver ${catkin_EXPORTED_TARGETS})
+add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
