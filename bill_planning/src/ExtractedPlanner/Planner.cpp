@@ -4,17 +4,17 @@ Planner::Planner(State_Machine sm)
 {
 }
 
-void Planner::gridSearch()
+Planner::GridSearch()
 {
 
 }
 
-void Planner::scanAngle(int heading)
+Planner::ScanAngle(int heading)
 {
     publishTurn(heading % 360);
 }
 
-void Planner::publishStop()
+Planner::PublishStop()
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding stop");
@@ -24,7 +24,7 @@ void Planner::publishStop()
     motor_pub.publish(command_msg);
 }
 
-void publishDrive(const int heading, const float speed)
+Planner::PublishDrive(const int heading, const float speed)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding drive, heading: %i and speed: %f", heading, speed);
@@ -34,7 +34,7 @@ void publishDrive(const int heading, const float speed)
     motor_pub.publish(command_msg);
 }
 
-void publishTurn(const int heading)
+Planner::PublishTurn(const int heading)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding turn, heading: %i", heading);

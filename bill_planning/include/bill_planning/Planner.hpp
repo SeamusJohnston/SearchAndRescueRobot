@@ -10,9 +10,9 @@ class Planner
 {
     public:
         Planner();        
-        void gridSearch();
-        void scanAngle(int heading);
-        void publishStop();
-        void publishDrive(const int heading, const float speed);
-        void publishTurn(const int heading);
+        void GridSearch();
+        void ScanAngle(int heading);
+        void PublishStop();
+        void PublishDrive(const int heading, const float speed);
+        void PublishTurn(const int heading);
 }

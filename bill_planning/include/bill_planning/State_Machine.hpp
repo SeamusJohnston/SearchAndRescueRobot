@@ -14,9 +14,10 @@ struct State_Machine
         static Planner planner;
 
         State_Machine();
-        static void advanceState();
-        void scanFire();
+        static void AdvanceState();
+        void ContinueAngularScan();
     private:
         const static int num_states = MachineStates::COUNT;
         const int scanning_angle = 10;
+        static int previousDesiredHeading = 0;
 }

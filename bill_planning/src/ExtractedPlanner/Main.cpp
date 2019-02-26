@@ -38,19 +38,22 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-    // Only turn fan on if looking for fire and data shows fire
+    // Only turn fan on if looking/scanning for fire and found fire
     if ((stateMachine::state == MachineStates::LOOKFORFIRE
-        || stateMachine::state == MachineStates::SCANNINGFIRE)
+        || stateMachine::state == MachineStates::SCANNINGFIRE
+        || stateMachine::state == MachineStates::AWAI)
         && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        // TODO: This may not work for scanning depending how fast we scan... might have
+        //       only detect once while doing a scan
         if (foundFire < 3)
         {
             foundFire++;
         }
         else
         {
-            planner.publishStop();
+            planner.PublishStop();
 
             std_msgs::Bool cmd;
             cmd.data = true;
@@ -61,7 +64,15 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
             cmd.data = false;
             fan_pub.publish(cmd); // Turn off fan
 
-            stateMachine.advanceState();
+            if (stateMachine::state == MachineStates::LOOKFORFIRE)
+            {
+                stateMachine.AdvanceState();
+            }
+            else
+            {
+                stateMachine.ContinueAngularScan();
+            }
+            
         }
     }
     else
@@ -88,7 +99,7 @@ int main(int argc, char** argv)
 
     // Start state machine, then spin
     State_Machine.search_state = Enums::MachineStates::STARTINGCOURSE;
-    State_Machine.advanceState();
+    State_Machine.AdvanceState();
 
     ros::spin();
     return 0;
