@@ -1,13 +1,12 @@
 #include "bill_planner/State_Machine.hpp"
 
-State_Machine::State_Machine(Planner p)
+State_Machine::State_Machine()
 {
-    planner = p;
 }
 
 State_Machine::advanceState(int heading = 0)
 {
-    switch (state
+    switch (state)
     {
         ROS_INFO("Advance state, current state: %i", state);
         case MachineStates:LOOKFORFIRE

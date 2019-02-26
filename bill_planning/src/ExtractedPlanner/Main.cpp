@@ -50,7 +50,7 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
         }
         else
         {
-            publishStop();
+            planner.publishStop();
 
             std_msgs::Bool cmd;
             cmd.data = true;

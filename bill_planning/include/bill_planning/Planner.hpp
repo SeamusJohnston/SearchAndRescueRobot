@@ -11,7 +11,7 @@ class Planner
     public:
         Planner();        
         void gridSearch();
-        void scanAngle();
+        void scanAngle(int heading);
         void publishStop();
         void publishDrive(const int heading, const float speed);
         void publishTurn(const int heading);
