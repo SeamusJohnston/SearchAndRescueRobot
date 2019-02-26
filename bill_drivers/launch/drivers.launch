@@ -12,16 +12,8 @@
     name="fan_driver">
   </node>
 
-  <node pkg="bill_drivers" type="hall_driver"
-    name="hall_driver">
-  </node>
-  
   <node pkg="bill_drivers" type="imu_driver"
     name="imu_driver">
-  </node>
-
-  <node pkg="bill_drivers" type="ir_driver"
-    name="ir_driver" output="screen">
   </node>
 
   <node pkg="bill_drivers" type="led_driver"
