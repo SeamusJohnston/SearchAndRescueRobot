@@ -1,3 +1,4 @@
+/*
 #include "ros/ros.h"
 #include "bill_msgs/MotorCommands.h"
 #include "std_msgs/Bool.h"
@@ -174,3 +175,4 @@ int main(int argc, char** argv)
     ros::spin();
     return 0;
 }
+*/

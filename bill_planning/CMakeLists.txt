@@ -128,6 +128,9 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/bill_planning.cpp
 # )
+add_library(planner src/Planner.cpp)
+add_library(state_machine src/State_Machine.cpp)
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -139,6 +142,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/bill_planning_node.cpp)
 add_executable(demo_planner src/demo_planner.cpp)
+add_executable(game_day_planner src/Main.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -152,11 +156,13 @@ add_executable(demo_planner src/demo_planner.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 add_dependencies(demo_planner ${catkin_EXPORTED_TARGETS})
+add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(demo_planner ${catkin_LIBRARIES})
+target_link_libraries(game_day_planner ${catkin_LIBRARIES} planner state_machine)
 
 #############
 ## Install ##
