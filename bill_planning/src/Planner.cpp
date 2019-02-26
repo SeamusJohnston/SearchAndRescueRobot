@@ -6,7 +6,6 @@ Planner::Planner(State_Machine sm)
 
 Planner::GridSearch()
 {
-
 }
 
 Planner::ScanAngle(int heading)
