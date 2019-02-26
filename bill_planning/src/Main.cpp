@@ -4,8 +4,9 @@
 #include "std_msgs/Float32.h"
 #include "nav_msgs/Odometry.h"
 #include "bill_msgs/MotorCommands.h"
-#include "bill_planner/Enums.hpp"
-#include "bill_planner/State_Machine.hpp"
+#include "bill_planning/include/bill_planning/Enums.hpp"
+#include "bill_planning/include/bill_planning/State_Machine.hpp"
+#include "bill_planning/include/bill_planning/Planner.hpp"
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void fireCallback(const std_msgs::Bool::ConstPtr& msg);
