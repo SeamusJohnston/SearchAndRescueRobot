@@ -29,9 +29,9 @@ struct StateMachine{
     }
     static void advanceState()
     {
+        ROS_INFO("Advance state, current state: %i", state);
         switch (state)
         {
-            ROS_INFO("Advance state, current state: %i", state);
             case 0:
             {
                 publishStop();

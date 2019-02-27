@@ -4,10 +4,8 @@
 struct StateMachine
 {
     public:
-	StateMachine();
+		StateMachine();
         int search_state;
-        Planner planner;
-
         void advanceState(int heading);
         void continueAngularScan();
         void publishStop();
@@ -16,4 +14,5 @@ struct StateMachine
         int num_states;
         const int scanning_angle = 10;
         int previous_desired_heading;
+		Planner planner;
 };

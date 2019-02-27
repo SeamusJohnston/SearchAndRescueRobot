@@ -13,9 +13,9 @@ void StateMachine::setMotorPub(ros::Publisher mp)
 
 void StateMachine::advanceState(int heading = 0)
 {
+    ROS_INFO("Advance state, current state: %i", search_state);
     switch (search_state)
     {
-        ROS_INFO("Advance state, current state: %i", search_state);
         case MachineStates::LOOKFORFIRE:
         {
             // Start First Half of Scan to Ensure Fire is Out
