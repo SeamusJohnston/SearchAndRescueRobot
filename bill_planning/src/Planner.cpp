@@ -1,19 +1,16 @@
 #include "bill_planning/Planner.hpp"
 
-Planner::Planner(State_Machine sm)
+
+void Planner::setMotorPub(ros::Publisher mp)
+{
+    motor_pub = mp;
+}
+
+void Planner::GridSearch()
 {
 }
 
-Planner::GridSearch()
-{
-}
-
-Planner::ScanAngle(int heading)
-{
-    publishTurn(heading % 360);
-}
-
-Planner::PublishStop()
+void Planner::PublishStop()
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding stop");
@@ -23,7 +20,7 @@ Planner::PublishStop()
     motor_pub.publish(command_msg);
 }
 
-Planner::PublishDrive(const int heading, const float speed)
+void Planner::PublishDrive(const int heading, const float speed)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding drive, heading: %i and speed: %f", heading, speed);
@@ -33,7 +30,7 @@ Planner::PublishDrive(const int heading, const float speed)
     motor_pub.publish(command_msg);
 }
 
-Planner::PublishTurn(const int heading)
+void Planner::PublishTurn(const int heading)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding turn, heading: %i", heading);

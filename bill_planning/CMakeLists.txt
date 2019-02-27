@@ -128,9 +128,9 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/bill_planning.cpp
 # )
-add_library(planner src/Planner.cpp)
-add_library(state_machine src/State_Machine.cpp)
 
+add_library(state_machine src/State_Machine.cpp)
+add_library(planner src/Planner.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -162,7 +162,8 @@ add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS})
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(demo_planner ${catkin_LIBRARIES})
-target_link_libraries(game_day_planner ${catkin_LIBRARIES} planner state_machine)
+target_link_libraries(state_machine planner)
+target_link_libraries(game_day_planner ${catkin_LIBRARIES} state_machine)
 
 #############
 ## Install ##

@@ -1,12 +1,4 @@
-#include <iostream>
-#include "ros/ros.h"
-#include "std_msgs/Bool.h"
-#include "std_msgs/Float32.h"
-#include "nav_msgs/Odometry.h"
-#include "bill_msgs/MotorCommands.h"
-#include "bill_planning/Enums.hpp"
 #include "bill_planning/State_Machine.hpp"
-#include "bill_planning/Planner.hpp"
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void fireCallback(const std_msgs::Bool::ConstPtr& msg);
@@ -14,11 +6,9 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 
 ros::Publisher motor_pub;
 ros::Publisher fan_pub;
-bill_msgs::MotorCommands command_msg;
 State_Machine stateMachine;
 Planner planner;
 
-int StateMachine::state = 0;
 int current_heading = 0;
 const int ULTRA_TRIGGER_DIST = 30;
 
@@ -40,9 +30,9 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     // Only turn fan on if looking/scanning for fire and found fire
-    if ((stateMachine::state == MachineStates::LOOKFORFIRE
-        || stateMachine::state == MachineStates::SCANNINGFIRE
-        || stateMachine::state == MachineStates::AWAI)
+    if ((stateMachine.search_state == MachineStates::LOOKFORFIRE
+        || stateMachine.search_state == MachineStates::SCANNINGFIRE
+        || stateMachine.search_state == MachineStates::AWAITINGFIRESCAN)
         && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
@@ -65,9 +55,9 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
             cmd.data = false;
             fan_pub.publish(cmd); // Turn off fan
 
-            if (stateMachine::state == MachineStates::LOOKFORFIRE)
+            if (stateMachine.search_state == MachineStates::LOOKFORFIRE)
             {
-                stateMachine.AdvanceState();
+                stateMachine.AdvanceState(current_heading);
             }
             else
             {
@@ -87,9 +77,6 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "demo_planner");
     ros::NodeHandle nh;
 
-    planner = Planner();
-    stateMachine.planner = planner;
-
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallback);
@@ -98,9 +85,13 @@ int main(int argc, char** argv)
     motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
 
+    // Setup planner and state machine
+    planner.setMotorPub(motor_pub);
+    stateMachine.planner = planner;
+
     // Start state machine, then spin
-    State_Machine.search_state = Enums::MachineStates::STARTINGCOURSE;
-    State_Machine.AdvanceState();
+    stateMachine.search_state = MachineStates::STARTINGCOURSE;
+    stateMachine.AdvanceState(current_heading);
 
     ros::spin();
     return 0;
