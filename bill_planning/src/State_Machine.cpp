@@ -1,12 +1,17 @@
 #include "bill_planning/State_Machine.hpp"
 
-State_Machine::State_Machine()
+StateMachine::StateMachine()
 {
-    previousDesiredHeading = 0;
+    previous_desired_heading = 0;
     num_states = MachineStates::COUNT;
 }
 
-void State_Machine::AdvanceState(int heading = 0)
+void StateMachine::setMotorPub(ros::Publisher mp)
+{
+    planner.setMotorPub(mp);
+}
+
+void StateMachine::advanceState(int heading = 0)
 {
     switch (search_state)
     {
@@ -41,7 +46,12 @@ void State_Machine::AdvanceState(int heading = 0)
     }
 }
 
-void State_Machine::ContinueAngularScan()
+void StateMachine::continueAngularScan()
 {
     planner.ScanAngle(previousDesiredHeading);
+}
+
+void StateMachine::publishStop()
+{
+    planner.publishStop();
 }

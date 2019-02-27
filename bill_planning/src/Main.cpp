@@ -1,4 +1,4 @@
-#include "bill_planning/State_Machine.hpp"
+#include "bill_planning/StateMachine.hpp"
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void fireCallback(const std_msgs::Bool::ConstPtr& msg);
@@ -6,13 +6,12 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 
 ros::Publisher motor_pub;
 ros::Publisher fan_pub;
-State_Machine stateMachine;
-Planner planner;
+
+StateMachine state_machine;
 
 int current_heading = 0;
 const int ULTRA_TRIGGER_DIST = 30;
-
-int foundFire = 0;
+int found_fire = 0;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -30,21 +29,21 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     // Only turn fan on if looking/scanning for fire and found fire
-    if ((stateMachine.search_state == MachineStates::LOOKFORFIRE
-        || stateMachine.search_state == MachineStates::SCANNINGFIRE
-        || stateMachine.search_state == MachineStates::AWAITINGFIRESCAN)
+    if ((state_machine.search_state == MachineStates::LOOKFORFIRE
+        || state_machine.search_state == MachineStates::SCANNINGFIRE
+        || state_machine.search_state == MachineStates::AWAITINGFIRESCAN)
         && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
         // TODO: This may not work for scanning depending how fast we scan... might have
         //       only detect once while doing a scan
-        if (foundFire < 3)
+        if (found_fire < 3)
         {
-            foundFire++;
+            found_fire++;
         }
         else
         {
-            planner.PublishStop();
+            state_machine.publishStop()
 
             std_msgs::Bool cmd;
             cmd.data = true;
@@ -55,26 +54,26 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
             cmd.data = false;
             fan_pub.publish(cmd); // Turn off fan
 
-            if (stateMachine.search_state == MachineStates::LOOKFORFIRE)
+            if (state_machine.search_state == MachineStates::LOOKFORFIRE)
             {
-                stateMachine.AdvanceState(current_heading);
+                state_machine.advanceState(current_heading);
             }
             else
             {
-                stateMachine.ContinueAngularScan();
+                state_machine.continueAngularScan();
             }
             
         }
     }
     else
     {
-        foundFire = 0;
+        found_fire = 0;
     }
 }
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "demo_planner");
+    ros::init(argc, argv, "game_day_planner");
     ros::NodeHandle nh;
 
     // Subscribing to Topics
@@ -85,13 +84,10 @@ int main(int argc, char** argv)
     motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
 
-    // Setup planner and state machine
-    planner.setMotorPub(motor_pub);
-    stateMachine.planner = planner;
-
     // Start state machine, then spin
-    stateMachine.search_state = MachineStates::STARTINGCOURSE;
-    stateMachine.AdvanceState(current_heading);
+    state_machine.setMotorPub(motor_pub);
+    state_machine.search_state = MachineStates::STARTINGCOURSE;
+    state_machine.advanceState(current_heading);
 
     ros::spin();
     return 0;

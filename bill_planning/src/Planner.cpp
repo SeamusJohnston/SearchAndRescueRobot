@@ -6,11 +6,11 @@ void Planner::setMotorPub(ros::Publisher mp)
     motor_pub = mp;
 }
 
-void Planner::GridSearch()
+void Planner::gridSearch()
 {
 }
 
-void Planner::PublishStop()
+void Planner::publishStop()
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding stop");
@@ -20,7 +20,7 @@ void Planner::PublishStop()
     motor_pub.publish(command_msg);
 }
 
-void Planner::PublishDrive(const int heading, const float speed)
+void Planner::publishDrive(const int heading, const float speed)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding drive, heading: %i and speed: %f", heading, speed);
@@ -30,7 +30,7 @@ void Planner::PublishDrive(const int heading, const float speed)
     motor_pub.publish(command_msg);
 }
 
-void Planner::PublishTurn(const int heading)
+void Planner::publishTurn(const int heading)
 {
     //std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding turn, heading: %i", heading);
