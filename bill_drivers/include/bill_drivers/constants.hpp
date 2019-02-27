@@ -1,0 +1,4 @@
+#define ULTRA_TRIGGER_PIN 24
+#define ULTRA_ECHO_PIN 25
+
+const float FREQUENCY_ULTRA = 16.6667;

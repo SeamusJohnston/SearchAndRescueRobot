@@ -10,6 +10,19 @@ void StateMachine::advanceState(int heading = 0)
     ROS_INFO("Advance state, current state: %i", search_state);
     switch (search_state)
     {
+        case MachineStates::STARTINGCOURSE:
+        {
+            // Drive to point X-max Y-0
+            // Start initial search (aka drive forward 1 inch scan repeat for course)
+            search_state = MachineStates::RUNINITIALSEARCH;
+            break;
+        }
+        case MachineStates::RUNINITIALSEARCH:
+        {
+            // Start grid search OR drive to saved points from initial search
+            search_state = MachineStates::LOOKFORFIRE;
+            break;
+        }
         case MachineStates::LOOKFORFIRE:
         {
             planner.putOutFire();

@@ -11,7 +11,8 @@ ros::Publisher fan_pub;
 StateMachine state_machine;
 
 int current_heading = 0;
-const int ULTRA_TRIGGER_DIST = 30;
+const float ULTRA_INIT_SCAN_DIST = 163.83;
+const float ULTRA_CLOSETOWALL_DIST = 5;
 int found_fire = 0;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -22,24 +23,33 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    // This callback will determine what we should do with ultrasonic data
-    // Logic needs to determine what we are searching for or if we need to mark a location
     // Logic needs to determine if we are close enough to complete a given task
-    if (state_machine.search_state == MachineStates::INITIALSEARCH)
+    if (state_machine.search_state == MachineStates::INITIALSEARCH
+        && msg->data <= ULTRA_INIT_SCAN_DIST)
     {
-        //We are doing the initial search 
+        // Either save point and move around object ||
+        // End of path, how far have we travelled? Global variable may help here
     }
+
+    // TODO: Turn when hit a wall
+    // TODO: Read sensors to determine what we found
+    // TODO: Mark object with type or signal object completion
 }
 
 void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    // This callback will determine what we should do with ultrasonic data
-    // Logic needs to determine what we are searching for or if we need to mark a location
-    // Logic needs to determine if we are close enough to complete a given task
-    if (state_machine.search_state == MachineStates::INITIALSEARCH)
+    //Scan up to the end of course - width building - width robot turning radius
+    // TODO: How do we move around objects directly in our path
+    if (state_machine.search_state == MachineStates::INITIALSEARCH
+        && msg->data <= ULTRA_CLOSETOWALL_DIST)
     {
-        //We are doing the initial search 
+        // We are done the initial search
+        state_machine.advanceState();
     }
+    // TODO: If we are completing our search and ever find something worth noting
+    //          we should mark point or signal object completion depending on
+    //          sensor reading (Must turn to face the object of interest)
+    //          what is a good distance for regular search? 10-20 cm might suffice
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -84,7 +94,7 @@ int main(int argc, char** argv)
 
     // Start state machine, then spin
     state_machine.planner.setPubs(motor_pub, fan_pub);
-    state_machine.search_state = MachineStates::STARTINGCOURSE;
+    state_machine.search_state = MachineStates::STARTINGCOURSE; //State 0
     state_machine.advanceState(current_heading);
 
     ros::spin();
