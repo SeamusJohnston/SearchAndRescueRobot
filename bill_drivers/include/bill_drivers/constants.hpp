@@ -1,3 +1,6 @@
+#ifndef CONSTANTS
+#define CONSTANTS
+
 // Pins
 const int LED_PIN = 19;
 const int BUTTON_PIN = 26;
@@ -29,3 +32,5 @@ const float LOOP_RATE_ENCODER = 10;
 const float LOOP_RATE_I2C = 10;
 const float LOOP_RATE_IMU = 10;
 const float LOOP_RATE_RESET = 10;
+
+#endif

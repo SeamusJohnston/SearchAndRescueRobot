@@ -127,6 +127,8 @@ include_directories(
 
 ## Declare a C++ library
 add_library(pi2c src/pi2c.cpp)
+add_library(constants include/bill_drivers/constants.hpp)
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -157,14 +159,14 @@ add_dependencies(i2c_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(imu_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(reset_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(i2c_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} pi2c)
+target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(imu_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(reset_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} constants)
+target_link_libraries(i2c_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} pi2c constants)
 
 #############
 ## Install ##
