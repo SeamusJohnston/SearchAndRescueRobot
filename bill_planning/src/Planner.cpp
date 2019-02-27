@@ -1,6 +1,5 @@
 #include "bill_planning/Planner.hpp"
 
-
 void Planner::setMotorPub(ros::Publisher mp)
 {
     motor_pub = mp;

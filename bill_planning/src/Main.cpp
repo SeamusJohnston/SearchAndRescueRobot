@@ -2,7 +2,8 @@
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void fireCallback(const std_msgs::Bool::ConstPtr& msg);
-void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 
 ros::Publisher motor_pub;
 ros::Publisher fan_pub;
@@ -19,11 +20,26 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     // And the encoders aren't operational, it will have to just use timers instead
 }
 
-void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     // This callback will determine what we should do with ultrasonic data
     // Logic needs to determine what we are searching for or if we need to mark a location
     // Logic needs to determine if we are close enough to complete a given task
+    if (state_machine.search_state == MachineStates::INITIALSEARCH)
+    {
+        //We are doing the initial search 
+    }
+}
+
+void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+    // This callback will determine what we should do with ultrasonic data
+    // Logic needs to determine what we are searching for or if we need to mark a location
+    // Logic needs to determine if we are close enough to complete a given task
+    if (state_machine.search_state == MachineStates::INITIALSEARCH)
+    {
+        //We are doing the initial search 
+    }
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
