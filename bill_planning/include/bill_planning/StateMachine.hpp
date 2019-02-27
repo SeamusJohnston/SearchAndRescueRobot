@@ -4,15 +4,12 @@
 struct StateMachine
 {
     public:
-		StateMachine();
+        StateMachine();
         int search_state;
-        void advanceState(int heading);
-        void continueAngularScan();
-        void publishStop();
-        void setMotorPub(ros::Publisher mp);
+        void advanceState(int heading = 0);
+        void resetScanningFire(int heading):
     private:
         int num_states;
         const int scanning_angle = 10;
-        int previous_desired_heading;
-		Planner planner;
+        Planner planner;
 };

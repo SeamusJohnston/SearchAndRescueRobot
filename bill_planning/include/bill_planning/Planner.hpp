@@ -8,12 +8,13 @@
 class Planner
 {
     public:
-    	void setMotorPub(ros::Publisher mp);        
+    	void setPubs(ros::Publisher mp, ros::Publisher fp);
         void gridSearch();
         void scanAngle(int heading);
         void publishStop();
         void publishDrive(const int heading, const float speed);
         void publishTurn(const int heading);
+        void putOutFire();
     private:
         bill_msgs::MotorCommands command_msg;
         ros::Publisher motor_pub;

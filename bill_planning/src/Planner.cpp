@@ -1,8 +1,9 @@
 #include "bill_planning/Planner.hpp"
 
-void Planner::setMotorPub(ros::Publisher mp)
+void Planner::setPubs(ros::Publisher mp, ros::Publisher fp);
 {
     motor_pub = mp;
+    fan_pub = fp;
 }
 
 void Planner::gridSearch()
@@ -37,4 +38,17 @@ void Planner::publishTurn(const int heading)
     command_msg.heading = heading;
     command_msg.speed = 0; // Speed is hardcoded in the motor driver for turning
     motor_pub.publish(command_msg);
+}
+
+void Planner::putOutFire()
+{
+    publishStop();
+
+    // Turn ON/OFF Fan
+    std_msgs::Bool cmd;
+    cmd.data = true;
+    fan_pub.publish(cmd); // Turn on fan
+    ros::Duration(2).sleep();
+    cmd.data = false;
+    fan_pub.publish(cmd); // Turn off fan
 }

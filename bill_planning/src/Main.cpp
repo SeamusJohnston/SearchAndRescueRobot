@@ -46,39 +46,21 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     // Only turn fan on if looking/scanning for fire and found fire
     if ((state_machine.search_state == MachineStates::LOOKFORFIRE
-        || state_machine.search_state == MachineStates::SCANNINGFIRE
-        || state_machine.search_state == MachineStates::AWAITINGFIRESCAN)
+        || state_machine.search_state == MachineStates::SCANNINGFIRE2)
         && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        // TODO: This may not work for scanning depending how fast we scan... might have
-        //       only detect once while doing a scan
         if (found_fire < 3)
         {
             found_fire++;
         }
+        else if (state_machine.search_state == MachineStates::LOOKFORFIRE)
+        {
+            state_machine.advanceState(current_heading);            
+        }
         else
         {
-            state_machine.publishStop()
-
-            std_msgs::Bool cmd;
-            cmd.data = true;
-
-            fan_pub.publish(cmd); // Turn on fan
-            ros::Duration(2).sleep();
-
-            cmd.data = false;
-            fan_pub.publish(cmd); // Turn off fan
-
-            if (state_machine.search_state == MachineStates::LOOKFORFIRE)
-            {
-                state_machine.advanceState(current_heading);
-            }
-            else
-            {
-                state_machine.continueAngularScan();
-            }
-            
+            state_machine.resetScanningFire(current_heading);
         }
     }
     else
@@ -101,7 +83,7 @@ int main(int argc, char** argv)
     fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
 
     // Start state machine, then spin
-    state_machine.setMotorPub(motor_pub);
+    state_machine.planner.setPubs(motor_pub, fan_pub);
     state_machine.search_state = MachineStates::STARTINGCOURSE;
     state_machine.advanceState(current_heading);
 

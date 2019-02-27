@@ -2,13 +2,7 @@
 
 StateMachine::StateMachine()
 {
-    previous_desired_heading = 0;
     num_states = MachineStates::COUNT;
-}
-
-void StateMachine::setMotorPub(ros::Publisher mp)
-{
-    planner.setMotorPub(mp);
 }
 
 void StateMachine::advanceState(int heading = 0)
@@ -18,24 +12,23 @@ void StateMachine::advanceState(int heading = 0)
     {
         case MachineStates::LOOKFORFIRE:
         {
+            planner.putOutFire();
             // Start First Half of Scan to Ensure Fire is Out
-            previousDesiredHeading = (heading + scanning_angle) % 360;
-            planner.PublishTurn(previousDesiredHeading);
+            planner.PublishTurn((heading + scanning_angle) % 360);
 
-            search_state = MachineStates::SCANNINGFIRE;
+            search_state = MachineStates::SCANNINGFIRE1;
             break;
         }
-        case MachineStates::SCANNINGFIRE:
+        case MachineStates::SCANNINGFIRE1:
         {
-            // Conduct Second Half of Scan to Ensure Fire is Out
-            previousDesiredHeading = (heading - 2 * scanning_angle) % 360;
-            planner.PublishTurn(previousDesiredHeading);
-            search_state = MachineStates::AWAITINGFIRESCAN;
+            planner.PublishTurn((heading + scanning_angle) % 360);
+            search_state = MachineStates::SCANNINGFIRE2;
             break;
         }
-        case MachineStates::AWAITINGFIRESCAN:
+        case MachineStates::SCANNINGFIRE2:
         {
-            //Found and Put out the fire, what's next?
+            planner.PublishTurn((heading - 2 * scanning_angle) % 360);
+            //TODO: Update search state with next task
             break;
         }
         default:
@@ -46,12 +39,9 @@ void StateMachine::advanceState(int heading = 0)
     }
 }
 
-void StateMachine::continueAngularScan()
+void StateMachine::resetScanningFire(int heading)
 {
-    planner.ScanAngle(previousDesiredHeading);
-}
-
-void StateMachine::publishStop()
-{
-    planner.publishStop();
+    planner.putOutFire();
+    search_state = MachineStates::LOOKFORFIRE;
+    advanceState(heading);
 }
