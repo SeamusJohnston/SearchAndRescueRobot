@@ -1,30 +1,30 @@
 #ifndef ENUMS
 #define ENUMS
-/*
-enum MainStates 
+
+enum MajorStates 
 {
-    INIT_SCAN = 0,
-    FIRE = 0,
+    INIT_SEARCH,
+    SEARCH_FIRE,
+    SEARCH,
+    DELIVER,
+    RETURN_HOME
 }
 
-enum INIT_SCAN
+enum MinorStates
 {
-
+    RUN,
+    FOUND_FIRE,
+    FOUND_SURVIVOR,
+    FOUND_GROUP,
+    FOUND_FOOD,
+    VERIFY_FIRE,
+    COMPLETE
 }
-
-enum Fire
-{
-    LOOKFORFIRE = 0,
-    VERIFY = 1
-}
-*/
 
 enum MachineStates{
     STARTINGCOURSE = 0,
     DRIVETOCORNER = 1
     RUNINITIALSEARCH = 2,
-    //3
-    //4
     LOOKFORFIRE = 5,
     SCANNINGFIRE1 = 6,
     SCANNINGFIRE2 = 7,
@@ -32,9 +32,11 @@ enum MachineStates{
     COUNT = 9// ALWAYS MAKE COUNT LAST, UGLY SOLUTION TO DETERMINE ITEMS IN ENUM
 };
 
+/*
 enum SearchingStates{
     DRIVETOPOINT = 0,
     GRIDSEARCH = 1
     //COUNT // ALWAYS MAKE COUNT LAST, UGLY SOLUTION TO DETERMINE ITEMS IN ENUM
 };
+*/
 #endif

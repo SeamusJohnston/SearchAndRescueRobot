@@ -1,10 +1,5 @@
 #include "bill_planning/State_Machine.hpp"
 
-StateMachine::StateMachine()
-{
-    num_states = MachineStates::COUNT;
-}
-
 void StateMachine::advanceState(int heading = 0)
 {
     ROS_INFO("Advance state, current state: %i", search_state);
