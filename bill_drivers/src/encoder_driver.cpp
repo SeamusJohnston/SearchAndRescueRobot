@@ -2,18 +2,18 @@
 #include "ros/ros.h"
 #include "tf/transform_datatypes.h"
 #include "wiringPi.h"
+#include "angles/angles.h"
 #include <cmath>
 
-const int MOTORA_ENCA_PIN = 19; // Motor A (right) A channel
-const int MOTORA_ENCB_PIN = 18; // Motor A (right) B channel
-const int MOTORB_ENCA_PIN = 17; // Motor B (left) A channel
-const int MOTORB_ENCB_PIN = 16; // Motor B (left) B channel
+const int MOTORA_ENCA_PIN = 19;  // Motor A (right) A channel
+const int MOTORA_ENCB_PIN = 18;  // Motor A (right) B channel
+const int MOTORB_ENCA_PIN = 17;  // Motor B (left) A channel
+const int MOTORB_ENCB_PIN = 16;  // Motor B (left) B channel
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
-const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125)); // pi * diameter * meters_to_inches / counts per rev
+const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
 const float WHEEL_BASE = 5.76;
 const int MOTORA_COUNTER_KEY = 0;
 const int MOTORB_COUNTER_KEY = 1;
-
 
 int motorA_stateA_prev;
 int motorB_stateA_prev;
@@ -23,9 +23,9 @@ int motorA_counter = 0;
 int motorB_counter = 0;
 int motorA_counter_prev = 0;
 int motorB_counter_prev = 0;
-float theta = 0; // TODO: Determine what our starting orientation is
-float x = 0;
-float y = 0;
+float theta = 0;  // In radians TODO: Determine what our starting orientation is
+float x = 0;      // m
+float y = 0;      // m
 
 void setup()
 {
@@ -39,7 +39,7 @@ void setup()
     motorB_stateA_prev = digitalRead(MOTORB_ENCA_PIN);
 }
 
-PI_THREAD (motorA_encoder)
+PI_THREAD(motorA_encoder)
 {
     ROS_INFO("Thread A started!");
     while (1)
@@ -64,11 +64,11 @@ PI_THREAD (motorA_encoder)
             motorA_stateA_prev = motorA_stateA;
         }
 
-        delayMicroseconds(2); // To soften the load on the processor
+        delayMicroseconds(2);  // To soften the load on the processor
     }
 }
 
-PI_THREAD (motorB_encoder)
+PI_THREAD(motorB_encoder)
 {
     ROS_INFO("Thread B started!");
 
@@ -94,7 +94,7 @@ PI_THREAD (motorB_encoder)
             motorB_stateA_prev = motorB_stateA;
         }
 
-        delayMicroseconds(2); // To soften the load on the processor
+        delayMicroseconds(2);  // To soften the load on the processor
     }
 }
 
@@ -105,6 +105,8 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piLock(MOTORB_COUNTER_KEY);
     int delta_right = motorA_counter - motorA_counter_prev;
     int delta_left = motorB_counter - motorB_counter_prev;
+    motorA_counter = 0;
+    motorB_counter = 0;
     motorA_counter_prev = motorA_counter;
     motorB_counter_prev = motorB_counter;
     piUnlock(MOTORA_COUNTER_KEY);
@@ -114,9 +116,9 @@ nav_msgs::Odometry calculateOdometry(float dt)
     float v_left = delta_left * DIST_PER_TICK;
 
     float v_robot = (v_right + v_left) / 2.0;
-    float v_th = (v_right - v_left) / WHEEL_BASE;
+    float v_th = (v_right - v_left) / WHEEL_BASE;  // rad/s
 
-    float delta_x = v_robot * cos(theta) * dt; // These calcs are done with the prev theta value, should be fine though
+    float delta_x = v_robot * cos(theta) * dt;  // These calcs are done with the prev theta value, should be fine though
     float delta_y = v_robot * sin(theta) * dt;
     float delta_th = v_th * dt;
 
@@ -124,13 +126,13 @@ nav_msgs::Odometry calculateOdometry(float dt)
     y += delta_y;
     theta += delta_th;
 
-    if (theta >=360)
+    if (theta >= 2 * M_PI)
     {
-        theta -= 360;
+        theta -= 2 * M_PI;
     }
     else if (theta < 0)
     {
-        theta += 360;
+        theta += 2 * M_PI;
     }
 
     nav_msgs::Odometry msg;
@@ -143,9 +145,10 @@ nav_msgs::Odometry calculateOdometry(float dt)
     msg.twist.twist.linear.z = 0;
     msg.twist.twist.angular.z = v_th;
 
+    ROS_INFO("Heading: %f", angles::to_degrees(theta));
+
     return msg;
 }
-
 
 int main(int argc, char** argv)
 {

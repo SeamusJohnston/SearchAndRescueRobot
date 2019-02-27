@@ -2,7 +2,7 @@
 #include "std_msgs/Float32.h"
 #include "wiringPi.h"
 #include <iostream>
-#include <limits> 		// for NaN
+#include <limits>  // for NaN
 
 // Pin 23 is Echo, pin 24 is trigger
 #define TRIGGER_PIN 24
@@ -16,10 +16,10 @@ const static float SPEED_OF_SOUND_CMPUS = 0.0340;
 
 void setup()
 {
-    // Init GPIO 
+    // Init GPIO
     wiringPiSetupGpio();
 
-    // Set up pins 
+    // Set up pins
     pinMode(TRIGGER_PIN, OUTPUT);
     pinMode(ECHO_PIN, INPUT);
     ROS_INFO("Trigger pin is: %i", wpiPinToGpio(TRIGGER_PIN));
@@ -32,7 +32,7 @@ void setup()
 float ReadDistance()
 {
     // Make sure the trigger pin starts low
-    digitalWrite(TRIGGER_PIN,LOW);
+    digitalWrite(TRIGGER_PIN, LOW);
     delayMicroseconds(2);
 
     // Send pulse of 10 microseconds
@@ -41,19 +41,18 @@ float ReadDistance()
     delayMicroseconds(20);
     digitalWrite(TRIGGER_PIN, LOW);
 
-    // Wait for echo to return 
+    // Wait for echo to return
     int recieveTimeout = ECHO_RECIEVE_TIMEOUT;
 
     while (digitalRead(ECHO_PIN) == LOW)
     {
         if (--recieveTimeout == 0)
         {
-            ROS_WARN("Ultrasonic sensor never receieved echo");
+            ROS_WARN("Ultrasonic sensor never received echo");
             return std::numeric_limits<double>::quiet_NaN();
         }
     }
-  
-  
+
     // Echo has been detected, measure how long its high for
     // *High by Young Thug and Elton John plays softly in the background*
 
@@ -64,14 +63,14 @@ float ReadDistance()
     {
         if (--readTimeout == 0)
         {
-            ROS_WARN("Ultrasonic sensor timed out while reading echo %i", micros()- startTime);
+            ROS_WARN("Ultrasonic sensor timed out while reading echo");
             return std::numeric_limits<double>::quiet_NaN();
         }
     }
-    
+
     long echoTime = micros() - startTime;
-    
-    return(echoTime * SPEED_OF_SOUND_CMPUS)/ 2.0;
+
+    return (echoTime * SPEED_OF_SOUND_CMPUS) / 2.0;
 }
 
 std_msgs::Float32 read()
@@ -88,7 +87,6 @@ std_msgs::Float32 read()
     // Populate the message
     msg.data = distance;
 
-    std::cout << "Ultrasonic sensor distance: " << distance << " cm"<< std::endl;
     return msg;
 }
 
