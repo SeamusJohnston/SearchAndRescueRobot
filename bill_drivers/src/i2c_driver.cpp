@@ -2,6 +2,7 @@
 #include "std_msgs/Bool.h"
 #include "ros/ros.h"
 #include "bill_drivers/pi2c.h"
+#include "constants.hpp"
 #include <bitset>
 
 int main(int argc, char** argv)
@@ -11,7 +12,7 @@ int main(int argc, char** argv)
     ros::Publisher survivor_pub = nh.advertise<bill_msgs::Survivor>("survivors", 100);
     ros::Publisher food_pub = nh.advertise<std_msgs::Bool>("food", 100);
     ros::Publisher fire_pub = nh.advertise<std_msgs::Bool>("fire", 100);
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(LOOP_RATE_I2C);
 
     // Create i2c object for arduino
     Pi2c arduino(7);

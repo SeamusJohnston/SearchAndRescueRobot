@@ -1,5 +1,24 @@
 #ifndef ENUMS
 #define ENUMS
+/*
+enum MainStates 
+{
+    INIT_SCAN = 0,
+    FIRE = 0,
+}
+
+enum INIT_SCAN
+{
+
+}
+
+enum Fire
+{
+    LOOKFORFIRE = 0,
+    VERIFY = 1
+}
+*/
+
 enum MachineStates{
     STARTINGCOURSE = 0,
     DRIVETOCORNER = 1

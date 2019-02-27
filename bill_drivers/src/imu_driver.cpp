@@ -1,5 +1,6 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
+#include "constants.hpp"
 
 void setup()
 {
@@ -22,7 +23,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "imu_driver");
     ros::NodeHandle nh;
     ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu", 100);
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(LOOP_RATE_IMU);
 
     // Call sensor setup
     setup();

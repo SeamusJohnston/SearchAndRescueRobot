@@ -1,9 +1,9 @@
 #include "ros/ros.h"
 #include "std_msgs/Float32.h"
 #include "wiringPi.h"
-#include "constants.hpp"
 #include <iostream>
 #include <limits>
+#include "constants.hpp"
 
 // Pin 23 is Echo, pin 24 is trigger
 const static int ECHO_RECIEVE_TIMEOUT = 30000;
@@ -96,7 +96,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "ultrasonic_driver");
     ros::NodeHandle nh;
     ros::Publisher ultrasonic_pub = nh.advertise<std_msgs::Float32>("ultrasonic", 100);
-    ros::Rate loop_rate(FREQUENCY_ULTRA);
+    ros::Rate loop_rate(LOOP_RATE_ULTRA);
 
     // Call sensor setup
     setup();

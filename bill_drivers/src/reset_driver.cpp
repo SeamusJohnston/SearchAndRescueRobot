@@ -1,8 +1,7 @@
 #include "ros/ros.h"
 #include "wiringPi.h"
 #include "std_msgs/Bool.h"
-
-#define BUTTON_PIN 20
+#include "constants.hpp"
 
 void setup()
 {
@@ -30,7 +29,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "reset_driver");
     ros::NodeHandle nh;
     ros::Publisher reset_pub = nh.advertise<std_msgs::Bool>("reset", 100);
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(LOOP_RATE_RESET);
 
     // Call sensor setup
     setup();

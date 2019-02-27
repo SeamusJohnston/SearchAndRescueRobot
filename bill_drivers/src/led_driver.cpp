@@ -1,8 +1,7 @@
 #include "ros/ros.h"
 #include "wiringPi.h"
 #include "std_msgs/Bool.h"
-
-#define LED_PIN 18
+#include "constants.hpp"
 
 bool debugLEDToggle = true;
 
