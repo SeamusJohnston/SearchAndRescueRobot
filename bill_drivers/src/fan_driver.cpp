@@ -2,7 +2,7 @@
 #include "std_msgs/Bool.h"
 #include "wiringPi.h"
 #include <iostream>
-#define RELAY_OUTPIN 8
+#define RELAY_OUTPIN 25
 
 void fanCallback(const std_msgs::Bool::ConstPtr& msg)
 {

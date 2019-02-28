@@ -1,0 +1,9 @@
+<!-- Demo launch file -->
+<launch>
+  <!-- Launch all drivers -->
+  <include file="$(find bill_drivers)/launch/drivers.launch" />
+  
+  <node pkg="bill_planning" type="demo_planner"
+    name="demo_planner">
+  </node>
+</launch>
