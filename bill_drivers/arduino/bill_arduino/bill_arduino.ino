@@ -115,8 +115,8 @@ void loop()
   data[11] = Wire.read();  // Z Gyro MSB
 
   data[12] = readColourSensor() ^ readFlameSensor() ^ readHallEffectSensor();
-
-  for (int i = 0; i < 12; ++i)
+  
+  for (int i = 0; i < 13; ++i)
   {
     Serial.print(data[i]);
     Serial.print(" ");
@@ -150,16 +150,16 @@ byte readFlameSensor()
 {
   int sensorValue = analogRead(Flame);
   
-  Serial.print("Flame: ");
-  Serial.print(sensorValue);
+  //Serial.print("Flame: ");
+  //Serial.print(sensorValue);
   if(sensorValue < 70)
   {
-    Serial.println(" True");
+    //Serial.println(" True");
     return 0x01;
   }
   else
   {
-    Serial.println(" False");
+    //Serial.println(" False");
     return 0x00;
   }
 }
@@ -168,16 +168,16 @@ byte readHallEffectSensor()
 {
   int sensorValue = analogRead(Hall);
   
-  Serial.print("Hall: ");
-    Serial.print(sensorValue);
+  //Serial.print("Hall: ");
+  //Serial.print(sensorValue);
   if(sensorValue <= 510 || sensorValue >= 540)
   {
-    Serial.println(" True");
+    //Serial.println(" True");
     return 0x02;
   }
   else
   {
-    Serial.println(" False");
+    //Serial.println(" False");
     return 0x00;
   }
 }
@@ -188,14 +188,14 @@ byte readColourSensor()
   
   if (LargeBuilding())
   {
-    Serial.println("Detected Small Building");
     return 0x08;
   }
   else if (SmallBuilding())
   {
-    Serial.println("Detected Large Building");
     return 0x04;
   }
+
+  return 0x00;
 }
 
 void ReadRGBC()
@@ -219,7 +219,7 @@ void ReadRGBC()
   digitalWrite(S2,HIGH);
   digitalWrite(S3,LOW);
   colours[3] = pulseIn(Colour, LOW);
-
+/*
   Serial.print("rgbc: ");
   Serial.print(colours[0]);
   Serial.print(", ");
@@ -228,23 +228,26 @@ void ReadRGBC()
   Serial.print(colours[2]);
   Serial.print(", ");
   Serial.println(colours[3]);
+  delay(1000);*/
+
 }
 
-//110, 215, 209, 64
 bool LargeBuilding()
 {
-  return colours[3] < 65 && // Clear Building Detected
-    colours[0] > 80 && colours[0] < 120 && // Red in range
-    colours[1] > 180 && colours[1] < 230 && // Blue in range
-    colours[2] > 150 && colours[2] < 200; // Green in range
+  bool returnVal = colours[3] < 65 && // Clear Building Detected
+    colours[0] > 50 && colours[0] < 100 && // Red in range
+    colours[1] > 125 && colours[1] < 175 && // Blue in range
+    colours[2] > 100 && colours[2] < 150; // Green in range
+  return returnVal;
 }
 
 bool SmallBuilding()
 {
-  return colours[3] < 60 && // Clear Building Detected
+  bool returnVal = colours[3] < 60 && // Clear Building Detected
     colours[0] > 30 && colours[0] < 80 && // Red in range
-    colours[1] > 70 && colours[1] < 130 && // Blue in range
-    colours[2] > 130 && colours[2] < 170; // Green in range
+    colours[1] > 50 && colours[1] < 100 && // Blue in range
+    colours[2] > 85 && colours[2] < 135;
+  return returnVal;
 }
 
 /////////////////////
