@@ -4,6 +4,6 @@
   <include file="$(find bill_drivers)/launch/drivers.launch" />
   
   <node pkg="bill_planning" type="demo_planner"
-    name="demo_planner">
+    name="demo_planner" output="screen">
   </node>
 </launch>

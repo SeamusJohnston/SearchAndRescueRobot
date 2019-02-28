@@ -21,9 +21,9 @@
 #define MOTORA_FORWARD 21  // AIN1
 #define MOTORA_REVERSE 22  // AIN2
 // Motor B is left motor
-#define MOTORB_PWM 23      // PWMB
-#define MOTORB_FORWARD 24  // BIN1
-#define MOTORB_REVERSE 25  // BIN2
+#define MOTORB_PWM 1      // PWMB
+#define MOTORB_FORWARD 2  // BIN1
+#define MOTORB_REVERSE 3  // BIN2
 
 // std::mutex mutex;
 bill_msgs::MotorCommands last_command_msg;

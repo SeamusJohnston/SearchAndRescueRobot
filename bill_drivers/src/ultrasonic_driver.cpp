@@ -5,8 +5,8 @@
 #include <limits>  // for NaN
 
 // Pin 23 is Echo, pin 24 is trigger
-#define TRIGGER_PIN 24
-#define ECHO_PIN 25
+#define TRIGGER_PIN 23
+#define ECHO_PIN 24
 const static int ECHO_RECIEVE_TIMEOUT = 30000;
 const static int ECHO_READ_TIMEOUT = 30000;
 const static float DISTANCE_SCALE_CM = 58.0;
