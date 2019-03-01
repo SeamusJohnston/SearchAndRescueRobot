@@ -1,5 +1,5 @@
-#ifndef CONSTANTS
-#define CONSTANTS
+#ifndef CONSTDEF
+#define CONSTDEF
 
 // Pins
 const int LED_PIN = 19;
