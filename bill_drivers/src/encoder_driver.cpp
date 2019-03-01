@@ -3,12 +3,8 @@
 #include "tf/transform_datatypes.h"
 #include "wiringPi.h"
 #include "angles/angles.h"
+#include "bill_drivers/constant_definition.hpp"
 #include <cmath>
-
-const int MOTORA_ENCA_PIN = 19;  // Motor A (right) A channel
-const int MOTORA_ENCB_PIN = 18;  // Motor A (right) B channel
-const int MOTORB_ENCA_PIN = 17;  // Motor B (left) A channel
-const int MOTORB_ENCB_PIN = 16;  // Motor B (left) B channel
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
 const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
 const float WHEEL_BASE = 5.76;
@@ -155,7 +151,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "encoder_driver");
     ros::NodeHandle nh;
     ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 100);
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(LOOP_RATE_ENCODER);
 
     // Call sensor setup
     setup();

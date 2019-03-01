@@ -3,9 +3,10 @@
 #include "sensor_msgs/Imu.h"
 #include "ros/ros.h"
 #include "wiringPi.h"
+#include "serial/serial.h"
+#include "bill_drivers/constant_definition.hpp"
 #include <bitset>
 #include <stdexcept>
-#include "serial/serial.h"
 
 const std::string port = "/dev/ttyACM0";
 const int baud = 9600;
@@ -42,7 +43,7 @@ int main(int argc, char** argv)
         bill_msgs::Survivor survivor_msg;
         std_msgs::Bool food_msg;
         std_msgs::Bool fire_msg;
-        ros::Rate loop_rate(100);
+        ros::Rate loop_rate(LOOP_RATE_SERIAL);
 
         std::string data = my_serial.readline(65536, "\r\n");
         size_t pos = 0;

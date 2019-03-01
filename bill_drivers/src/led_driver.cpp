@@ -1,8 +1,8 @@
 #include "ros/ros.h"
 #include "wiringPi.h"
 #include "std_msgs/Bool.h"
+#include "bill_drivers/constant_definition.hpp"
 
-#define LED_PIN 18
 
 void setup()
 {

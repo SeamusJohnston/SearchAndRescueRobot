@@ -5,6 +5,7 @@
 #include "nav_msgs/Odometry.h"
 #include "wiringPi.h"
 #include <softPwm.h>
+#include "bill_drivers/constant_definition.hpp"
 #include <mutex>
 
 #define PWM_RANGE 100  // Max pwm value
@@ -16,14 +17,6 @@
 #define KP_SPEED 10
 #define KI_SPEED 5
 #define MAX_VEL 0.4
-// Motor A is right motor
-#define MOTORA_PWM 20      // PWMA
-#define MOTORA_FORWARD 21  // AIN1
-#define MOTORA_REVERSE 22  // AIN2
-// Motor B is left motor
-#define MOTORB_PWM 23      // PWMB
-#define MOTORB_FORWARD 24  // BIN1
-#define MOTORB_REVERSE 25  // BIN2
 
 // std::mutex mutex;
 bill_msgs::MotorCommands last_command_msg;

@@ -1,8 +1,8 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 #include "wiringPi.h"
+#include "bill_drivers/constant_definition.hpp"
 #include <iostream>
-#define RELAY_OUTPIN 25
 
 void fanCallback(const std_msgs::Bool::ConstPtr& msg)
 {
