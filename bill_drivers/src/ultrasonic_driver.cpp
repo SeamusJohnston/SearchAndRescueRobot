@@ -1,11 +1,11 @@
 #include "ros/ros.h"
 #include "std_msgs/Float32.h"
 #include "wiringPi.h"
+#include "bill_drivers/constant_definition.hpp"
 #include <iostream>
-#include <limits>
-#include "constants.hpp"
+#include <limits>  // for NaN
 
-// Pin 23 is Echo, pin 24 is trigger
+
 const static int ECHO_RECIEVE_TIMEOUT = 30000;
 const static int ECHO_READ_TIMEOUT = 30000;
 const static float DISTANCE_SCALE_CM = 58.0;
@@ -15,62 +15,61 @@ const static float SPEED_OF_SOUND_CMPUS = 0.0340;
 
 void setup()
 {
-    // Init GPIO 
+    // Init GPIO
     wiringPiSetupGpio();
 
-    // Set up pins 
-    pinMode(ULTRA_TRIGGER_PIN, OUTPUT);
-    pinMode(ULTRA_ECHO_PIN, INPUT);
-    ROS_INFO("Trigger pin is: %i", wpiPinToGpio(ULTRA_TRIGGER_PIN));
-    ROS_INFO("Echo pin is: %i", wpiPinToGpio(ULTRA_ECHO_PIN));
+    // Set up pins
+    pinMode(ULTRA_TRIGGER_PIN1, OUTPUT);
+    pinMode(ULTRA_ECHO_PIN1, INPUT);
+    ROS_INFO("Trigger pin is: %i", wpiPinToGpio(ULTRA_TRIGGER_PIN1));
+    ROS_INFO("Echo pin is: %i", wpiPinToGpio(ULTRA_ECHO_PIN1));
 
     // Init trigger as low
-    digitalWrite(ULTRA_TRIGGER_PIN, LOW);
+    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
 }
 
 float ReadDistance()
 {
     // Make sure the trigger pin starts low
-    digitalWrite(ULTRA_TRIGGER_PIN,LOW);
+    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
     delayMicroseconds(2);
 
     // Send pulse of 10 microseconds
-    digitalWrite(ULTRA_TRIGGER_PIN, HIGH);
+    digitalWrite(ULTRA_TRIGGER_PIN1, HIGH);
     // Note this delay MUST be longer than 10 microseconds
     delayMicroseconds(20);
-    digitalWrite(ULTRA_TRIGGER_PIN, LOW);
+    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
 
-    // Wait for echo to return 
+    // Wait for echo to return
     int recieveTimeout = ECHO_RECIEVE_TIMEOUT;
 
-    while (digitalRead(ULTRA_ECHO_PIN) == LOW)
+    while (digitalRead(ULTRA_ECHO_PIN1) == LOW)
     {
         if (--recieveTimeout == 0)
         {
-            ROS_WARN("Ultrasonic sensor never receieved echo");
+            ROS_WARN("Ultrasonic sensor never received echo");
             return std::numeric_limits<double>::quiet_NaN();
         }
     }
-  
-  
+
     // Echo has been detected, measure how long its high for
     // *High by Young Thug and Elton John plays softly in the background*
 
     int readTimeout = ECHO_READ_TIMEOUT;
     long startTime = micros();
 
-    while (digitalRead(ULTRA_ECHO_PIN) == HIGH)
+    while (digitalRead(ULTRA_ECHO_PIN1) == HIGH)
     {
         if (--readTimeout == 0)
         {
-            ROS_WARN("Ultrasonic sensor timed out while reading echo %i", micros()- startTime);
+            ROS_WARN("Ultrasonic sensor timed out while reading echo");
             return std::numeric_limits<double>::quiet_NaN();
         }
     }
-    
+
     long echoTime = micros() - startTime;
-    
-    return(echoTime * SPEED_OF_SOUND_CMPUS)/ 2.0;
+
+    return (echoTime * SPEED_OF_SOUND_CMPUS) / 2.0;
 }
 
 std_msgs::Float32 read()
@@ -87,7 +86,6 @@ std_msgs::Float32 read()
     // Populate the message
     msg.data = distance;
 
-    std::cout << "Ultrasonic sensor distance: " << distance << " cm"<< std::endl;
     return msg;
 }
 

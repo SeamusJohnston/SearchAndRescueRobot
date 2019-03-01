@@ -1,9 +1,5 @@
 <!-- Driver launch file -->
 <launch>
-  <node pkg="bill_drivers" type="colour_driver"
-    name="colour_driver">
-  </node>
-
   <node pkg="bill_drivers" type="encoder_driver"
     name="encoder_driver">
   </node>
@@ -12,8 +8,8 @@
     name="fan_driver">
   </node>
 
-  <node pkg="bill_drivers" type="imu_driver"
-    name="imu_driver">
+  <node pkg="bill_drivers" type="serial_driver"
+    name="serial_driver" output="screen">
   </node>
 
   <node pkg="bill_drivers" type="led_driver"

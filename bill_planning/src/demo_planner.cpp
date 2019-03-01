@@ -8,17 +8,19 @@
 
 #define ULTRA_TRIGGER_DIST 30
 
-// Forward declarations 
+// Forward declarations
 void publishStop();
 void publishDrive(const int heading, const float speed);
 void publishTurn(const int heading);
 
-enum machineStatus{
+enum machineStatus
+{
     STOPPED = 0,
     RUNNING = 1
 };
 
-struct StateMachine{
+struct StateMachine
+{
     const static int num_states = 4;
     machineStatus status = machineStatus::STOPPED;
     static int state;
@@ -81,12 +83,12 @@ ros::Publisher fan_pub;
 bill_msgs::MotorCommands command_msg;
 StateMachine state_machine;
 int StateMachine::state = 0;
-//std::mutex mutex;
+// std::mutex mutex;
 int current_heading = 0;
 
 void publishStop()
 {
-    //std::lock_guard<std::mutex> lk(mutex);
+    // std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding stop");
     command_msg.command = bill_msgs::MotorCommands::STOP;
     command_msg.heading = 0;
@@ -96,7 +98,7 @@ void publishStop()
 
 void publishDrive(const int heading, const float speed)
 {
-    //std::lock_guard<std::mutex> lk(mutex);
+    // std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding drive, heading: %i and speed: %f", heading, speed);
     command_msg.command = bill_msgs::MotorCommands::DRIVE;
     command_msg.heading = heading;
@@ -106,11 +108,11 @@ void publishDrive(const int heading, const float speed)
 
 void publishTurn(const int heading)
 {
-    //std::lock_guard<std::mutex> lk(mutex);
+    // std::lock_guard<std::mutex> lk(mutex);
     ROS_INFO("Commanding turn, heading: %i", heading);
     command_msg.command = bill_msgs::MotorCommands::TURN;
     command_msg.heading = heading;
-    command_msg.speed = 0; // Speed is hardcoded in the motor driver for turning
+    command_msg.speed = 0;  // Speed is hardcoded in the motor driver for turning
     motor_pub.publish(command_msg);
 }
 
@@ -124,17 +126,17 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     if (msg->data)
     {
-        //std::lock_guard<std::mutex> lk(mutex);
+        // std::lock_guard<std::mutex> lk(mutex);
         state_machine.pauseMachine();
         publishStop();
 
         std_msgs::Bool cmd;
         cmd.data = true;
-        fan_pub.publish(cmd); // Turn on fan
+        fan_pub.publish(cmd);  // Turn on fan
         ros::Duration(2).sleep();
 
         cmd.data = false;
-        fan_pub.publish(cmd); // Turn off fan
+        fan_pub.publish(cmd);  // Turn off fan
         state_machine.runMachine();
     }
 }
@@ -143,18 +145,17 @@ void ultrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (msg->data <= ULTRA_TRIGGER_DIST)
     {
-        //std::lock_guard<std::mutex> lk(mutex);
+        // std::lock_guard<std::mutex> lk(mutex);
         state_machine.pauseMachine();
-        publishTurn((current_heading + 10) % 360); // Request rotation by 10 degrees clockwise
+        publishTurn((current_heading + 10) % 360);  // Request rotation by 10 degrees clockwise
         // Since IMU isn't operational, the heading published does nothing but set the direction
         // Therefore we have to start a short timer to actually represent the 10 degree turn
         ros::Duration(0.5).sleep();
-	    // TODO: Current heading should update from IMU once working, so remove this when it does
-	    current_heading += 10;
+        // TODO: Current heading should update from IMU once working, so remove this when it does
+        current_heading += 10;
         publishStop();
         state_machine.runMachine();
     }
-
 }
 
 int main(int argc, char** argv)

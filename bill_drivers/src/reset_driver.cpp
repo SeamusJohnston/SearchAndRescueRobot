@@ -1,25 +1,25 @@
 #include "ros/ros.h"
 #include "wiringPi.h"
 #include "std_msgs/Bool.h"
-#include "constants.hpp"
+#include "bill_drivers/constant_definition.hpp"
 
 void setup()
 {
-	// Init GPIO 
+    // Init GPIO
     wiringPiSetupGpio();
-	
-	pinMode(BUTTON_PIN, INPUT);
-	pullUpDnControl(BUTTON_PIN, PUD_UP);
-	ROS_INFO("Reset pin is: %i, and set up to PULL UP", BUTTON_PIN);
+
+    pinMode(BUTTON_PIN, INPUT);
+    pullUpDnControl(BUTTON_PIN, PUD_UP);
+    ROS_INFO("Reset pin is: %i, and set up to PULL UP", BUTTON_PIN);
 }
 
 std_msgs::Bool read()
 {
     // Create message to publish
     std_msgs::Bool msg;
-	
+
     // Populate the message
-	msg.data = (digitalRead(BUTTON_PIN) == LOW);
+    msg.data = (digitalRead(BUTTON_PIN) == LOW);
 
     return msg;
 }
@@ -46,9 +46,9 @@ int main(int argc, char** argv)
         {
             // Publish message, and spin thread
             reset_pub.publish(msg);
-			
-			ROS_INFO("Reset Button Status: %s", msg.data ? "Pressed" : "Not Pressed");
-			
+
+            ROS_INFO("Reset Button Status: %s", msg.data ? "Pressed" : "Not Pressed");
+
             ros::spinOnce();
         }
         past_reset.data = msg.data;

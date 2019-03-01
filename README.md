@@ -6,7 +6,15 @@ To download and compile, run:
 	git clone https://github.com/SeamusJohnston/SearchAndRescueRobot
 	cd ..
 	catkin_make
-	
+
+Make sure to also download and following installation instructions for WiringPi. 
+To download the serial library:
+
+	cd
+	git clone https://github.com/wjwwood/serial	
+	cd serial
+	make
+	make install
 
 To run the formatter, make sure you have clang-format-3.9 installed
 	

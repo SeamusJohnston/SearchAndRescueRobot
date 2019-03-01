@@ -1,8 +1,8 @@
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 #include "wiringPi.h"
+#include "bill_drivers/constant_definition.hpp"
 #include <iostream>
-#include "constants.hpp"
 
 void fanCallback(const std_msgs::Bool::ConstPtr& msg)
 {
