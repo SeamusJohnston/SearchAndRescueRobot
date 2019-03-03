@@ -4,7 +4,6 @@
 #include "bill_msgs/MotorCommands.h"
 #include "nav_msgs/Odometry.h"
 #include "wiringPi.h"
-#include "constants.hpp"
 #include <softPwm.h>
 #include "bill_drivers/constant_definition.hpp"
 #include <mutex>
@@ -25,7 +24,7 @@ float last_speed = 0;
 float speed_error_sum = 0;
 float heading_error_sum = 0;
 
-enum direction
+enum Direction
 {
     CW = 1,
     CCW = -1
@@ -70,9 +69,9 @@ void drive(const int left_cmd, const int right_cmd)
     softPwmWrite(MOTORB_PWM, std::abs(left_cmd));
 }
 
-void turn(const int dir, const unsigned int speed)
+void turn(const Direction dir, const unsigned int speed)
 {
-    if (dir == direction::CW)
+    if (dir == CW)
     {
         ROS_INFO("Turning CW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, LOW);
@@ -159,12 +158,12 @@ void turningCallback(int heading)
     if (error >= 0 && error <= 180 || error < 0 && error >= -180)
     {
         // For now turn at a constant speed always
-        turn(direction::CW, TURNING_SPEED);
+        turn(CW, TURNING_SPEED);
     }
     else
     {
         // For now turn at a constant speed always
-        turn(direction::CCW, TURNING_SPEED);
+        turn(CCW, TURNING_SPEED);
     }
     // Could add a condition here to stop turning if within a certain threshold, right now
     // We leave that up to the planner

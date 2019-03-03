@@ -1,12 +1,6 @@
-#include "bill_planning/StateMachine.hpp"
-
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
-void fireCallback(const std_msgs::Bool::ConstPtr& msg);
-void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
-void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
-
-ros::Publisher motor_pub;
-ros::Publisher fan_pub;
+#include "bill_planning/state_machine.hpp"
+#include "tf/transform_datatypes.h"
+#include "angles/angles.h"
 
 StateMachine state_machine;
 
@@ -17,14 +11,16 @@ int found_fire = 0;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    // This callback will in the future determine if a goal has been completed, but since the IMU
-    // And the encoders aren't operational, it will have to just use timers instead
+    // This callback will in the future determine if a goal has been completed
+    current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
+    state_machine.updateHeading(current_heading);
 }
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     // Logic needs to determine if we are close enough to complete a given task
-    if (state_machine.search_state == MachineStates::INITIALSEARCH
+    // TODO: Bryan implement
+    if (state_machine.major_state == INIT_SEARCH
         && msg->data <= ULTRA_INIT_SCAN_DIST)
     {
         // Either save point and move around object ||
@@ -40,7 +36,8 @@ void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     //Scan up to the end of course - width building - width robot turning radius
     // TODO: How do we move around objects directly in our path
-    if (state_machine.search_state == MachineStates::INITIALSEARCH
+    // TODO: Bryan implement
+    if (state_machine.major_state == INIT_SEARCH
         && msg->data <= ULTRA_CLOSETOWALL_DIST)
     {
         // We are done the initial search
@@ -54,29 +51,40 @@ void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-    // Only turn fan on if looking/scanning for fire and found fire
-    if ((state_machine.search_state == MachineStates::LOOKFORFIRE
-        || state_machine.search_state == MachineStates::SCANNINGFIRE2)
-        && msg->data)
+    // If we see and fire, and we are searching for one, but not if we already found it (don't log if we are currently extinguishing)
+    if (state_machine.major_state == SEARCH_FIRE && state_machine.minor_state != FOUND_FIRE && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
         if (found_fire < 3)
         {
             found_fire++;
         }
-        else if (state_machine.search_state == MachineStates::LOOKFORFIRE)
+        else if (state_machine.minor_state == RUN)
         {
-            state_machine.advanceState(current_heading);            
+            state_machine.setFireFlag(true);
+            state_machine.advanceState();
+            found_fire = 0; // Reset counter
         }
-        else
+        else if (state_machine.minor_state == VERIFY_FIRE)
         {
-            state_machine.resetScanningFire(current_heading);
+            // If we see a fire while verifying, inform the state machine
+            state_machine.setFireFlag(true);
+            state_machine.advanceState();
+            found_fire = 0; // Reset counter
         }
     }
     else
     {
         found_fire = 0;
     }
+}
+
+void resetCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+    // Reset all flags, and reset the state machine
+    found_fire = 0;
+    state_machine.reset();
+    state_machine.start();
 }
 
 int main(int argc, char** argv)
@@ -87,15 +95,17 @@ int main(int argc, char** argv)
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallback);
-    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, ultrasonicCallback);
+    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
     
-    motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
-    fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
+    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
+    ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
+    ros::Publisher state_pub; //= nh.advertise<bill_msgs::State>("state", 100);
+    ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     // Start state machine, then spin
-    state_machine.planner.setPubs(motor_pub, fan_pub);
-    state_machine.search_state = MachineStates::STARTINGCOURSE; //State 0
-    state_machine.advanceState(current_heading);
+    state_machine.setupPublishers(motor_pub, fan_pub, state_pub, led_pub);
+    state_machine.start();
 
     ros::spin();
     return 0;

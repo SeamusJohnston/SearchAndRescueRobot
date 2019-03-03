@@ -1,16 +1,16 @@
-#ifndef ENUMS
-#define ENUMS
+#ifndef ENUMS_HPP
+#define ENUMS_HPP
 
-enum MajorStates 
+enum MajorState
 {
     INIT_SEARCH,
     SEARCH_FIRE,
     SEARCH,
     DELIVER,
     RETURN_HOME
-}
+};
 
-enum MinorStates
+enum MinorState
 {
     RUN,
     FOUND_FIRE,
@@ -19,11 +19,12 @@ enum MinorStates
     FOUND_FOOD,
     VERIFY_FIRE,
     COMPLETE
-}
+};
 
+/*
 enum MachineStates{
     STARTINGCOURSE = 0,
-    DRIVETOCORNER = 1
+    DRIVETOCORNER = 1,
     RUNINITIALSEARCH = 2,
     LOOKFORFIRE = 5,
     SCANNINGFIRE1 = 6,
@@ -32,11 +33,12 @@ enum MachineStates{
     COUNT = 9// ALWAYS MAKE COUNT LAST, UGLY SOLUTION TO DETERMINE ITEMS IN ENUM
 };
 
-/*
+
 enum SearchingStates{
     DRIVETOPOINT = 0,
     GRIDSEARCH = 1
     //COUNT // ALWAYS MAKE COUNT LAST, UGLY SOLUTION TO DETERMINE ITEMS IN ENUM
 };
 */
+
 #endif

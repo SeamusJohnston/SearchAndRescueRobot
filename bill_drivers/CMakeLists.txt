@@ -117,8 +117,8 @@ catkin_package(
 ## Build ##
 ###########
 
-FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi /home/ubuntu/wiringPi)
-FIND_LIBRARY(SERIAL_LIBRARY serial /home/ubuntu/serial)
+FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi ~/wiringPi)
+FIND_LIBRARY(SERIAL_LIBRARY serial /home/seamus/serial)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
@@ -127,7 +127,6 @@ include_directories(
 )
 
 ## Declare a C++ library
-## add_library(pi2c src/pi2c.cpp)
 
 
 ## Add cmake target dependencies of the library
