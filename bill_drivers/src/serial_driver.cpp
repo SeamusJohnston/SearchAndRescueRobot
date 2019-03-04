@@ -13,12 +13,14 @@ const int baud = 9600;
 const std::string delimiter = " ";
 const int msg_length = 13;
 
-char sensorData[13];
+char sensorData[msg_length];
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "serial_driver");
     ros::NodeHandle nh;
+    ros::Rate loop_rate(LOOP_RATE_SERIAL);
+
     ros::Publisher survivor_pub = nh.advertise<bill_msgs::Survivor>("survivors", 100);
     ros::Publisher food_pub = nh.advertise<std_msgs::Bool>("food", 100);
     ros::Publisher fire_pub = nh.advertise<std_msgs::Bool>("fire", 100);
@@ -43,7 +45,6 @@ int main(int argc, char** argv)
         bill_msgs::Survivor survivor_msg;
         std_msgs::Bool food_msg;
         std_msgs::Bool fire_msg;
-        ros::Rate loop_rate(LOOP_RATE_SERIAL);
 
         std::string data = my_serial.readline(65536, "\r\n");
         size_t pos = 0;

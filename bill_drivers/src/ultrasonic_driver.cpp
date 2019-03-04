@@ -5,7 +5,6 @@
 #include <iostream>
 #include <limits>  // for NaN
 
-
 const static int ECHO_RECIEVE_TIMEOUT = 30000;
 const static int ECHO_READ_TIMEOUT = 30000;
 const static float DISTANCE_SCALE_CM = 58.0;

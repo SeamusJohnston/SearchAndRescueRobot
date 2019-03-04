@@ -35,7 +35,7 @@ void Planner::publishTurn(const int heading)
     ROS_INFO("Commanding turn, heading: %i", heading);
     _command_msg.command = bill_msgs::MotorCommands::TURN;
     _command_msg.heading = heading;
-    _command_msg.speed = 0; // Speed is hardcoded in the motor driver for turning
+    _command_msg.speed = 0;  // Speed is hardcoded in the motor driver for turning
     _motor_pub.publish(_command_msg);
 }
 
@@ -46,10 +46,10 @@ void Planner::putOutFire()
     // Turn ON/OFF Fan
     std_msgs::Bool cmd;
     cmd.data = true;
-    _fan_pub.publish(cmd); // Turn on fan
+    _fan_pub.publish(cmd);  // Turn on fan
     ros::Duration(2).sleep();
     cmd.data = false;
-    _fan_pub.publish(cmd); // Turn off fan
+    _fan_pub.publish(cmd);  // Turn off fan
 }
 
 void Planner::signalComplete()

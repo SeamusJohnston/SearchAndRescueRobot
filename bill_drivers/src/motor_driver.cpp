@@ -6,17 +6,16 @@
 #include "wiringPi.h"
 #include <softPwm.h>
 #include "bill_drivers/constant_definition.hpp"
-#include <mutex>
 
-#define PWM_RANGE 100  // Max pwm value
-#define TURNING_SPEED 30
-#define INT_CLAMP 2
-#define dt 0.1  // TODO: Define this based off the frequency the odom channel gets published
-#define KP_HEADING 10
-#define KI_HEADING 1
-#define KP_SPEED 10
-#define KI_SPEED 5
-#define MAX_VEL 0.4
+const int PWM_RANGE = 100;  // Max pwm value
+const int TURNING_SPEED = 30;
+const float INT_CLAMP = 2.0;
+const float dt = 0.1;  // TODO: Define this based off the frequency the odom channel gets published
+const float MAX_VEL = 0.4;
+float KP_HEADING;
+float KI_HEADING;
+float KP_SPEED;
+float KI_SPEED;
 
 bill_msgs::MotorCommands last_command_msg;
 int last_heading = 0;
@@ -94,9 +93,7 @@ void turn(const Direction dir, const unsigned int speed)
 void drivePI(int heading, float speed)
 {
     // NOTE: Writing speed PI for now, although open loop speed control may be good enough for our purposes
-    // std::lock_guard<std::mutex> lk(mutex);
-    // TODO: Remove 0 when odom measurements work
-    int heading_error = 0;  // last_command_msg.heading - heading;
+    int heading_error = last_command_msg.heading - heading;
     // Keep heading error centered at 0 between -180 and 180
     if (heading_error > 180)
     {
@@ -107,8 +104,7 @@ void drivePI(int heading, float speed)
         heading_error += 360;
     }
 
-    // TODO: Remove 0 when odom measurements work
-    float speed_error = 0;  // last_command_msg.speed - speed;
+    float speed_error = last_command_msg.speed - speed;
     if (std::abs(speed_error_sum + speed_error * dt) < INT_CLAMP)
     {
         speed_error_sum += speed_error * dt;
@@ -117,8 +113,8 @@ void drivePI(int heading, float speed)
     {
         heading_error_sum += heading_error * dt;
     }
-    int speed_command = speed_error * KP_SPEED + speed_error_sum * KI_SPEED;
-    int heading_command = heading_error * KP_HEADING + heading_error_sum * KI_HEADING;
+    float speed_command = speed_error * KP_SPEED + speed_error_sum * KI_SPEED;
+    float heading_command = heading_error * KP_HEADING + heading_error_sum * KI_HEADING;
 
     // Note: this PI calculation assumes forward motion, since the robot should never have to reverse
     // Except for construction check, but the errors will be 0 for said check
@@ -126,8 +122,8 @@ void drivePI(int heading, float speed)
     // This calculation maps the desired speed between 0-100, then adds the speed PI correction and the heading
     // correction
     // Heading correction is subtracted for right wheel (positive heading command means clockwise turn)
-    int right_speed = (last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command - heading_command;
-    int left_speed = (last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command + heading_command;
+    int right_speed = (int)((last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command - heading_command);
+    int left_speed = (int)((last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command + heading_command);
 
     // Clamp speeds, bound checking
     if (right_speed > PWM_RANGE)
@@ -153,9 +149,8 @@ void drivePI(int heading, float speed)
 void turningCallback(int heading)
 {
     ROS_INFO("In Turning Callback");
-    // std::lock_guard<std::mutex> lk(mutex);
     int error = last_command_msg.heading - heading;
-    if (error >= 0 && error <= 180 || error < 0 && error >= -180)
+    if ((error >= 0 && error <= 180) || (error < 0 && error >= -180))
     {
         // For now turn at a constant speed always
         turn(CW, TURNING_SPEED);
@@ -171,12 +166,8 @@ void turningCallback(int heading)
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    // TODO: Pull out heading as angle, (speed?) as PID input
-    // std::lock_guard<std::mutex> lk(mutex);
-    tf::Pose pose;
-    tf::poseMsgToTF(msg->pose.pose, pose);
-    float heading = angles::to_degrees(tf::getYaw(pose.getRotation()));
-    float speed = msg->twist.twist.linear.x;  //
+    int heading = (int)(angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+    float speed = msg->twist.twist.linear.x;
     last_heading = heading;
     last_speed = speed;
 
@@ -192,7 +183,6 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
 {
-    // std::lock_guard<std::mutex> lk(mutex);
     last_command_msg.command = msg->command;
     last_command_msg.heading = msg->heading;
     last_command_msg.speed = msg->speed;
@@ -226,9 +216,16 @@ int main(int argc, char** argv)
     pinMode(MOTORB_REVERSE, OUTPUT);
     softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
     softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);
+
     ros::NodeHandle nh;
     ros::Subscriber sub_motor = nh.subscribe("motor_cmd", 1, motorCallback);
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+
+    // Load parameters from yaml
+    nh.getParam("/bill/motor_params/kp_heading", KP_HEADING);
+    nh.getParam("/bill/motor_params/ki_heading", KI_HEADING);
+    nh.getParam("/bill/motor_params/kp_speed", KP_SPEED);
+    nh.getParam("/bill/motor_params/ki_speed", KI_SPEED);
 
     ros::spin();
     return 0;

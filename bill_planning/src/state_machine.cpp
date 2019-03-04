@@ -7,7 +7,8 @@ StateMachine::StateMachine()
     _fire_heading = 0;
 }
 
-void StateMachine::setupPublishers(const ros::Publisher motor_pub, const ros::Publisher fan_pub, const ros::Publisher state_pub, const ros::Publisher led_pub)
+void StateMachine::setupPublishers(const ros::Publisher motor_pub, const ros::Publisher fan_pub,
+                                   const ros::Publisher state_pub, const ros::Publisher led_pub)
 {
     _planner.setPubs(motor_pub, fan_pub, led_pub);
     _state_pub = state_pub;
@@ -18,8 +19,7 @@ void StateMachine::updateHeading(const int heading)
     _current_heading = heading;
 
     // If verifying fire, this callback is used for changing direction of scan
-    if ((major_state == SEARCH_FIRE || major_state == INIT_SEARCH) &&
-        minor_state == VERIFY_FIRE)
+    if ((major_state == SEARCH_FIRE || major_state == INIT_SEARCH) && minor_state == VERIFY_FIRE)
     {
         if (_current_heading >= (_fire_heading + _scanning_angle) % 360)
         {
@@ -31,7 +31,7 @@ void StateMachine::updateHeading(const int heading)
             }
             _planner.publishTurn(new_heading);
         }
-        if (_current_heading <=  ((_fire_heading - 2 * _scanning_angle) + 360) % 360)
+        if (_current_heading <= ((_fire_heading - 2 * _scanning_angle) + 360) % 360)
         {
             // End of scan, we may advance
             advanceState();
@@ -57,7 +57,8 @@ void StateMachine::advanceState()
         {
             // If advancing and fire is still on, we found the fire while verifying so reverse the state machine
             minor_state = FOUND_FIRE;
-            // TODO: If this is our second pass maybe we need to move closer, could either happen here, or we set a flag?
+            // TODO: If this is our second pass maybe we need to move closer, could either happen here, or we set a
+            // flag?
         }
         else
         {
@@ -113,7 +114,8 @@ void StateMachine::stateAction()
             _found_fire = false;
             _fire_heading = _current_heading;
             // We may now advance, since this is the only action for this state
-            advanceState(); // TODO: maybe give this more thought these two functions are calling each other, should be fine though
+            advanceState();  // TODO: maybe give this more thought these two functions are calling each other, should be
+                             // fine though
         }
         else if (minor_state == VERIFY_FIRE)
         {
@@ -123,8 +125,8 @@ void StateMachine::stateAction()
         else
         {
             // Turn on led to indicate we have successfully put out the fire
-           _planner.signalComplete();
-           // TODO: advance state here?
+            _planner.signalComplete();
+            // TODO: advance state here?
         }
     }
 }

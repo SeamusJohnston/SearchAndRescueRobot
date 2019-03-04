@@ -118,7 +118,7 @@ catkin_package(
 ###########
 
 FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi ~/wiringPi)
-FIND_LIBRARY(SERIAL_LIBRARY serial /home/seamus/serial)
+FIND_LIBRARY(SERIAL_LIBRARY serial ~/serial)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(

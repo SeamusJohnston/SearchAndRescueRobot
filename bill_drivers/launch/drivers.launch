@@ -1,5 +1,7 @@
 <!-- Driver launch file -->
 <launch>
+  <rosparam file ="$(find bill_drivers)/config/parameters.yaml" command="load" />
+
   <node pkg="bill_drivers" type="encoder_driver"
     name="encoder_driver">
   </node>

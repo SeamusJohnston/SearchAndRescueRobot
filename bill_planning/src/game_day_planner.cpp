@@ -19,10 +19,9 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     // Logic needs to determine if we are close enough to complete a given task
-    
+
     // TODO: Bryan implement
-    if (state_machine.major_state == INIT_SEARCH
-        && msg->data <= ULTRA_INIT_SCAN_DIST)
+    if (state_machine.major_state == INIT_SEARCH && msg->data <= ULTRA_INIT_SCAN_DIST)
     {
         // Either save point and move around object ||
         // End of path, how far have we travelled? Global variable may help here
@@ -35,11 +34,10 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    //Scan up to the end of course - width building - width robot turning radius
+    // Scan up to the end of course - width building - width robot turning radius
     // TODO: How do we move around objects directly in our path
     // TODO: Bryan implement
-    if (state_machine.major_state == INIT_SEARCH
-        && msg->data <= ULTRA_CLOSETOWALL_DIST)
+    if (state_machine.major_state == INIT_SEARCH && msg->data <= ULTRA_CLOSETOWALL_DIST)
     {
         // We are done the initial search
         state_machine.advanceState();
@@ -53,22 +51,19 @@ void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     // If we run into fire while doing an initial search or searching for it
-    if ((state_machine.major_state == SEARCH_FIRE ||
-        state_machine.major_state == INIT_SEARCH) && 
-        state_machine.minor_state != FOUND_FIRE && 
-        msg->data)
+    if ((state_machine.major_state == SEARCH_FIRE || state_machine.major_state == INIT_SEARCH) &&
+        state_machine.minor_state != FOUND_FIRE && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
         if (found_fire < 3)
         {
             found_fire++;
         }
-        else if (state_machine.minor_state == RUN || 
-            state_machine.minor_state == VERIFY_FIRE)
+        else if (state_machine.minor_state == RUN || state_machine.minor_state == VERIFY_FIRE)
         {
             state_machine.setFireFlag(true);
             state_machine.advanceState();
-            found_fire = 0; // Reset counter
+            found_fire = 0;  // Reset counter
         }
     }
     else
@@ -95,10 +90,10 @@ int main(int argc, char** argv)
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallback);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
     ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
-    
+
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
-    ros::Publisher state_pub; //= nh.advertise<bill_msgs::State>("state", 100);
+    ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     // Start state machine, then spin
