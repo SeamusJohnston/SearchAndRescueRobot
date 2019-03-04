@@ -5,7 +5,7 @@
 #define S1 5
 #define S2 6
 #define S3 7
-#define Colour 3 // 3 OR 8 Digital
+#define Colour 3
 
 // Analog
 #define Flame A0
@@ -66,9 +66,7 @@ void setup()
 }
 
 void loop()
-{
-  // Get IMU Data from the IMU via I2C
-  
+{  
   // Request the IMU to write the orientation registers
   Wire.beginTransmission(ADDRESS);  
   Wire.write(ORIENTATION);
@@ -113,9 +111,8 @@ void loop()
 
   data[10] = Wire.read();  // Z Gyro LSB
   data[11] = Wire.read();  // Z Gyro MSB
-
-  data[12] = readColourSensor() ^ readFlameSensor() ^ readHallEffectSensor();
   
+  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ breadColourSensor();
   for (int i = 0; i < 13; ++i)
   {
     Serial.print(data[i]);
@@ -228,8 +225,7 @@ void ReadRGBC()
   Serial.print(colours[2]);
   Serial.print(", ");
   Serial.println(colours[3]);
-  delay(1000);*/
-
+*/
 }
 
 bool LargeBuilding()
