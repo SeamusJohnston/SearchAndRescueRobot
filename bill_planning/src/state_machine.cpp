@@ -18,7 +18,8 @@ void StateMachine::updateHeading(const int heading)
     _current_heading = heading;
 
     // If verifying fire, this callback is used for changing direction of scan
-    if (major_state == SEARCH_FIRE && minor_state == VERIFY_FIRE)
+    if ((major_state == SEARCH_FIRE || major_state == INIT_SEARCH) &&
+        minor_state == VERIFY_FIRE)
     {
         if (_current_heading >= (_fire_heading + _scanning_angle) % 360)
         {
@@ -57,6 +58,26 @@ void StateMachine::advanceState()
             // If advancing and fire is still on, we found the fire while verifying so reverse the state machine
             minor_state = FOUND_FIRE;
             // TODO: If this is our second pass maybe we need to move closer, could either happen here, or we set a flag?
+        }
+        else
+        {
+            // If advancing and fire was not seen again, then we have completed the state
+            minor_state = COMPLETE;
+        }
+    }
+    else if (major_state == INIT_SEARCH)
+    {
+        if (minor_state == RUN && _found_fire)
+        {
+            minor_state = FOUND_FIRE;
+        }
+        else if (minor_state == FOUND_FIRE)
+        {
+            minor_state = VERIFY_FIRE;
+        }
+        else if (minor_state == VERIFY_FIRE && _found_fire)
+        {
+            minor_state = FOUND_FIRE;
         }
         else
         {

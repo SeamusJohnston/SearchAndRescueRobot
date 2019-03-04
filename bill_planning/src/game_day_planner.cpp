@@ -19,6 +19,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     // Logic needs to determine if we are close enough to complete a given task
+    
     // TODO: Bryan implement
     if (state_machine.major_state == INIT_SEARCH
         && msg->data <= ULTRA_INIT_SCAN_DIST)
@@ -51,23 +52,20 @@ void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-    // If we see and fire, and we are searching for one, but not if we already found it (don't log if we are currently extinguishing)
-    if (state_machine.major_state == SEARCH_FIRE && state_machine.minor_state != FOUND_FIRE && msg->data)
+    // If we run into fire while doing an initial search or searching for it
+    if ((state_machine.major_state == SEARCH_FIRE ||
+        state_machine.major_state == INIT_SEARCH) && 
+        state_machine.minor_state != FOUND_FIRE && 
+        msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
         if (found_fire < 3)
         {
             found_fire++;
         }
-        else if (state_machine.minor_state == RUN)
+        else if (state_machine.minor_state == RUN || 
+            state_machine.minor_state == VERIFY_FIRE)
         {
-            state_machine.setFireFlag(true);
-            state_machine.advanceState();
-            found_fire = 0; // Reset counter
-        }
-        else if (state_machine.minor_state == VERIFY_FIRE)
-        {
-            // If we see a fire while verifying, inform the state machine
             state_machine.setFireFlag(true);
             state_machine.advanceState();
             found_fire = 0; // Reset counter
