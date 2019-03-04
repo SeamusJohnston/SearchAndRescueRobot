@@ -16,6 +16,8 @@ class StateMachine
     void updateHeading(int heading);
     void reset();
     void setFireFlag(bool state);
+    void setCornerFlag(bool state);
+    bool getCornerFlag();
     void start();
     MajorState major_state;
     MinorState minor_state;
@@ -24,6 +26,7 @@ class StateMachine
     const int _scanning_angle = 20;
     Planner _planner;
     bool _found_fire;
+    bool _hit_corner;
     ros::Publisher _state_pub;
     bill_msgs::State _state_msg;
     int _current_heading;

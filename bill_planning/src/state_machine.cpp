@@ -3,6 +3,7 @@
 StateMachine::StateMachine()
 {
     _found_fire = false;
+    _hit_corner = false;
     _current_heading = 0;
     _fire_heading = 0;
 }
@@ -135,12 +136,23 @@ void StateMachine::reset()
 {
     _planner.publishStop();
     _found_fire = false;
+    _hit_corner = false;
     _fire_heading = 0;
 }
 
 void StateMachine::setFireFlag(const bool state)
 {
     _found_fire = state;
+}
+
+void StateMachine::setCornerFlag(const bool state)
+{
+    _hit_corner = state;
+}
+
+bool StateMachine::getCornerFlag()
+{
+    return _hit_corner;
 }
 
 void StateMachine::start()

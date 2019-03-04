@@ -37,10 +37,20 @@ void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     // Scan up to the end of course - width building - width robot turning radius
     // TODO: How do we move around objects directly in our path
     // TODO: Bryan implement
-    if (state_machine.major_state == INIT_SEARCH && msg->data <= ULTRA_CLOSETOWALL_DIST)
+    if (state_machine.major_state == INIT_SEARCH && 
+        msg->data <= ULTRA_CLOSETOWALL_DIST)
     {
         // We are done the initial search
-        state_machine.advanceState();
+        if(state_machine.getCornerFlag())
+        {
+            state_machine.advanceState();
+        }
+        else
+        {
+            // TODO: Drive around obstacle
+            // Other callbacks should handle obstacle type
+        }
+        
     }
     // TODO: If we are completing our search and ever find something worth noting
     //          we should mark point or signal object completion depending on
