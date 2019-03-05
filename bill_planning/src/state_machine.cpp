@@ -26,10 +26,6 @@ void StateMachine::updateHeading(const int heading)
         {
             // Hit first heading, now turn the other way
             int new_heading = ((_fire_heading - 2 * _scanning_angle) + 360) % 360;
-            if (new_heading)
-            {
-                new_heading += 360;
-            }
             _planner.publishTurn(new_heading);
         }
         if (_current_heading <= ((_fire_heading - 2 * _scanning_angle) + 360) % 360)
@@ -44,7 +40,7 @@ void StateMachine::updateHeading(const int heading)
 
 void StateMachine::updatePosition(Position pos)
 {
-
+    
 }
 
 void StateMachine::advanceState()
