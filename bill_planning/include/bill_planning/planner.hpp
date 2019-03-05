@@ -7,6 +7,7 @@
 #include "nav_msgs/Odometry.h"
 #include <iostream>
 #include "bill_msgs/MotorCommands.h"
+#include "bill_planning/position.hpp"
 
 class Planner
 {

@@ -38,6 +38,13 @@ void StateMachine::updateHeading(const int heading)
             advanceState();
         }
     }
+
+    // TODO BM If doing init search and heading is updated, drive forward to corner
+}
+
+void StateMachine::updatePosition(Position pos)
+{
+
 }
 
 void StateMachine::advanceState()
@@ -158,6 +165,7 @@ bool StateMachine::getCornerFlag()
 void StateMachine::start()
 {
     major_state = INIT_SEARCH;
+    // TODO BM SET DESIRED HEADING TO LEFT
     minor_state = RUN;
     stateAction();
 }

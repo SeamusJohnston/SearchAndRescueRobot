@@ -18,6 +18,7 @@ class StateMachine
     void setFireFlag(bool state);
     void setCornerFlag(bool state);
     bool getCornerFlag();
+    bool updatePosition(Position pos);
     void start();
     MajorState major_state;
     MinorState minor_state;
