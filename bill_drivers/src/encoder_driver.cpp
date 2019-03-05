@@ -5,6 +5,7 @@
 #include "angles/angles.h"
 #include "bill_drivers/constant_definition.hpp"
 #include <cmath>
+
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
 const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
 const float WHEEL_BASE = 5.76;
@@ -178,5 +179,6 @@ int main(int argc, char** argv)
         ros::spinOnce();
         loop_rate.sleep();
     }
+
     return 0;
 }

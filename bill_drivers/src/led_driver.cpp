@@ -3,7 +3,6 @@
 #include "std_msgs/Bool.h"
 #include "bill_drivers/constant_definition.hpp"
 
-
 void setup()
 {
     // Init GPIO
