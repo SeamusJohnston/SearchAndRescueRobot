@@ -19,6 +19,7 @@ void Planner::publishStop()
     _command_msg.heading = 0;
     _command_msg.speed = 0;
     _motor_pub.publish(_command_msg);
+    is_moving = true;
 }
 
 void Planner::publishDrive(const int heading, const float speed)
@@ -28,6 +29,7 @@ void Planner::publishDrive(const int heading, const float speed)
     _command_msg.heading = heading;
     _command_msg.speed = speed;
     _motor_pub.publish(_command_msg);
+    is_moving = false;
 }
 
 void Planner::publishTurn(const int heading)
@@ -37,6 +39,7 @@ void Planner::publishTurn(const int heading)
     _command_msg.heading = heading;
     _command_msg.speed = 0;  // Speed is hardcoded in the motor driver for turning
     _motor_pub.publish(_command_msg);
+    is_moving = false;
 }
 
 void Planner::putOutFire()

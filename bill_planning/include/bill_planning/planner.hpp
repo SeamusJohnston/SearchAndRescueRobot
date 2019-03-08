@@ -20,6 +20,8 @@ class Planner
     void putOutFire();
     void signalComplete();
 
+    bool is_moving = false;
+
   private:
     bill_msgs::MotorCommands _command_msg;
     ros::Publisher _motor_pub;

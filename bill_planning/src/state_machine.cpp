@@ -3,9 +3,13 @@
 StateMachine::StateMachine()
 {
     _found_fire = false;
-    _hit_corner = false;
+    _finish_straight_search = false;
     _current_heading = 0;
     _fire_heading = 0;
+    _current_tile_x = 0;
+    _current_tile_y = 0;
+    _desired_tile_x = 0;
+    _desired_tile_y = 0;
 }
 
 void StateMachine::setupPublishers(const ros::Publisher motor_pub, const ros::Publisher fan_pub,
@@ -34,18 +38,47 @@ void StateMachine::updateHeading(const int heading)
             advanceState();
         }
     }
-
-    // TODO BM If doing init search and heading is updated, drive forward to corner
 }
 
 void StateMachine::updatePosition(Position pos)
 {
-    
+    if (major_state == INIT_SEARCH && minor_state == RUN && _found_fire && !_planner.is_moving)
+    {
+        // if we have hit the desired x and y tile
+        _finish_straight_search = true;
+        // Distinguish saved points
+        // If 3 distinguishable points we don't have to continue othe
+        _finish_L_search = true;
+        _finish_T_search = true; //Do we advance to completed now?
+    }
 }
 
 void StateMachine::advanceState()
 {
-    if (major_state == SEARCH_FIRE)
+    if (major_state == INIT_SEARCH)
+    {
+        if (minor_state == RUN && _found_fire)
+        {
+            minor_state = FOUND_FIRE;
+        }
+        else if (minor_state == FOUND_FIRE)
+        {
+            minor_state = VERIFY_FIRE;
+        }
+        else if (minor_state == VERIFY_FIRE && _found_fire)
+        {
+            minor_state = FOUND_FIRE;
+        }
+        else if (minor_state == VERIFY_FIRE && !_found_fire)
+        {
+            minor_state = RUN;
+        }
+        else
+        {
+            minor_state = COMPLETE;
+        }
+    }
+    else if (major_state == SEARCH_FIRE)
     {
         if (minor_state == RUN)
         {
@@ -70,26 +103,6 @@ void StateMachine::advanceState()
             minor_state = COMPLETE;
         }
     }
-    else if (major_state == INIT_SEARCH)
-    {
-        if (minor_state == RUN && _found_fire)
-        {
-            minor_state = FOUND_FIRE;
-        }
-        else if (minor_state == FOUND_FIRE)
-        {
-            minor_state = VERIFY_FIRE;
-        }
-        else if (minor_state == VERIFY_FIRE && _found_fire)
-        {
-            minor_state = FOUND_FIRE;
-        }
-        else
-        {
-            // If advancing and fire was not seen again, then we have completed the state
-            minor_state = COMPLETE;
-        }
-    }
     // TODO: Implement rest of major states
 
     // Publish current state for debug purposes
@@ -103,7 +116,16 @@ void StateMachine::advanceState()
 
 void StateMachine::stateAction()
 {
-    if (major_state == MajorState::SEARCH_FIRE)
+    if (major_state == MajorState::INIT_SEARCH)
+    {
+        if (minor_state == RUN && !_planner.is_moving && !_finish_straight_search)
+        {
+            // planner.driveToTile(_current_tile_x, 6);
+            // _desired_tile_x = _current_tile_x;
+            // _desired_tile_x = _current_tile_y;
+        }
+    }
+    else if (major_state == MajorState::SEARCH_FIRE)
     {
         if (minor_state == RUN)
         {
@@ -117,9 +139,10 @@ void StateMachine::stateAction()
             // Assume we put it out unless told otherwise
             _found_fire = false;
             _fire_heading = _current_heading;
+            minor_state == VERIFY_FIRE;
             // We may now advance, since this is the only action for this state
-            advanceState();  // TODO: maybe give this more thought these two functions are calling each other, should be
-                             // fine though
+            advanceState(); // TODO: maybe give this more thought these two functions are calling each other, should be
+                            // fine though
         }
         else if (minor_state == VERIFY_FIRE)
         {
@@ -139,7 +162,6 @@ void StateMachine::reset()
 {
     _planner.publishStop();
     _found_fire = false;
-    _hit_corner = false;
     _fire_heading = 0;
 }
 
@@ -148,20 +170,8 @@ void StateMachine::setFireFlag(const bool state)
     _found_fire = state;
 }
 
-void StateMachine::setCornerFlag(const bool state)
-{
-    _hit_corner = state;
-}
-
-bool StateMachine::getCornerFlag()
-{
-    return _hit_corner;
-}
-
 void StateMachine::start()
 {
     major_state = INIT_SEARCH;
-    // TODO BM SET DESIRED HEADING TO LEFT
     minor_state = RUN;
-    stateAction();
 }
