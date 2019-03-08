@@ -27,14 +27,28 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
             state_machine.stateAction();
         }
     }
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    //SensorReadings::start_robot_performance_thread = true
 }
 
-void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
+void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
     if (msg->data <= FULL_COURSE_SCAN_DISTANCE)
     {
         state_machine.stateAction();
     }
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    //SensorReadings::start_robot_performance_thread = true
+}
+
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
+{
+    if (msg->data <= FULL_COURSE_SCAN_DISTANCE)
+    {
+        state_machine.stateAction();
+    }
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    //SensorReadings::start_robot_performance_thread = true
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)

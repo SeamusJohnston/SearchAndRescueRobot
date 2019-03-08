@@ -65,3 +65,8 @@ void Planner::signalComplete()
     msg.data = false;
     _led_pub.publish(msg);
 }
+
+void Planner::publishDriveToTile(int x, int y, float speed)
+{
+    
+}

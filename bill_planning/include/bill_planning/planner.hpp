@@ -20,6 +20,8 @@ class Planner
     void putOutFire();
     void signalComplete();
 
+    void publishDriveToTile(int x, int y, float speed);
+
     bool is_moving = false;
 
   private:
