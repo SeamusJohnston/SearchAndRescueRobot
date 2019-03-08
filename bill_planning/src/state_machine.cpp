@@ -3,7 +3,6 @@
 StateMachine::StateMachine()
 {
     _found_fire = false;
-    _hit_corner = false;
     _finish_straight_search = false;
     _current_heading = 0;
     _fire_heading = 0;
@@ -140,7 +139,7 @@ void StateMachine::stateAction()
             // Assume we put it out unless told otherwise
             _found_fire = false;
             _fire_heading = _current_heading;
-            _minor_state == VERIFY_FIRE;
+            minor_state == VERIFY_FIRE;
             // We may now advance, since this is the only action for this state
             advanceState(); // TODO: maybe give this more thought these two functions are calling each other, should be
                             // fine though
@@ -163,23 +162,12 @@ void StateMachine::reset()
 {
     _planner.publishStop();
     _found_fire = false;
-    _hit_corner = false;
     _fire_heading = 0;
 }
 
 void StateMachine::setFireFlag(const bool state)
 {
     _found_fire = state;
-}
-
-void StateMachine::setCornerFlag(const bool state)
-{
-    _hit_corner = state;
-}
-
-bool StateMachine::getCornerFlag()
-{
-    return _hit_corner;
 }
 
 void StateMachine::start()
