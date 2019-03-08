@@ -5,7 +5,7 @@
 StateMachine state_machine;
 
 int current_heading = 0;
-const float ULTRA_INIT_SCAN_DIST = 163.83;
+const float FULL_COURSE_SCAN_DISTANCE = 1.70;
 const float ULTRA_CLOSETOWALL_DIST = 5;
 int found_fire = 0;
 
@@ -20,42 +20,21 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     // Logic needs to determine if we are close enough to complete a given task
 
-    // TODO: Bryan implement
-    if (state_machine.major_state == INIT_SEARCH && msg->data <= ULTRA_INIT_SCAN_DIST)
+    if (state_machine.major_state == INIT_SEARCH && state_machine.minor_state == RUN)
     {
-        // Either save point and move around object ||
-        // End of path, how far have we travelled? Global variable may help here
+        if(msg->data < FULL_COURSE_SCAN_DISTANCE)
+        {
+            state_machine.stateAction();
+        }
     }
-
-    // TODO: Turn when hit a wall
-    // TODO: Read sensors to determine what we found
-    // TODO: Mark object with type or signal object completion
 }
 
-void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+void sideUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    // Scan up to the end of course - width building - width robot turning radius
-    // TODO: How do we move around objects directly in our path
-    // TODO: Bryan implement
-    if (state_machine.major_state == INIT_SEARCH && 
-        msg->data <= ULTRA_CLOSETOWALL_DIST)
+    if (msg->data <= FULL_COURSE_SCAN_DISTANCE)
     {
-        // We are done the initial search
-        if(state_machine.getCornerFlag())
-        {
-            state_machine.advanceState();
-        }
-        else
-        {
-            // TODO: Drive around obstacle
-            // Other callbacks should handle obstacle type
-        }
-        
+        state_machine.stateAction();
     }
-    // TODO: If we are completing our search and ever find something worth noting
-    //          we should mark point or signal object completion depending on
-    //          sensor reading (Must turn to face the object of interest)
-    //          what is a good distance for regular search? 10-20 cm might suffice
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)

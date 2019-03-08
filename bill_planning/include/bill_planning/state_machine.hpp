@@ -32,6 +32,16 @@ class StateMachine
     bill_msgs::State _state_msg;
     int _current_heading;
     int _fire_heading;
+    int _current_tile_x;
+    int _current_tile_y;
+    int _desired_tile_x;
+    int _desired_tile_y;
+
+    // We need a queue or list of saved points?
+
+    bool _finish_straight_search;
+    bool _finish_L_search;
+    bool _finish_T_search;
 };
 
 #endif
