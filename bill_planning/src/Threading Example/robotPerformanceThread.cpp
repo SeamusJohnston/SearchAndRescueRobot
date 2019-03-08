@@ -17,6 +17,7 @@ const int FIRE_SCAN_ANGLE = 20;
 
 int main()
 {
+    // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
     while (SensorReadings::start_robot_performance_thread);
 
     if(!_cleared_fwd && SensorReadings::ultra_fwd >= FULL_COURSE_DETECTION_LENGTH)
@@ -75,9 +76,15 @@ int main()
     SensorReadings::planner.publishTurn(desired_heading);
     // THE FIRE CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
 
-
-    //TODO BM: DRIVE TO FIRE
-    // then call fireOut();
+    while (!SensorReadings::points_of_interest.empty())
+    {
+        //Drive to position
+        //While position != desired position {};
+        //Determine what the object is, fire, b1, b2
+        //if b1 or b2, store location in SensorReadings::determinedPoints[];
+        //if fire, call fireOut();
+        //if already found fire we can signal we found b1 or b2
+    }
 }
 
 void fireOut()

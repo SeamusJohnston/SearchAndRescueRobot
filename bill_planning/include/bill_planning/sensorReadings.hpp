@@ -24,7 +24,10 @@ struct SensorReadings
         static bool start_robot_performance_thread;
 
         Planner planner;
-        static std::queue<Position> pointsOfInterest;
+        static std::queue<TilePosition> points_of_interest;
+        //determinedPoints[0] small building, determinedPoints[1] large building
+        static TilePosition determined_points [2];
+    private:
 };
 
 #endif

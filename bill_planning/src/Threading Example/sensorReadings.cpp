@@ -9,5 +9,4 @@ SensorReadings::SensorReadings(Planner p)
     start_robot_performance_thread = false;
 
     planner = p;
-    // pointsOfInterest = new std::queue<Position>;
 }
