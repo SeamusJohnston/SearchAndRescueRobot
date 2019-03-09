@@ -4,10 +4,11 @@
 #include <queue>
 #include "bill_planning/planner.hpp"
 
-static class SensorReadings
+class SensorReadings
 {
     public:
-        SensorReadings(Planner p);
+        SensorReadings();
+        setPlanner(Planner p);
         static int current_x_tile;
         static int current_y_tile;
 

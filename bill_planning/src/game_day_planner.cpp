@@ -7,6 +7,9 @@ const float FULL_COURSE_SCAN_DISTANCE = 1.70;
 const float ULTRA_CLOSETOWALL_DIST = 5;
 int found_fire = 0;
 
+Planner planner;
+SensorReadings sensor_readings;
+
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
@@ -77,6 +80,8 @@ int main(int argc, char** argv)
     ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
+    planner.setPubs(motor_pub, fan_pub);
+    sensor_readings.setPlanner(planner);
     ros::spin();
     return 0;
 }
