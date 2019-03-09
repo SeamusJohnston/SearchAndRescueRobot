@@ -4,7 +4,7 @@
 #include <queue>
 #include "bill_planning/planner.hpp"
 
-struct SensorReadings
+static class SensorReadings
 {
     public:
         SensorReadings(Planner p);
