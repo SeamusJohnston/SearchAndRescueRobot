@@ -1,4 +1,4 @@
-#include "bill_planning/sensorReadings.hpp"
+#include "bill_planning/sensor_readings.hpp"
 
 SensorReadings::SensorReadings(Planner p)
 {
