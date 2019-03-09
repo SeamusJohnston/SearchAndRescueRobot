@@ -129,7 +129,7 @@ include_directories(
 #   src/${PROJECT_NAME}/bill_planning.cpp
 # )
 
-add_library(state_machine src/state_machine.cpp)
+add_library(sensor_readings src/sensor_readings.cpp)
 add_library(planner src/planner.cpp)
 
 ## Add cmake target dependencies of the library
@@ -144,7 +144,6 @@ add_dependencies(planner ${catkin_EXPORTED_TARGETS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/bill_planning_node.cpp)
-add_executable(demo_planner src/demo_planner.cpp)
 add_executable(game_day_planner src/game_day_planner.cpp)
 
 
@@ -158,13 +157,11 @@ add_executable(game_day_planner src/game_day_planner.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(demo_planner ${catkin_EXPORTED_TARGETS})
 add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(demo_planner ${catkin_LIBRARIES})
 target_link_libraries(state_machine planner)
 target_link_libraries(game_day_planner ${catkin_LIBRARIES} state_machine)
 

@@ -12,7 +12,7 @@ struct Position
 struct TilePosition
 {
     public:
-        TilePosition(int xc, int yc)
+        TilePosition(int xc, int yc);
         int x;
         int y;
 };

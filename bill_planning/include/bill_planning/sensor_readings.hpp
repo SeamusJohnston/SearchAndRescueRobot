@@ -1,5 +1,5 @@
-#ifndef STATIC_VARIABLES_HPP
-#define STATIC_VARIABLES_HPP
+#ifndef SENSOR_READINGS_HPP
+#define SENSOR_READINGS_HPP
 
 #include <queue>
 #include "bill_planning/planner.hpp"
