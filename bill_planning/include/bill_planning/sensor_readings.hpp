@@ -25,7 +25,8 @@ struct SensorReadings
 
         Planner planner;
         static std::queue<TilePosition> points_of_interest;
-        //determinedPoints[0] small building, determinedPoints[1] large building
+        
+        //[0] small building, [1] large building
         static TilePosition determined_points [2];
     private:
 };
