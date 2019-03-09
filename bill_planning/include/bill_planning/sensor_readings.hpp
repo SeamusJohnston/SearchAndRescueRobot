@@ -8,7 +8,7 @@ class SensorReadings
 {
     public:
         SensorReadings();
-        setPlanner(Planner p);
+        void setPlanner(Planner p);
         static int current_x_tile;
         static int current_y_tile;
 

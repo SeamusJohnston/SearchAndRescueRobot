@@ -1,6 +1,8 @@
-#include "bill_planning/sensor_readings.hpp"
 #include "tf/transform_datatypes.h"
 #include "angles/angles.h"
+#include "bill_planning/planner.hpp"
+#include "bill_planning/sensor_readings.hpp"
+
 
 int current_heading = 0;
 const float FULL_COURSE_SCAN_DISTANCE = 1.70;
@@ -80,7 +82,7 @@ int main(int argc, char** argv)
     ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
-    planner.setPubs(motor_pub, fan_pub);
+    planner.setPubs(motor_pub, fan_pub, led_pub);
     sensor_readings.setPlanner(planner);
     ros::spin();
     return 0;
