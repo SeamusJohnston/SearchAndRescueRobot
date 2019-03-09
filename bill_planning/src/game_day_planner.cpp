@@ -45,17 +45,17 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire < 3)
         {
             found_fire++;
-            SensorReadings::detected_fire = false;
+            sensor_readings.detected_fire = false;
         }
         else
         {
-            SensorReadings::detected_fire = true;
+            sensor_readings.detected_fire = true;
         }
     }
     else
     {
         found_fire = 0;
-        SensorReadings::detected_fire = false;
+        sensor_readings.detected_fire = false;
     }
 }
 
