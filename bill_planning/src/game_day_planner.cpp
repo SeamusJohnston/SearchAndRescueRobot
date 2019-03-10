@@ -20,6 +20,7 @@ float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
 Planner SensorReadings::planner = planner;
 TilePosition SensorReadings::currentTargetPoint(0,0);
+State SensorReadings::current_state = State::INIT_SEARCH;
 
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -41,21 +42,29 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    //UPDATE FRONT ULTRA IN SENSOR READINGS
+    SensorReadings::ultra_fwd = msg->data;
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     //SensorReadings::start_robot_performance_thread = true
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    //UPDATE LEFT ULTRA IN SENSOR READINGS
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    SensorReadings::ultra_left = msg->data;
+    if (SensorReadings::current_state == State::INIT_SEARCH && msg->data < 170)
+    {
+        // Mark New Object Using Math
+    }
     //SensorReadings::start_robot_performance_thread = true
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    //UPDATE RIGHT ULTRA IN SENSOR READINGS
+    SensorReadings::ultra_right = msg->data;
+    if (SensorReadings::current_state == State::INIT_SEARCH && msg->data < 170)
+    {
+        // Mark New Object Using Math
+    }
+
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     //SensorReadings::start_robot_performance_thread = true
 }

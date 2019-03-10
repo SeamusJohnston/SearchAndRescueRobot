@@ -25,6 +25,8 @@ float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
 Planner SensorReadings::planner = planner;
 std::queue<TilePosition> SensorReadings::points_of_interest;
+TilePosition SensorReadings::currentTargetPoint(0,0);
+State SensorReadings::current_state = State::INIT_SEARCH;
 
 int main()
 {
@@ -92,12 +94,31 @@ int main()
 
     desired_heading = 180;
     SensorReadings::planner.publishTurn(desired_heading);
+    while (SensorReadings::current_heading != desired_heading);
     // THE FIRE CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
+
+    if(SensorReadings::points_of_interest.size() < 3)
+    {
+        //Determine whether to L or T search
+    }
 
     while (!SensorReadings::points_of_interest.empty())
     {
+        SensorReadings::currentTargetPoint = SensorReadings::points_of_interest.front();
+        SensorReadings::points_of_interest.pop();
+
+        desired_x_tile = SensorReadings::currentTargetPoint.x;
+        desired_y_tile = SensorReadings::currentTargetPoint.y;
+
+        SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile,
+                                                   SensorReadings::current_y_tile,
+                                                   desired_x_tile,
+                                                   desired_y_tile, 0.4);
+
         //Drive to position
-        //While position != desired position {};
+        while (SensorReadings::current_x_tile != desired_x_tile
+            && SensorReadings::current_y_tile != desired_y_tile);
+
         //Determine what the object is, fire, b1, b2
         //if b1 or b2, store location in SensorReadings::determinedPoints[];
         //if fire, call fireOut();
