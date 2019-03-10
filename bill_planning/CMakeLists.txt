@@ -129,12 +129,14 @@ include_directories(
 #   src/${PROJECT_NAME}/bill_planning.cpp
 # )
 add_library(sensor_readings src/sensor_readings.cpp)
+add_library(position src/position.cpp)
 add_library(planner src/planner.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(position ${catkin_EXPORTED_TARGETS})
 add_dependencies(planner ${catkin_EXPORTED_TARGETS})
 add_dependencies(sensor_readings ${catkin_EXPORTED_TARGETS})
 
@@ -154,16 +156,16 @@ add_executable(robot_performance_thread src/robot_performance_thread.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner)
-add_dependencies(robot_performance_thread ${catkin_EXPORTED_TARGETS} planner)
+add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner position)
+add_dependencies(robot_performance_thread ${catkin_EXPORTED_TARGETS} planner position)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(sensor_readings planner)
-target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner)
-target_link_libraries(robot_performance_thread ${catkin_LIBRARIES} sensor_readings planner)
+target_link_libraries(sensor_readings planner position)
+target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner position)
+target_link_libraries(robot_performance_thread ${catkin_LIBRARIES} sensor_readings planner position)
 
 #############
 ## Install ##

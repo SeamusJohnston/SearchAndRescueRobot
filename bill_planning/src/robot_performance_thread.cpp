@@ -50,7 +50,11 @@ int main()
                 && desired_y_tile == SensorReadings::current_y_tile
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
-                SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile + increment, 0);
+                SensorReadings::planner.publishDriveToTile(
+                        SensorReadings::current_x_tile,
+                        SensorReadings::current_y_tile,
+                        SensorReadings::current_x_tile + increment,
+                        0, 0.4);
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
                 desired_x_tile = SensorReadings::current_x_tile + increment;
                 desired_y_tile = 0;
@@ -64,7 +68,10 @@ int main()
         desired_heading = 90;
     }
 
-    SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile, 6);
+    SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile,
+            SensorReadings::current_y_tile,
+            SensorReadings::current_x_tile,
+            6, 0.4);
     // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
     desired_x_tile = SensorReadings::current_x_tile;
     desired_y_tile = 6;

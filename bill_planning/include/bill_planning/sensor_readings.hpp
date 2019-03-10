@@ -24,7 +24,7 @@ class SensorReadings
 
         static Planner planner;
         static std::queue<TilePosition> points_of_interest;
-
+        static TilePosition currentTargetPoint;
 };
 
 #endif

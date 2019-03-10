@@ -66,7 +66,74 @@ void Planner::signalComplete()
     _led_pub.publish(msg);
 }
 
-void Planner::publishDriveToTile(int x, int y)
+void Planner::publishDriveToTile(const int currentX, const int currentY, const int x, const int y, const float speed)
 {
-    
+    // Only publish a set of horizontal/vertical drive commands if we arent currently in the middle of processing a set
+    if (drivePoints.empty())
+    {
+        int heading;
+
+        // We will prioritize driving the shortest leg of the horizontal/vertical drive first
+        // If they are the same length, we will drive the horizontal one first
+        int xDistSq = (currentX - x)*(currentX - x);
+        int yDistSq = (currentY - y)*(currentY - y);
+
+        if (xDistSq <= yDistSq)
+        {
+            drivePoints.emplace(x,currentY);
+            heading = currentX > x ? 180 : 0;
+        }
+        else
+        {
+            drivePoints.emplace(currentX, y);
+            heading = currentY > y ? 270 : 90;
+        }
+
+        drivePoints.emplace(x,y);
+
+        // Publish a drive to the first queued point
+        publishDrive(heading, driveSpeed);
+
+        // WRITE TO SENSOR READINGS OUR CURRENT TARGET POINT
+    }
+    else
+    {
+        ROS_WARN("Attempting to drive to point while we are already driving to point");
+    }
+}
+
+void Planner::ProcessNextDrivePoint(const int currentX, const int currentY)
+{
+    if (!drivePoints.empty())
+    {
+        // Remove the front point from the queue, we have arrived at it.
+        drivePoints.pop();
+
+        if (!drivePoints.empty())
+        {
+            TilePosition secondLeg = drivePoints.front();
+            int heading;
+
+            if (currentX == secondLeg.x)
+            {
+                // Drive in Y
+                heading = currentY > secondLeg.y ? 270 : 90;
+            }
+            else
+            {
+                // Drive in X
+                heading = currentX > secondLeg.x ? 180 : 0;
+            }
+
+            publishDrive(heading, driveSpeed);
+
+            // WRITE TO SENSOR READINGS OUT CURRENT TARGET POINT;
+        }
+        else
+        {
+            // WRITE TO SENSOR READINGS AN INVALID TARGET POINT VALUE;
+            ROS_INFO("Completed drive to point");
+            return;
+        }
+    }
 }
