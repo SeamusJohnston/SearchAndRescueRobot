@@ -118,7 +118,7 @@ catkin_package(
 ###########
 
 FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi ~/wiringPi)
-FIND_LIBRARY(SERIAL_LIBRARY serial ~/serial)
+##FIND_LIBRARY(SERIAL_LIBRARY serial ~/serial)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
@@ -143,7 +143,7 @@ add_executable(ultrasonic_driver src/ultrasonic_driver.cpp)
 add_executable(led_driver src/led_driver.cpp)
 add_executable(fan_driver src/fan_driver.cpp)
 add_executable(motor_driver src/motor_driver.cpp)
-add_executable(serial_driver src/serial_driver.cpp)
+##add_executable(serial_driver src/serial_driver.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -153,7 +153,7 @@ add_executable(serial_driver src/serial_driver.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
+##add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
@@ -163,7 +163,7 @@ target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(serial_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} ${SERIAL_LIBRARY})
+##target_link_libraries(serial_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} ${SERIAL_LIBRARY})
 
 #############
 ## Install ##

@@ -1,6 +1,7 @@
 #include "tf/transform_datatypes.h"
 #include "angles/angles.h"
 #include "bill_planning/sensor_readings.hpp"
+#include <math.h>
 
 
 int current_heading = 0;
@@ -13,6 +14,17 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
     // UPDATE HEADING AND POSSIBLY POSITION IN SENSOR READINGS
+
+    // Truncate this instead of floor to
+    int currentX = (int)std::trunc(msg->pose.pose.position.x);
+    int currentY = (int)std::trunc(msg->pose.pose.position.y);
+
+    // This may cause weird behaviour when the robot is on the edges of a tile
+    if (SensorReadings::currentTargetPoint.x == currentX && SensorReadings::currentTargetPoint.y == currentY)
+    {
+        // We have arrived at our current target point
+        planner.ProcessNextDrivePoint(SensorReadings::currentTargetPoint.x, SensorReadings::currentTargetPoint.y);
+    }
 }
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)

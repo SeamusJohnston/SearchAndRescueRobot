@@ -29,6 +29,8 @@ class SensorReadings
         
         //[0] small building, [1] large building
         static TilePosition determined_points [2];
+
+        static TilePosition currentTargetPoint;
     private:
 };
 
