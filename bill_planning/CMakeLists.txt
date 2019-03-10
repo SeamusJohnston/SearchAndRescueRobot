@@ -128,7 +128,6 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/bill_planning.cpp
 # )
-
 add_library(sensor_readings src/sensor_readings.cpp)
 add_library(planner src/planner.cpp)
 
@@ -154,14 +153,14 @@ add_executable(game_day_planner src/game_day_planner.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner )
 
-add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(sensor_readings planner)
-target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings)
+target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner)
 
 #############
 ## Install ##

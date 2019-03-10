@@ -1,16 +1,13 @@
 #include "tf/transform_datatypes.h"
 #include "angles/angles.h"
-#include "bill_planning/planner.hpp"
 #include "bill_planning/sensor_readings.hpp"
 
 
 int current_heading = 0;
-const float FULL_COURSE_SCAN_DISTANCE = 1.70;
-const float ULTRA_CLOSETOWALL_DIST = 5;
 int found_fire = 0;
 
 Planner planner;
-SensorReadings sensor_readings;
+//SensorReadings sensor_readings;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -47,17 +44,17 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire < 3)
         {
             found_fire++;
-            sensor_readings.detected_fire = false;
+            //sensor_readings.detected_fire = false;
         }
         else
         {
-            sensor_readings.detected_fire = true;
+            //sensor_readings.detected_fire = true;
         }
     }
     else
     {
         found_fire = 0;
-        sensor_readings.detected_fire = false;
+        //sensor_readings.detected_fire = false;
     }
 }
 
@@ -83,7 +80,7 @@ int main(int argc, char** argv)
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
-    sensor_readings.setPlanner(planner);
+    //sensor_readings.setPlanner(planner);
     ros::spin();
     return 0;
 }
