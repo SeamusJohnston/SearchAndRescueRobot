@@ -7,7 +7,17 @@ int current_heading = 0;
 int found_fire = 0;
 
 Planner planner;
-//SensorReadings sensor_readings;
+
+int SensorReadings::current_x_tile = 0;
+int SensorReadings::current_y_tile = 0;
+int SensorReadings::current_heading = 90;
+bool SensorReadings::detected_fire = false;
+bool SensorReadings::start_robot_performance_thread = false;
+float SensorReadings::ultra_fwd = -500;
+float SensorReadings::ultra_left = -500;
+float SensorReadings::ultra_right = -500;
+Planner SensorReadings::planner = planner;
+
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -44,17 +54,17 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire < 3)
         {
             found_fire++;
-            //sensor_readings.detected_fire = false;
+            SensorReadings::detected_fire = false;
         }
         else
         {
-            //sensor_readings.detected_fire = true;
+            SensorReadings::detected_fire = true;
         }
     }
     else
     {
         found_fire = 0;
-        //sensor_readings.detected_fire = false;
+        SensorReadings::detected_fire = false;
     }
 }
 
@@ -80,7 +90,8 @@ int main(int argc, char** argv)
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
-    //sensor_readings.setPlanner(planner);
+    SensorReadings::planner = planner;
+
     ros::spin();
     return 0;
 }

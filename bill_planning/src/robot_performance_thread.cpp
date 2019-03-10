@@ -1,4 +1,4 @@
-#include "bill_planning/robotPerformanceThread.hpp"
+#include "bill_planning/robot_performance_thread.hpp"
 
 //DIMENSIONS IN METRES. WILL NEED A STATIC STRUCT OR CLASS FOR SENSOR VALUES
 //MUST EXTRACT THE CLASS
@@ -14,6 +14,17 @@ int desired_y_tile = 0;
 int desired_heading = 90; 
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
+
+int SensorReadings::current_x_tile = 0;
+int SensorReadings::current_y_tile = 0;
+int SensorReadings::current_heading = 90;
+bool SensorReadings::detected_fire = false;
+bool SensorReadings::start_robot_performance_thread = false;
+float SensorReadings::ultra_fwd = -500;
+float SensorReadings::ultra_left = -500;
+float SensorReadings::ultra_right = -500;
+Planner SensorReadings::planner = planner;
+std::queue<TilePosition> SensorReadings::points_of_interest;
 
 int main()
 {
@@ -99,8 +110,8 @@ void fireOut()
         if (initialCall || SensorReadings::detected_fire)
         {
             SensorReadings::planner.putOutFire();
-            desired_heading = current_heading + 2 * FIRE_SCAN_ANGLE;
-            temp_desired_heading = current_heading - FIRE_SCAN_ANGLE;
+            desired_heading = SensorReadings::current_heading + 2 * FIRE_SCAN_ANGLE;
+            temp_desired_heading = SensorReadings::current_heading - FIRE_SCAN_ANGLE;
 
             SensorReadings::planner.publishTurn(temp_desired_heading);
 
@@ -114,8 +125,8 @@ void fireOut()
             if(SensorReadings::detected_fire)
             {
                 SensorReadings::planner.putOutFire();
-                desired_heading = current_heading + 2 * FIRE_SCAN_ANGLE;
-                temp_desired_heading = current_heading - FIRE_SCAN_ANGLE;
+                desired_heading = SensorReadings::current_heading + 2 * FIRE_SCAN_ANGLE;
+                temp_desired_heading = SensorReadings::current_heading - FIRE_SCAN_ANGLE;
                 SensorReadings::planner.publishTurn(temp_desired_heading);
             }
         }

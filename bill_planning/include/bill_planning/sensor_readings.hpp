@@ -7,8 +7,6 @@
 class SensorReadings
 {
     public:
-        SensorReadings();
-        void setPlanner(Planner p);
         static int current_x_tile;
         static int current_y_tile;
 
@@ -24,12 +22,9 @@ class SensorReadings
         // ONLY SET WHEN WE HAVE RECEIVED FRONT, LEFT AND RIGHT ULTRASONIC READINGS
         static bool start_robot_performance_thread;
 
-        Planner planner;
+        static Planner planner;
         static std::queue<TilePosition> points_of_interest;
-        
-        //[0] small building, [1] large building
-        static TilePosition determined_points [2];
-    private:
+
 };
 
 #endif

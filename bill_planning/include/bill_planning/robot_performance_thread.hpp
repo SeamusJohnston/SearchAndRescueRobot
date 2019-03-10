@@ -2,7 +2,7 @@
 #define PERFORMANCE_THREAD_HPP
 
 #include "bill_planning/planner.hpp"
-#include "bill_planning/sensorReadings.hpp"
+#include "bill_planning/sensor_readings.hpp"
 #include "bill_msgs/State.h"
 
 /*

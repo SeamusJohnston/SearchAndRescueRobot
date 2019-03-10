@@ -8,14 +8,14 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  bill_drivers
-  bill_msgs
-  nav_msgs
-  roscpp
-  sensor_msgs
-  std_msgs
-  tf2_ros
-)
+        bill_drivers
+        bill_msgs
+        nav_msgs
+        roscpp
+        sensor_msgs
+        std_msgs
+        tf2_ros
+        )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -107,10 +107,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
-#  LIBRARIES bill_planning
-  CATKIN_DEPENDS bill_drivers bill_msgs nav_msgs roscpp sensor_msgs std_msgs tf2_ros
-#  DEPENDS system_lib
+        INCLUDE_DIRS include
+        #  LIBRARIES bill_planning
+        CATKIN_DEPENDS bill_drivers bill_msgs nav_msgs roscpp sensor_msgs std_msgs tf2_ros
+        #  DEPENDS system_lib
 )
 
 ###########
@@ -120,8 +120,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
- include
-  ${catkin_INCLUDE_DIRS}
+        include
+        ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -142,6 +142,7 @@ add_dependencies(sensor_readings ${catkin_EXPORTED_TARGETS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(game_day_planner src/game_day_planner.cpp)
+add_executable(robot_performance_thread src/robot_performance_thread.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -153,7 +154,8 @@ add_executable(game_day_planner src/game_day_planner.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner )
+add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner)
+add_dependencies(robot_performance_thread ${catkin_EXPORTED_TARGETS} planner)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
@@ -161,6 +163,7 @@ add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner )
 # )
 target_link_libraries(sensor_readings planner)
 target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner)
+target_link_libraries(robot_performance_thread ${catkin_LIBRARIES} sensor_readings planner)
 
 #############
 ## Install ##
