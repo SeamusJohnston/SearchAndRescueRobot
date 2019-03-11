@@ -11,6 +11,8 @@ const static float DISTANCE_SCALE_CM = 58.0;
 // Assumes speed of sound is 340 m/s
 // The below value must be converted to cm/microsecond
 const static float SPEED_OF_SOUND_CMPUS = 0.0340;
+int trig_pin;
+int echo_pin;
 
 void setup()
 {
@@ -18,31 +20,31 @@ void setup()
     wiringPiSetupGpio();
 
     // Set up pins
-    pinMode(ULTRA_TRIGGER_PIN1, OUTPUT);
-    pinMode(ULTRA_ECHO_PIN1, INPUT);
-    ROS_INFO("Trigger pin is: %i", wpiPinToGpio(ULTRA_TRIGGER_PIN1));
-    ROS_INFO("Echo pin is: %i", wpiPinToGpio(ULTRA_ECHO_PIN1));
+    pinMode(trig_pin, OUTPUT);
+    pinMode(echo_pin, INPUT);
+    ROS_INFO("Trigger pin is: %i", wpiPinToGpio(trig_pin));
+    ROS_INFO("Echo pin is: %i", wpiPinToGpio(echo_pin));
 
     // Init trigger as low
-    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
+    digitalWrite(trig_pin, LOW);
 }
 
 float ReadDistance()
 {
     // Make sure the trigger pin starts low
-    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
+    digitalWrite(trig_pin, LOW);
     delayMicroseconds(2);
 
     // Send pulse of 10 microseconds
-    digitalWrite(ULTRA_TRIGGER_PIN1, HIGH);
+    digitalWrite(trig_pin, HIGH);
     // Note this delay MUST be longer than 10 microseconds
     delayMicroseconds(20);
-    digitalWrite(ULTRA_TRIGGER_PIN1, LOW);
+    digitalWrite(trig_pin, LOW);
 
     // Wait for echo to return
     int recieveTimeout = ECHO_RECIEVE_TIMEOUT;
 
-    while (digitalRead(ULTRA_ECHO_PIN1) == LOW)
+    while (digitalRead(echo_pin) == LOW)
     {
         if (--recieveTimeout == 0)
         {
@@ -57,7 +59,7 @@ float ReadDistance()
     int readTimeout = ECHO_READ_TIMEOUT;
     long startTime = micros();
 
-    while (digitalRead(ULTRA_ECHO_PIN1) == HIGH)
+    while (digitalRead(echo_pin) == HIGH)
     {
         if (--readTimeout == 0)
         {
@@ -92,7 +94,12 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "ultrasonic_driver");
     ros::NodeHandle nh;
-    ros::Publisher ultrasonic_pub = nh.advertise<std_msgs::Float32>("ultrasonic", 100);
+    std::string topic;
+    nh.getParam("trigger_pin", trig_pin);
+    nh.getParam("echo_pin", echo_pin);
+    nh.getParam("topic", topic);
+
+    ros::Publisher ultrasonic_pub = nh.advertise<std_msgs::Float32>(topic, 100);
     ros::Rate loop_rate(LOOP_RATE_ULTRA);
 
     // Call sensor setup

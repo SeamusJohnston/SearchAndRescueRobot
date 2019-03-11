@@ -6,14 +6,6 @@ const int LED_PIN = 19;
 const int BUTTON_PIN = 26;
 const int RELAY_OUTPIN = 6;
 
-// Ultrasonic
-const int ULTRA_TRIGGER_PIN1 = 17;
-const int ULTRA_ECHO_PIN1 = 27;
-const int ULTRA_TRIGGER_PIN2 = 9;
-const int ULTRA_ECHO_PIN2 = 11;
-const int ULTRA_TRIGGER_PIN3 = 20;
-const int ULTRA_ECHO_PIN3 = 21;
-
 // Motors
 const int MOTORA_PWM = 12;      // PWMA
 const int MOTORB_PWM = 13;      // PWMB
