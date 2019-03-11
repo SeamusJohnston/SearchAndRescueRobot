@@ -127,7 +127,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-
+add_library(filters src/filters.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -144,6 +144,7 @@ add_executable(led_driver src/led_driver.cpp)
 add_executable(fan_driver src/fan_driver.cpp)
 add_executable(motor_driver src/motor_driver.cpp)
 add_executable(serial_driver src/serial_driver.cpp)
+add_executable(localization_node src/localization_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,6 +156,7 @@ add_executable(serial_driver src/serial_driver.cpp)
 ## same as for the library above
 add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
+add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
@@ -164,6 +166,7 @@ target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(serial_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} ${SERIAL_LIBRARY})
+target_link_libraries(localization_node ${catkin_LIBRARIES} filters)
 
 #############
 ## Install ##
