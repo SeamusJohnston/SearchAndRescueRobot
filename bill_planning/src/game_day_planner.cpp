@@ -44,6 +44,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
+    ROS_INFO("Front Ultra Callback: %f \n", msg->data);
     if(msg->data > 400)
     {
         // NOT POSSIBLE IN THE COURSE ~ BAD DATA

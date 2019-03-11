@@ -144,7 +144,7 @@ add_dependencies(sensor_readings ${catkin_EXPORTED_TARGETS})
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(game_day_planner src/game_day_planner.cpp)
-## add_executable(robot_performance_thread src/robot_performance_thread.cpp)
+add_executable(robot_performance_thread src/robot_performance_thread.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -157,7 +157,7 @@ add_executable(game_day_planner src/game_day_planner.cpp)
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner position)
-# add_dependencies(robot_performance_thread ${catkin_EXPORTED_TARGETS} planner position)
+add_dependencies(robot_performance_thread ${catkin_EXPORTED_TARGETS} planner position)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
@@ -165,7 +165,7 @@ add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner position)
 # )
 target_link_libraries(sensor_readings planner position)
 target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner position)
-# target_link_libraries(robot_performance_thread ${catkin_LIBRARIES} sensor_readings planner position)
+target_link_libraries(robot_performance_thread ${catkin_LIBRARIES} sensor_readings planner position)
 
 #############
 ## Install ##
