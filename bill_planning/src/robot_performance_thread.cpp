@@ -6,23 +6,26 @@
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
+bool _fire_out = false;
 
 // POSITION
-int desired_x_tile = 0;
-int desired_y_tile = 0;
+TilePosition desired_tile(0,0);
 
 int desired_heading = 90; 
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
 
-int SensorReadings::current_x_tile = 0;
-int SensorReadings::current_y_tile = 0;
+TilePosition large_building_tile(0,0);
+
+//IF YOU DON'T DECLARE STATIC MEMBERS WITH A VALUE, IT WONT BUILD
+TilePosition SensorReadings::current_tile(0,0);
 int SensorReadings::current_heading = 90;
 bool SensorReadings::detected_fire = false;
 bool SensorReadings::start_robot_performance_thread = false;
 float SensorReadings::ultra_fwd = -500;
 float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
+unsigned char SensorReadings::detection_bit = 0x00;
 Planner SensorReadings::planner = planner;
 std::queue<TilePosition> SensorReadings::points_of_interest;
 TilePosition SensorReadings::currentTargetPoint(0,0);
@@ -48,18 +51,18 @@ int main()
                 SensorReadings::ultra_right : 
                 SensorReadings::ultra_left;
 
-            if (desired_x_tile == SensorReadings::current_x_tile 
-                && desired_y_tile == SensorReadings::current_y_tile
+            if (desired_tile.x == SensorReadings::current_tile.x 
+                && desired_tile.y == SensorReadings::current_tile.y
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
                 SensorReadings::planner.publishDriveToTile(
-                        SensorReadings::current_x_tile,
-                        SensorReadings::current_y_tile,
-                        SensorReadings::current_x_tile + increment,
+                        SensorReadings::current_tile.x,
+                        SensorReadings::current_tile.y,
+                        SensorReadings::current_tile.x + increment,
                         0, 0.4);
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
-                desired_x_tile = SensorReadings::current_x_tile + increment;
-                desired_y_tile = 0;
+                desired_tile.x = SensorReadings::current_tile.x + increment;
+                desired_tile.y = 0;
             }
             else if (temp_ultra > FULL_COURSE_DETECTION_LENGTH)
             {
@@ -70,18 +73,18 @@ int main()
         desired_heading = 90;
     }
 
-    SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile,
-            SensorReadings::current_y_tile,
-            SensorReadings::current_x_tile,
+    SensorReadings::planner.publishDriveToTile(SensorReadings::current_tile.x,
+            SensorReadings::current_tile.y,
+            SensorReadings::current_tile.x,
             6, 0.4);
     // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
-    desired_x_tile = SensorReadings::current_x_tile;
-    desired_y_tile = 6;
+    desired_tile.x = SensorReadings::current_tile.x;
+    desired_tile.y = 6;
 
     while(!_driven_fwd)
     {
-        if(desired_x_tile == SensorReadings::current_x_tile 
-            && desired_y_tile == SensorReadings::current_y_tile)
+        if(desired_tile.x == SensorReadings::current_tile.x 
+            && desired_tile.y == SensorReadings::current_tile.y)
         {
             _driven_fwd = true;
         }
@@ -107,17 +110,44 @@ int main()
         SensorReadings::currentTargetPoint = SensorReadings::points_of_interest.front();
         SensorReadings::points_of_interest.pop();
 
-        desired_x_tile = SensorReadings::currentTargetPoint.x;
-        desired_y_tile = SensorReadings::currentTargetPoint.y;
+        desired_tile.x = SensorReadings::currentTargetPoint.x;
+        desired_tile.y = SensorReadings::currentTargetPoint.y;
 
-        SensorReadings::planner.publishDriveToTile(SensorReadings::current_x_tile,
-                                                   SensorReadings::current_y_tile,
-                                                   desired_x_tile,
-                                                   desired_y_tile, 0.4);
+        SensorReadings::planner.publishDriveToTile(SensorReadings::current_tile.x,
+                                                   SensorReadings::current_tile.y,
+                                                   desired_tile.x,
+                                                   desired_tile.y, 0.4);
 
         //Drive to position
-        while (SensorReadings::current_x_tile != desired_x_tile
-            && SensorReadings::current_y_tile != desired_y_tile);
+        while (SensorReadings::current_tile.x != desired_tile.x
+            && SensorReadings::current_tile.y != desired_tile.y);
+
+        while (detection_bit == 0x00)
+        {
+            // TODO
+            // We could possibly trigger a scan in here but maybe we should create a scan tile
+            // function in planner to search tile for one of the 3 objects
+        }
+
+        if (detection_bit == 0x01)
+        {
+            fireOut();
+            _fire_out = true;
+        }
+        else if (_fire_out)
+        {
+            SensorReadings::planner.signalComplete();
+            if (detection_bit == 0x03)
+            {
+                large_building_tile.x = SensorReadings::current_tile.x;
+                large_building_tile.x = SensorReadings::current_tile.y;
+            }
+        }
+        else
+        {
+            points_of_interest.push(SensorReadings::currentTargetPoint);
+        }
+        
 
         //Determine what the object is, fire, b1, b2
         //if b1 or b2, store location in SensorReadings::determinedPoints[];

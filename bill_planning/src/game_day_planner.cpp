@@ -3,21 +3,24 @@
 #include "bill_planning/sensor_readings.hpp"
 #include <math.h>
 #include "bill_planning/position.hpp"
+#include <cstddef>
 
 
 int current_heading = 0;
 int found_fire = 0;
+unsigned char start_course = 0x00;
 
 Planner planner;
 
-int SensorReadings::current_x_tile = 0;
-int SensorReadings::current_y_tile = 0;
+//IF YOU DON'T DECLARE STATIC MEMBERS WITH A VALUE, IT WONT BUILD
+TilePosition SensorReadings::current_tile(0,0);
 int SensorReadings::current_heading = 90;
 bool SensorReadings::detected_fire = false;
 bool SensorReadings::start_robot_performance_thread = false;
 float SensorReadings::ultra_fwd = -500;
 float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
+unsigned char SensorReadings::detection_bit = 0x00;
 Planner SensorReadings::planner = planner;
 TilePosition SensorReadings::currentTargetPoint(0,0);
 State SensorReadings::current_state = State::INIT_SEARCH;
@@ -42,23 +45,35 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
+    start_course = start_course ^ 0x01;
     SensorReadings::ultra_fwd = msg->data;
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    //SensorReadings::start_robot_performance_thread = true
+    
+    if(!SensorReadings::start_robot_performance_thread 
+        && 0x07 - start_course == 0x00)
+    {
+        SensorReadings::start_robot_performance_thread = true;
+    }
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
+    start_course = start_course ^ 0x02;
     SensorReadings::ultra_left = msg->data;
     if (SensorReadings::current_state == State::INIT_SEARCH && msg->data < 170)
     {
         // Mark New Object Using Math
     }
-    //SensorReadings::start_robot_performance_thread = true
+
+    if(!SensorReadings::start_robot_performance_thread 
+        && 0x07 - start_course == 0x00)
+    {
+        SensorReadings::start_robot_performance_thread = true;
+    }
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
+    start_course = start_course ^ 0x04;
     SensorReadings::ultra_right = msg->data;
     if (SensorReadings::current_state == State::INIT_SEARCH && msg->data < 170)
     {
@@ -66,7 +81,11 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
     }
 
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    //SensorReadings::start_robot_performance_thread = true
+    if(!SensorReadings::start_robot_performance_thread 
+        && 0x07 - start_course == 0x00)
+    {
+        SensorReadings::start_robot_performance_thread = true;
+    }
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)

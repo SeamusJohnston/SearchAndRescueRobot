@@ -17,8 +17,7 @@ enum State
 class SensorReadings
 {
     public:
-        static int current_x_tile;
-        static int current_y_tile;
+        static TilePosition current_tile;
 
         static int current_heading;
 
@@ -37,6 +36,9 @@ class SensorReadings
         static TilePosition currentTargetPoint;
 
         static State current_state;
+
+        //Set to 1 if fire, 2 if small building and 3 if large
+        unsigned char detection_bit;
 };
 
 #endif
