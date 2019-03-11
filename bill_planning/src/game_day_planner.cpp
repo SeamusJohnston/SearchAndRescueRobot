@@ -45,9 +45,23 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    start_course = start_course ^ 0x01;
-    SensorReadings::ultra_fwd = msg->data;
+    if(msg->data > 400)
+    {
+        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
+        return;
+    }
+
+    // TODO DON'T USE 170
+    // HOW CAN WE DISTINGUISH BETW WALL AND OBJECT HERE? 
+    // If we have increased then decreased over past 5 msrmts?
+    if (SensorReadings::current_state == STATE::INIT_FIRE_SCAN && msg->data < 170)
+    {
+        // Mark New Object Using Math STUFF
+    }
     
+    SensorReadings::ultra_fwd = msg->data;
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x01;
     if(!SensorReadings::start_robot_performance_thread 
         && 0x07 - start_course == 0x00)
     {
@@ -57,13 +71,20 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    start_course = start_course ^ 0x02;
-    SensorReadings::ultra_left = msg->data;
+    if(msg->data > 400)
+    {
+        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
+        return;
+    }
+
     if (SensorReadings::current_state == STATE::INIT_SEARCH && msg->data < 170)
     {
         // Mark New Object Using Math
     }
 
+    SensorReadings::ultra_left = msg->data;
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x02;
     if(!SensorReadings::start_robot_performance_thread 
         && 0x07 - start_course == 0x00)
     {
@@ -73,14 +94,20 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    start_course = start_course ^ 0x04;
-    SensorReadings::ultra_right = msg->data;
+    if(msg->data > 400)
+    {
+        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
+        return;
+    }
+    
     if (SensorReadings::current_state == STATE::INIT_SEARCH && msg->data < 170)
     {
         // Mark New Object Using Math
     }
 
+    SensorReadings::ultra_right = msg->data;
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x04;
     if(!SensorReadings::start_robot_performance_thread 
         && 0x07 - start_course == 0x00)
     {

@@ -25,7 +25,20 @@ int desired_heading = 90;
 // CONSTANTS
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
-SensorReadings SR();
+
+// SensorReadings Initialization
+TilePosition SensorReadings::current_tile(0,0);
+int SensorReadings::current_heading = 90;
+bool SensorReadings::detected_fire = false;
+bool SensorReadings::start_robot_performance_thread = false;
+float SensorReadings::ultra_fwd = -500;
+float SensorReadings::ultra_left = -500;
+float SensorReadings::ultra_right = -500;
+unsigned char SensorReadings::detection_bit = 0x00;
+Planner SensorReadings::planner = planner;
+std::queue<TilePosition> SensorReadings::points_of_interest;
+TilePosition SensorReadings::currentTargetPoint(0,0);
+STATE SensorReadings::current_state = STATE::INIT_SEARCH;
 
 int main()
 {
@@ -35,15 +48,16 @@ int main()
     findClearPathFwd();
 
     completeStraightLineSearch();
+    SensorReadings::current_state = STATE::INIT_FIRE_SCAN;
 
     scanForFire();
 
     if(SensorReadings::points_of_interest.size() < 3)
     {
-        //Determine whether to L or T search
+        //SOMETHING WENT WRONG WE SHOULD HAVE DETECTED BY NOW
     }
-    SensorReadings::current_state = STATE::FLAME_SEARCH;
 
+    SensorReadings::current_state = STATE::FLAME_SEARCH;
     driveToDesiredPoints();
 }
 
@@ -150,7 +164,7 @@ void completeStraightLineSearch()
 
 void scanForFire()
 {
-    desired_heading = 0
+    desired_heading = 0;
     SensorReadings::planner.publishTurn(desired_heading);
     while (SensorReadings::current_heading != desired_heading);
 
