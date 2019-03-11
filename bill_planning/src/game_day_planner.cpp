@@ -117,6 +117,10 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
+    SensorReadings::detected_fire = msg->data;
+    ROS_INFO("Flame Callback: %i \n", msg->data);
+    ROS_INFO("Flame Callback: %i \n", SensorReadings::detected_fire);
+
     if (msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)

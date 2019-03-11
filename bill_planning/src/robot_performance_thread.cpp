@@ -42,10 +42,15 @@ STATE SensorReadings::current_state = STATE::INIT_SEARCH;
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "robot_performance_thread");
+    ros::init(argc, argv, "robot_perf");
 
     // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
-    while (SensorReadings::start_robot_performance_thread);
+    while (!SensorReadings::start_robot_performance_thread)
+    {
+        ros::Duration(2).sleep();
+        ROS_INFO("Front Ultra Callback: %f \n", SensorReadings::ultra_fwd);
+        ROS_INFO("Front Ultra Callback: %i \n", SensorReadings::detected_fire);
+    }
 
     findClearPathFwd();
 
@@ -125,11 +130,11 @@ void findClearPathFwd()
                 && desired_tile.y == SensorReadings::current_tile.y
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
-                SensorReadings::planner->publishDriveToTile(
+               /* SensorReadings::planner->publishDriveToTile(
                         SensorReadings::current_tile.x,
                         SensorReadings::current_tile.y,
                         SensorReadings::current_tile.x + increment,
-                        0, 0.4);
+                        0, 0.4);*/
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
                 desired_tile.x = SensorReadings::current_tile.x + increment;
                 desired_tile.y = 0;
