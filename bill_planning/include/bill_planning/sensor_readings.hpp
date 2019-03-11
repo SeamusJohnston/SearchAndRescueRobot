@@ -38,7 +38,7 @@ class SensorReadings
         static State current_state;
 
         //Set to 1 if fire, 2 if small building and 3 if large
-        unsigned char detection_bit;
+        static unsigned char detection_bit;
 };
 
 #endif
