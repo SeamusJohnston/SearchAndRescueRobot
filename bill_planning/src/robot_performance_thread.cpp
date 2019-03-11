@@ -132,11 +132,11 @@ void findClearPathFwd()
                 && desired_tile.y == SensorReadings::current_tile.y
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
-               /* SensorReadings::planner->publishDriveToTile(
+               SensorReadings::planner->publishDriveToTile(
                         SensorReadings::current_tile.x,
                         SensorReadings::current_tile.y,
                         SensorReadings::current_tile.x + increment,
-                        0, 0.4);*/
+                        0, 0.4);
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
                 desired_tile.x = SensorReadings::current_tile.x + increment;
                 desired_tile.y = 0;
