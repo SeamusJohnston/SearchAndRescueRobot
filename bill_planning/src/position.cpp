@@ -6,8 +6,20 @@ Position::Position(float xc, float yc)
     y = yc;
 }
 
+Position::Position()
+{
+    x = -500;
+    y = -500;
+}
+
 TilePosition::TilePosition(int xc, int yc)
 {
     x = xc;
     y = yc;
+}
+
+TilePosition::TilePosition()
+{
+    x = -100;
+    y = -100;
 }

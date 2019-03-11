@@ -20,7 +20,7 @@ float SensorReadings::ultra_fwd = -500;
 float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
 unsigned char SensorReadings::detection_bit = 0x00;
-Planner SensorReadings::planner = planner;
+Planner * SensorReadings::planner = planner;
 TilePosition SensorReadings::currentTargetPoint(0,0);
 STATE SensorReadings::current_state = STATE::INIT_SEARCH;
 
@@ -162,7 +162,7 @@ int main(int argc, char** argv)
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
-    SensorReadings::planner = planner;
+    SensorReadings::planner = &planner;
 
     ros::spin();
     return 0;

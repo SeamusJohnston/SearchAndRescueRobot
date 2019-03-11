@@ -27,7 +27,7 @@ class SensorReadings
         static bool detected_fire;
 
         static int current_heading;
-        static Planner planner;
+        static Planner * planner;
         static std::queue<TilePosition> points_of_interest;
         static TilePosition current_tile;
         static TilePosition currentTargetPoint;
