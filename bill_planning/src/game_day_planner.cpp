@@ -117,6 +117,7 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
+    ROS_INFO("Flame Callback: %i \n", SensorReadings::detected_fire);
     SensorReadings::detected_fire = msg->data;
     ROS_INFO("Flame Callback: %i \n", msg->data);
     ROS_INFO("Flame Callback: %i \n", SensorReadings::detected_fire);
@@ -127,7 +128,7 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire < 3)
         {
             found_fire++;
-            SensorReadings::detected_fire = false;
+            SensorReadings::detected_fire = true;
         }
         else
         {
@@ -167,7 +168,10 @@ int main(int argc, char** argv)
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
+
+    ROS_INFO("MEMORY ADDRESS: %x", &planner);
     SensorReadings::planner = &planner;
+    ROS_INFO("MEMORY ADDRESS: %x", SensorReadings::planner);
 
     ros::spin();
     return 0;

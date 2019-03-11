@@ -35,7 +35,7 @@ float SensorReadings::ultra_fwd = -500;
 float SensorReadings::ultra_left = -500;
 float SensorReadings::ultra_right = -500;
 unsigned char SensorReadings::detection_bit = 0x00;
-Planner * SensorReadings::planner = planner;
+Planner * SensorReadings::planner = nullptr;
 std::queue<TilePosition> SensorReadings::points_of_interest;
 TilePosition SensorReadings::currentTargetPoint(0,0);
 STATE SensorReadings::current_state = STATE::INIT_SEARCH;
@@ -44,12 +44,14 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "robot_perf");
 
+    ROS_INFO("MEMORY ADDRESS: %x", SensorReadings::planner);
     // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
     while (!SensorReadings::start_robot_performance_thread)
     {
-        ros::Duration(2).sleep();
-        ROS_INFO("Front Ultra Callback: %f \n", SensorReadings::ultra_fwd);
-        ROS_INFO("Front Ultra Callback: %i \n", SensorReadings::detected_fire);
+        ROS_INFO("MEMORY ADDRESS: %x", SensorReadings::planner);
+        //ros::Duration(2).sleep();
+        //ROS_INFO("Front Ultra Callback: %f \n", SensorReadings::ultra_fwd);
+        //ROS_INFO("Front Ultra Callback: %i \n", SensorReadings::detected_fire);
     }
 
     findClearPathFwd();
