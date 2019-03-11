@@ -5,7 +5,6 @@
 #include "bill_planning/position.hpp"
 #include <cstddef>
 
-
 int current_heading = 0;
 int found_fire = 0;
 unsigned char start_course = 0x00;

@@ -54,7 +54,8 @@ int main()
 
     if(SensorReadings::points_of_interest.size() < 3)
     {
-        //SOMETHING WENT WRONG WE SHOULD HAVE DETECTED BY NOW
+        // SOMETHING WENT WRONG WE SHOULD HAVE DETECTED BY NOW
+        // THIS PROBABLY MEANS THEY ARE BACK TO BACK
     }
 
     SensorReadings::current_state = STATE::FLAME_SEARCH;
