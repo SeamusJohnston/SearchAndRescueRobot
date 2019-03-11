@@ -5,7 +5,7 @@
 
 // FUNCTIONS
 void fireOut();
-void findClearPath();
+void findClearPathFwd();
 void completeStraightLineSearch();
 void scanForFire();
 void driveToDesiredPoints();
@@ -25,36 +25,14 @@ int desired_heading = 90;
 // CONSTANTS
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
-
-//IF YOU DON'T DECLARE STATIC MEMBERS WITH A VALUE, IT WONT BUILD
-//TODO CHECK IF WE CAN THROW THIS IN sensor_readings.cpp
-TilePosition SensorReadings::current_tile(0,0);
-int SensorReadings::current_heading = 90;
-bool SensorReadings::detected_fire = false;
-bool SensorReadings::start_robot_performance_thread = false;
-float SensorReadings::ultra_fwd = -500;
-float SensorReadings::ultra_left = -500;
-float SensorReadings::ultra_right = -500;
-unsigned char SensorReadings::detection_bit = 0x00;
-Planner SensorReadings::planner = planner;
-std::queue<TilePosition> SensorReadings::points_of_interest;
-TilePosition SensorReadings::currentTargetPoint(0,0);
-State SensorReadings::current_state = State::INIT_SEARCH;
+SensorReadings SR();
 
 int main()
 {
     // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
     while (SensorReadings::start_robot_performance_thread);
 
-    findClearPath();
-    
-    desired_tile.x = SensorReadings::current_tile.x;
-    desired_tile.y = 6;
-
-    SensorReadings::planner.publishDriveToTile(SensorReadings::current_tile.x,
-            SensorReadings::current_tile.y,
-            desired_tile.x,
-            desired_tile.y, 0.4);
+    findClearPathFwd();
 
     completeStraightLineSearch();
 
@@ -152,6 +130,14 @@ void findClearPathFwd()
 
 void completeStraightLineSearch()
 {
+    desired_tile.x = SensorReadings::current_tile.x;
+    desired_tile.y = 6;
+
+    SensorReadings::planner.publishDriveToTile(SensorReadings::current_tile.x,
+                                            SensorReadings::current_tile.y,
+                                            desired_tile.x,
+                                            desired_tile.y, 0.4);
+
     while(!_driven_fwd)
     {
         if(desired_tile.x == SensorReadings::current_tile.x 
@@ -164,15 +150,15 @@ void completeStraightLineSearch()
 
 void scanForFire()
 {
-    // Get to desired heading
-    desired_heading = 0;
+    desired_heading = 0
     SensorReadings::planner.publishTurn(desired_heading);
     while (SensorReadings::current_heading != desired_heading);
 
-    desired_heading = 180;
+    // 181 ENSURES FRONT WILL DO THE SCANNING (WE ARE AT TOP OF GRID)
+    // AND THE ULTRASONIC CAN AID IN OBJECT DETECTION
+    desired_heading = 181;
     SensorReadings::planner.publishTurn(desired_heading);
     while (SensorReadings::current_heading != desired_heading);
-    // THE FIRE CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
 }
 
 void driveToDesiredPoints()
