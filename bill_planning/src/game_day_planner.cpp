@@ -35,8 +35,8 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     int currentX = (int)std::trunc(msg->pose.pose.position.x);
     int currentY = (int)std::trunc(msg->pose.pose.position.y);
 
-    SensorReadings::current_x_tile = currentX;
-    SensorReadings::current_Y_tile = currentY;
+    SensorReadings::current_tile.x = currentX;
+    SensorReadings::current_tile.y = currentY;
 
     // This may cause weird behaviour when the robot is on the edges of a tile
     if (SensorReadings::currentTargetPoint.x == currentX && SensorReadings::currentTargetPoint.y == currentY)
