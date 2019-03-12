@@ -101,6 +101,24 @@ int SensorReadings::getCurrentTileY()
     return _current_tile.y;
 }
 
+void SensorReadings::setTargetPoint(int x, int y)
+{
+    std::lock_guard<std::mutex> guard(_target_tile_mutex);
+    _current_target_tile = TilePosition(x,y);
+}
+
+int SensorReadings::getTargetTileX()
+{
+    std::lock_guard<std::mutex> guard(_target_tile_mutex);
+    return _current_target_tile.x;
+}
+
+int SensorReadings::getTargetTileY()
+{
+    std::lock_guard<std::mutex> guard(_target_tile_mutex);
+    return _current_target_tile.y;
+}
+
 void SensorReadings::setCurrentState(STATE val)
 {
     std::lock_guard<std::mutex> guard(_current_state_mutex);

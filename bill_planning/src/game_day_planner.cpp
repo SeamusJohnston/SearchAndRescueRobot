@@ -8,6 +8,7 @@
 #include <utility>
 #include <thread>
 #include <chrono>
+#include <bill_planning/planner.hpp>
 
 // PLAY WITH THREAD SLEEP IN robotPerformanceThread
 
@@ -52,10 +53,10 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     int currentY = (int)std::trunc(msg->pose.pose.position.y);
 
     // This may cause weird behaviour when the robot is on the edges of a tile
-    if (sensor_readings.currentTargetPoint.x == currentX && sensor_readings.currentTargetPoint.y == currentY)
+    if (sensor_readings.getTargetTileX() == currentX && sensor_readings.getTargetTileY() == currentY)
     {
         // We have arrived at our current target point
-        planner.ProcessNextDrivePoint(sensor_readings.currentTargetPoint.x, sensor_readings.currentTargetPoint.y);
+        planner.ProcessNextDrivePoint(sensor_readings);
     }
 }
 
@@ -283,8 +284,7 @@ void findClearPathFwd()
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
                 planner.publishDriveToTile(
-                        sensor_readings.getCurrentTileX(),
-                        sensor_readings.getCurrentTileY(),
+                        sensor_readings,
                         sensor_readings.getCurrentTileX() + increment,
                         0, 0.4);
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
@@ -307,8 +307,7 @@ void completeStraightLineSearch()
     desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = 6;
 
-    planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
-        sensor_readings.getCurrentTileY(),
+    planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.4);
 
@@ -346,14 +345,15 @@ void driveToDesiredPoints()
 {
     while (!sensor_readings.points_of_interest.empty() && !KILL_SWITCH)
     {
-        sensor_readings.currentTargetPoint = sensor_readings.points_of_interest.front();
+        TilePosition newTarget = sensor_readings.points_of_interest.front();
+
+        sensor_readings.setTargetPoint(newTarget.x, newTarget.y);
         sensor_readings.points_of_interest.pop();
 
-        desired_tile.x = sensor_readings.currentTargetPoint.x;
-        desired_tile.y = sensor_readings.currentTargetPoint.y;
+        desired_tile.x = sensor_readings.getTargetTileX();
+        desired_tile.y = sensor_readings.getTargetTileY();
 
-        planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
-            sensor_readings.getCurrentTileY(),
+        planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4);
 
@@ -389,7 +389,7 @@ void driveToDesiredPoints()
         }
         else
         {
-            sensor_readings.points_of_interest.push(sensor_readings.currentTargetPoint);
+            sensor_readings.points_of_interest.emplace(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
         }
     }
 }
@@ -401,14 +401,12 @@ void conductGridSearch()
 
 void driveToLargeBuilding()
 {
-    sensor_readings.currentTargetPoint.x = large_building_tile.x;
-    sensor_readings.currentTargetPoint.y = large_building_tile.y;
+    sensor_readings.setTargetPoint(large_building_tile.x, large_building_tile.y);
 
     desired_tile.x = large_building_tile.x;
     desired_tile.y = large_building_tile.y;
 
-    planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
-        sensor_readings.getCurrentTileY(),
+    planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.4);
 

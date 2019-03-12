@@ -1,5 +1,4 @@
 #include "bill_planning/planner.hpp"
-#include "bill_planning/sensor_readings.hpp"
 
 Planner::Planner()
 {
@@ -72,9 +71,11 @@ void Planner::signalComplete()
     _led_pub.publish(msg);
 }
 
-void Planner::publishDriveToTile(const int currentX, const int currentY, const int x, const int y, const float speed)
+void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, const int y, const float speed)
 {
     int heading;
+    int currentX = sensorReadings.getCurrentTileX();
+    int currentY = sensorReadings.getCurrentTileY();
 
     // We will prioritize driving the longest leg of the horizontal/vertical drive first
     // If they are the same length, we will drive the vertical one first
@@ -88,7 +89,7 @@ void Planner::publishDriveToTile(const int currentX, const int currentY, const i
     }
     if (xDistSq <= yDistSq)
     {
-        //SensorReadings::currentTargetPoint = TilePosition(currentX, y);
+        sensorReadings.setTargetPoint(currentX, y);
 
         drivePoints.emplace(currentX, y);
         heading = currentY > y ? 270 : 90;
@@ -102,7 +103,7 @@ void Planner::publishDriveToTile(const int currentX, const int currentY, const i
     }
     else
     {
-        //SensorReadings::currentTargetPoint = TilePosition(x, currentY);
+        sensorReadings.setTargetPoint(x, currentY);
 
         drivePoints.emplace(x,currentY);
         heading = currentX > x ? 180 : 0;
@@ -121,10 +122,13 @@ void Planner::publishDriveToTile(const int currentX, const int currentY, const i
     publishDrive(heading, driveSpeed);
 }
 
-void Planner::ProcessNextDrivePoint(const int currentX, const int currentY)
+void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 {
     if (!drivePoints.empty())
     {
+        int currentX = sensorReadings.getCurrentTileX();
+        int currentY = sensorReadings.getCurrentTileY();
+
         // Make sure we really have arrived at the point we are aiming for
         TilePosition arrivedPosition = drivePoints.front();
 
@@ -154,7 +158,7 @@ void Planner::ProcessNextDrivePoint(const int currentX, const int currentY)
                 heading = currentX > nextLeg.x ? 180 : 0;
             }
 
-            //SensorReadings::currentTargetPoint = nextLeg;
+            sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
             publishDrive(heading, driveSpeed);
             return;
         }

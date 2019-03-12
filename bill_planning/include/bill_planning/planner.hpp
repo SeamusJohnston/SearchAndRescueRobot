@@ -9,6 +9,7 @@
 #include <queue>
 #include "bill_msgs/MotorCommands.h"
 #include "bill_planning/position.hpp"
+#include "bill_planning/sensor_readings.hpp"
 
 class Planner
 {
@@ -22,12 +23,12 @@ class Planner
     void putOutFire();
     void signalComplete();
 
-    void publishDriveToTile(int currentX, int currentY, int x, int y, float speed);
+    void publishDriveToTile(SensorReadings &sensorReadings, int x, int y, float speed);
 
     bool is_moving = false;
 
     // This function returns a pointer so that we can return a nullptr if the queue is empty
-    void ProcessNextDrivePoint(int currentX, int currentY);
+    void ProcessNextDrivePoint(SensorReadings &sensorReadings);
 
   private:
     bill_msgs::MotorCommands _command_msg;

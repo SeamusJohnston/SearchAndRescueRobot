@@ -6,7 +6,8 @@
 #include <thread>
 #include <list>
 #include <algorithm>
-#include "bill_planning/planner.hpp"
+#include "position.hpp"
+//#include "bill_planning/planner.hpp"
 
 enum STATE
 {
@@ -43,6 +44,10 @@ class SensorReadings
         int getCurrentTileX();
         int getCurrentTileY();
 
+        void setTargetPoint(int x, int y);
+        int getTargetTileX();
+        int getTargetTileY();
+
         void setCurrentState(STATE val);
         STATE getCurrentState();
 
@@ -50,7 +55,6 @@ class SensorReadings
         unsigned char getDetectionBit();
 
         std::queue<TilePosition> points_of_interest;
-        TilePosition currentTargetPoint;
 
         //Set to 1 if fire, 2 if small building and 3 if large
         unsigned char detection_bit;
@@ -79,6 +83,9 @@ class SensorReadings
 
         std::mutex _detection_bit_mutex;
         unsigned char _detection_bit = 0x00;
+
+        std::mutex _target_tile_mutex;
+        TilePosition _current_target_tile = TilePosition(0,0);
 };
 
 #endif
