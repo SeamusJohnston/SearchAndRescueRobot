@@ -18,9 +18,9 @@ float KP_SPEED;
 float KI_SPEED;
 
 bill_msgs::MotorCommands last_command_msg;
-int last_heading = 0;
-float last_speed = 0;
-float speed_error_sum = 0;
+int last_heading = 90;
+//float last_speed = 0;
+//float speed_error_sum = 0;
 float heading_error_sum = 0;
 
 enum Direction
@@ -66,6 +66,7 @@ void drive(const int left_cmd, const int right_cmd)
     }
     softPwmWrite(MOTORA_PWM, std::abs(right_cmd));
     softPwmWrite(MOTORB_PWM, std::abs(left_cmd));
+
 }
 
 void turn(const Direction dir, const unsigned int speed)
@@ -90,7 +91,7 @@ void turn(const Direction dir, const unsigned int speed)
     softPwmWrite(MOTORB_PWM, speed);
 }
 
-void drivePI(int heading, float speed)
+void drivePI(int heading)
 {
     // NOTE: Writing speed PI for now, although open loop speed control may be good enough for our purposes
     int heading_error = last_command_msg.heading - heading;
@@ -104,16 +105,19 @@ void drivePI(int heading, float speed)
         heading_error += 360;
     }
 
+    /*
     float speed_error = last_command_msg.speed - speed;
     if (std::abs(speed_error_sum + speed_error * dt) < INT_CLAMP)
     {
         speed_error_sum += speed_error * dt;
     }
+     */
     if (std::abs(heading_error_sum + heading_error * dt) < INT_CLAMP)
     {
         heading_error_sum += heading_error * dt;
     }
-    float speed_command = speed_error * KP_SPEED + speed_error_sum * KI_SPEED;
+    //float speed_command = speed_error * KP_SPEED + speed_error_sum * KI_SPEED;
+
     float heading_command = heading_error * KP_HEADING + heading_error_sum * KI_HEADING;
 
     // Note: this PI calculation assumes forward motion, since the robot should never have to reverse
@@ -122,27 +126,28 @@ void drivePI(int heading, float speed)
     // This calculation maps the desired speed between 0-100, then adds the speed PI correction and the heading
     // correction
     // Heading correction is subtracted for right wheel (positive heading command means clockwise turn)
-    int right_speed = (int)((last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command - heading_command);
-    int left_speed = (int)((last_command_msg.speed / float(MAX_VEL)) * PWM_RANGE + speed_command + heading_command);
+    int right_speed = (int)((last_command_msg.speed / MAX_VEL) * PWM_RANGE + heading_command);
+    int left_speed = (int)((last_command_msg.speed / MAX_VEL) * PWM_RANGE - heading_command);
 
-    // Clamp speeds, bound checking
-    if (right_speed > PWM_RANGE)
+    // Clamp speeds, bound checking but be sure to retain the ratio
+    if (std::abs(right_speed) >= std::abs(left_speed))
     {
-        right_speed = PWM_RANGE;
+        float ratio = std::abs(float(right_speed) / left_speed);
+        if (std::abs(right_speed) > PWM_RANGE)
+        {
+            right_speed = (int)(std::copysign(PWM_RANGE, right_speed));
+            left_speed = (int)(std::copysign((right_speed / ratio), left_speed));  // Reduce other speed to match the other wheel
+        }
     }
-    else if (right_speed < -1 * PWM_RANGE)
+    else
     {
-        right_speed = -1 * PWM_RANGE;
+        float ratio = std::abs(float(left_speed) / right_speed);
+        if (std::abs(left_speed) > PWM_RANGE)
+        {
+            left_speed = (int)(std::copysign(PWM_RANGE, left_speed));
+            right_speed = (int)(std::copysign((left_speed / ratio), right_speed));  // Reduce other speed to match the other wheel
+        }
     }
-    if (left_speed > PWM_RANGE)
-    {
-        left_speed = PWM_RANGE;
-    }
-    else if (left_speed < -1 * PWM_RANGE)
-    {
-        left_speed = -1 * PWM_RANGE;
-    }
-
     drive(left_speed, right_speed);
 }
 
@@ -167,9 +172,7 @@ void turningCallback(int heading)
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     int heading = (int)(angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
-    float speed = msg->twist.twist.linear.x;
     last_heading = heading;
-    last_speed = speed;
 
     if (last_command_msg.command == bill_msgs::MotorCommands::TURN)
     {
@@ -177,7 +180,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     }
     else if (last_command_msg.command == bill_msgs::MotorCommands::DRIVE)
     {
-        drivePI(heading, speed);
+        drivePI(heading);
     }
 }
 
@@ -202,7 +205,7 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     {
         ROS_INFO("Calling Drive");
         // Call these here to start a robots action, callback from odom continues the action until completion
-        drivePI(last_heading, last_speed);
+        drivePI(last_heading);
     }
 }
 
@@ -214,6 +217,8 @@ int main(int argc, char** argv)
     pinMode(MOTORA_REVERSE, OUTPUT);
     pinMode(MOTORB_FORWARD, OUTPUT);
     pinMode(MOTORB_REVERSE, OUTPUT);
+    pinMode(MOTORA_PWM, OUTPUT);
+    pinMode(MOTORB_PWM, OUTPUT);
     softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
     softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);
 
