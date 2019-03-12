@@ -28,11 +28,6 @@ class Planner
     // This function returns a pointer so that we can return a nullptr if the queue is empty
     void ProcessNextDrivePoint(int currentX, int currentY);
 
-    Planner()
-    {
-        drivePoints = std::queue<TilePosition>();
-    }
-
   private:
     bill_msgs::MotorCommands _command_msg;
     ros::Publisher _motor_pub;

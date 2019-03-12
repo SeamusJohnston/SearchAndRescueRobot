@@ -3,18 +3,13 @@
 #include "bill_planning/sensor_readings.hpp"
 #include <math.h>
 #include "bill_planning/position.hpp"
-
 #include <cstddef>
 #include <iostream>
 #include <utility>
 #include <thread>
 #include <chrono>
 
-int current_heading = 0;
-int found_fire = 0;
-unsigned char start_course = 0x00;
-
-Planner planner;
+// PLAY WITH THREAD SLEEP IN robotPerformanceThread
 
 // FUNCTIONS
 void fireOut();
@@ -22,29 +17,34 @@ void findClearPathFwd();
 void completeStraightLineSearch();
 void scanForFire();
 void driveToDesiredPoints();
-//TODO
+void robotPerformanceThread(int n);
+//TODO IMPLEMENT
 void conductGridSearch();
 void driveToLargeBuilding();
-void secondMainFunction(int n);
 
-//IF YOU DON'T DECLARE STATIC MEMBERS WITH A VALUE, IT WONT BUILD
-TilePosition SensorReadings::current_tile(0,0);
-int SensorReadings::current_heading = 90;
-bool SensorReadings::detected_fire = false;
-bool SensorReadings::start_robot_performance_thread = false;
-float SensorReadings::ultra_fwd = -500;
-float SensorReadings::ultra_left = -500;
-float SensorReadings::ultra_right = -500;
-unsigned char SensorReadings::detection_bit = 0x00;
-Planner * SensorReadings::planner = planner;
-TilePosition SensorReadings::currentTargetPoint(0,0);
-STATE SensorReadings::current_state = STATE::INIT_SEARCH;
-std::queue<TilePosition> SensorReadings::points_of_interest;
+SensorReadings sensor_readings();
 
+int found_fire = 0;
+unsigned char start_course = 0x00;
+Planner planner;
+
+// FLAGS
+bool _cleared_fwd = false;
+bool _driven_fwd = false;
+bool KILL_SWITCH = false; 
+
+// POSITION
+TilePosition desired_tile(0,0);
+TilePosition large_building_tile(0,0);
+int desired_heading = 90;
+
+// CONSTANTS
+const int FULL_COURSE_DETECTION_LENGTH = 1.70;
+const int FIRE_SCAN_ANGLE = 20;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
+    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
     // UPDATE HEADING AND POSSIBLY POSITION IN SENSOR READINGS
 
     // Truncate this instead of floor to
@@ -52,10 +52,10 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     int currentY = (int)std::trunc(msg->pose.pose.position.y);
 
     // This may cause weird behaviour when the robot is on the edges of a tile
-    if (SensorReadings::currentTargetPoint.x == currentX && SensorReadings::currentTargetPoint.y == currentY)
+    if (sensor_readings.currentTargetPoint.x == currentX && sensor_readings.currentTargetPoint.y == currentY)
     {
         // We have arrived at our current target point
-        planner.ProcessNextDrivePoint(SensorReadings::currentTargetPoint.x, SensorReadings::currentTargetPoint.y);
+        planner.ProcessNextDrivePoint(sensor_readings.currentTargetPoint.x, sensor_readings.currentTargetPoint.y);
     }
 }
 
@@ -71,18 +71,18 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     // TODO DON'T USE 170
     // HOW CAN WE DISTINGUISH BETW WALL AND OBJECT HERE?
     // If we have increased then decreased over past 5 msrmts?
-    if (SensorReadings::current_state == STATE::INIT_FIRE_SCAN && msg->data < 170)
+    if (sensor_readings.getCurrentState() == STATE::INIT_FIRE_SCAN && msg->data < 170)
     {
         // Mark New Object Using Math STUFF
     }
 
-    SensorReadings::ultra_fwd = msg->data;
+    sensor_readings.setUltraFwd(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x01;
-    if(!SensorReadings::start_robot_performance_thread
+    if(!sensor_readingsgetStartRobotPerformanceThread())
        && 0x07 - start_course == 0x00)
     {
-        SensorReadings::start_robot_performance_thread = true;
+        sensor_readingssetStartRobotPerformanceThread(true);
     }
 }
 
@@ -94,18 +94,18 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
         return;
     }
 
-    if (SensorReadings::current_state == STATE::INIT_SEARCH && msg->data < 170)
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH && msg->data < 170)
     {
         // Mark New Object Using Math
     }
 
-    SensorReadings::ultra_left = msg->data;
+    sensor_readings.setUltraLeft(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x02;
-    if(!SensorReadings::start_robot_performance_thread
+    if(!sensor_readingsgetStartRobotPerformanceThread())
        && 0x07 - start_course == 0x00)
     {
-        SensorReadings::start_robot_performance_thread = true;
+        sensor_readingssetStartRobotPerformanceThread(true);
     }
 }
 
@@ -117,45 +117,40 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
         return;
     }
 
-    if (SensorReadings::current_state == STATE::INIT_SEARCH && msg->data < 170)
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH && msg->data < 170)
     {
         // Mark New Object Using Math
     }
 
-    SensorReadings::ultra_right = msg->data;
+    sensor_readings.setUltraRight(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x04;
-    if(!SensorReadings::start_robot_performance_thread
+    if(!sensor_readingsgetStartRobotPerformanceThread())
        && 0x07 - start_course == 0x00)
     {
-        SensorReadings::start_robot_performance_thread = true;
+        sensor_readingssetStartRobotPerformanceThread(true);
     }
 }
 
 void fireCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-    ROS_INFO("Flame Callback: %i \n", SensorReadings::detected_fire);
-    SensorReadings::detected_fire = msg->data;
-    ROS_INFO("Flame Callback: %i \n", msg->data);
-    ROS_INFO("Flame Callback: %i \n", SensorReadings::detected_fire);
-
     if (msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
         if (found_fire < 3)
         {
             found_fire++;
-            SensorReadings::detected_fire = true;
+            sensor_readings.setDetectedFire(false);
         }
         else
         {
-            SensorReadings::detected_fire = true;
+            sensor_readings.setDetectedFire(true);
         }
     }
     else
     {
         found_fire = 0;
-        SensorReadings::detected_fire = false;
+        sensor_readings.setDetectedFire(false);
     }
 }
 
@@ -186,55 +181,37 @@ int main(int argc, char** argv)
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
 
-    //ROS_INFO("MEMORY ADDRESS: %x", &planner);
-    SensorReadings::planner = &planner;
-    //ROS_INFO("MEMORY ADDRESS: %x", SensorReadings::planner);
-
-    std::thread robot_execution_thread(secondMainFunction, 5);
+    std::thread robot_execution_thread(robotPerformanceThread, 5);
     ros::spin();
+    KILL_SWITCH = true;
     robot_execution_thread.join();
     return 0;
 }
 
-// FLAGS
-bool _cleared_fwd = false;
-bool _driven_fwd = false;
-
-// POSITION
-TilePosition desired_tile(0,0);
-TilePosition large_building_tile(0,0);
-int desired_heading = 90;
-
-// CONSTANTS
-const int FULL_COURSE_DETECTION_LENGTH = 1.70;
-const int FIRE_SCAN_ANGLE = 20;
-
-void secondMainFunction(int n)
+void robotPerformanceThread(int n)
 {
     ROS_INFO("RUNNING SEPARATE THREAD: %i", n);
     // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
-    while (!SensorReadings::start_robot_performance_thread)
+    while (!sensor_readingsgetStartRobotPerformanceThread() && !KILL_SWITCH)
     {
-        ROS_INFO("FIRE READING: %i", SensorReadings::detected_fire);
-        ROS_INFO("FIRE READING: %f", SensorReadings::ultra_fwd);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     ROS_INFO("PASSED FIRST WHILE LOOP");
     findClearPathFwd();
 
     completeStraightLineSearch();
-    SensorReadings::current_state = STATE::INIT_FIRE_SCAN;
+    sensor_readings.setCurrentState(STATE::INIT_FIRE_SCAN);
 
     scanForFire();
 
-    if(SensorReadings::points_of_interest.size() < 3)
+    if(sensor_readings.points_of_interest.size() < 3)
     {
         // SOMETHING WENT WRONG WE SHOULD HAVE DETECTED BY NOW
         // THIS PROBABLY MEANS THEY ARE BACK TO BACK
     }
 
-    SensorReadings::current_state = STATE::FLAME_SEARCH;
+    sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
     driveToDesiredPoints();
 }
 
@@ -247,65 +224,71 @@ void fireOut()
 
     do
     {
-        if (initialCall || SensorReadings::detected_fire)
+        if (initialCall || sensor_readings.getDetectedFire())
         {
-            SensorReadings::planner->putOutFire();
-            desired_heading = SensorReadings::current_heading + 2 * FIRE_SCAN_ANGLE;
-            temp_desired_heading = SensorReadings::current_heading - FIRE_SCAN_ANGLE;
+            planner.putOutFire();
+            desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
+            temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
 
-            SensorReadings::planner->publishTurn(temp_desired_heading);
+            planner.publishTurn(temp_desired_heading);
 
             initialCall = false;
             check_temp_heading = true;
         }
 
         while(check_temp_heading
-              && temp_desired_heading != SensorReadings::current_heading)
+              && temp_desired_heading != sensor_readings.getCurrentHeading()
+              && !KILL_SWITCH)
         {
-            if(SensorReadings::detected_fire)
+            if(sensor_readings.getDetectedFire())
             {
-                SensorReadings::planner->putOutFire();
-                desired_heading = SensorReadings::current_heading + 2 * FIRE_SCAN_ANGLE;
-                temp_desired_heading = SensorReadings::current_heading - FIRE_SCAN_ANGLE;
-                SensorReadings::planner->publishTurn(temp_desired_heading);
+                planner.putOutFire();
+                desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
+                temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+                planner.publishTurn(temp_desired_heading);
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         check_temp_heading = false;
-        SensorReadings::planner->publishTurn(desired_heading);
-    } while(desired_heading != SensorReadings::current_heading);
+        planner.publishTurn(desired_heading);
 
-    SensorReadings::current_state = STATE::BUILDING_SEARCH;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    } while(desired_heading != sensor_readings.getCurrentHeading() && !KILL_SWITCH);
+
+    sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 }
 
 void findClearPathFwd()
 {
-    if(!_cleared_fwd && SensorReadings::ultra_fwd >= FULL_COURSE_DETECTION_LENGTH)
+    if(!_cleared_fwd && sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
     {
         _cleared_fwd = true;
     }
     else
     {
-        int increment = SensorReadings::ultra_left > SensorReadings::ultra_right ? -1 : 1;
-        desired_heading = SensorReadings::ultra_left > SensorReadings::ultra_right ? 180 : 0;
+        int increment = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
+            -1 : 1;
+        desired_heading = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
+            180 : 0;
 
-        while(!_cleared_fwd)
+        while(!_cleared_fwd && !KILL_SWITCH)
         {
             int temp_ultra = increment == -1 ?
-                             SensorReadings::ultra_right :
-                             SensorReadings::ultra_left;
+                             sensor_readings.getUltraRight() :
+                             sensor_readings.getUltraLeft();
 
-            if (desired_tile.x == SensorReadings::current_tile.x
-                && desired_tile.y == SensorReadings::current_tile.y
+            if (desired_tile.x == sensor_readings.getCurrentTileX()
+                && desired_tile.y == sensor_readings.getCurrentTileY()
                 && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
             {
-                SensorReadings::planner->publishDriveToTile(
-                        SensorReadings::current_tile.x,
-                        SensorReadings::current_tile.y,
-                        SensorReadings::current_tile.x + increment,
+                planner.publishDriveToTile(
+                        sensor_readings.getCurrentTileX(),
+                        sensor_readings.getCurrentTileY(),
+                        sensor_readings.getCurrentTileX() + increment,
                         0, 0.4);
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
-                desired_tile.x = SensorReadings::current_tile.x + increment;
+                desired_tile.x = sensor_readings.getCurrentTileX() + increment;
                 desired_tile.y = 0;
             }
             else if (temp_ultra > FULL_COURSE_DETECTION_LENGTH)
@@ -315,89 +298,101 @@ void findClearPathFwd()
         }
 
         desired_heading = 90;
-        SensorReadings::planner->publishTurn(desired_heading);
+        planner.publishTurn(desired_heading);
     }
 }
 
 void completeStraightLineSearch()
 {
-    desired_tile.x = SensorReadings::current_tile.x;
+    desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = 6;
 
-    SensorReadings::planner->publishDriveToTile(SensorReadings::current_tile.x,
-                                                SensorReadings::current_tile.y,
-                                                desired_tile.x,
-                                                desired_tile.y, 0.4);
+    planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
+        sensor_readings.getCurrentTileY(),
+        desired_tile.x,
+        desired_tile.y, 0.4);
 
-    while(!_driven_fwd)
+    while(!_driven_fwd && !KILL_SWITCH)
     {
-        if(desired_tile.x == SensorReadings::current_tile.x
-           && desired_tile.y == SensorReadings::current_tile.y)
+        if(desired_tile.x == sensor_readings.getCurrentTileX()
+           && desired_tile.y == sensor_readings.getCurrentTileY())
         {
             _driven_fwd = true;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 void scanForFire()
 {
     desired_heading = 0;
-    SensorReadings::planner->publishTurn(desired_heading);
-    while (SensorReadings::current_heading != desired_heading);
+    planner.publishTurn(desired_heading);
+    while (sensor_readings.getCurrentHeading() != desired_heading && !KILL_SWITCH)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     // 181 ENSURES FRONT WILL DO THE SCANNING (WE ARE AT TOP OF GRID)
     // AND THE ULTRASONIC CAN AID IN OBJECT DETECTION
     desired_heading = 181;
-    SensorReadings::planner->publishTurn(desired_heading);
-    while (SensorReadings::current_heading != desired_heading);
+    planner.publishTurn(desired_heading);
+    while (sensor_readings.getCurrentHeading() != desired_heading && !KILL_SWITCH)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
 
 void driveToDesiredPoints()
 {
-    while (!SensorReadings::points_of_interest.empty())
+    while (!sensor_readings.points_of_interest.empty() && !KILL_SWITCH)
     {
-        SensorReadings::currentTargetPoint = SensorReadings::points_of_interest.front();
-        SensorReadings::points_of_interest.pop();
+        sensor_readings.currentTargetPoint = sensor_readings.points_of_interest.front();
+        sensor_readings.points_of_interest.pop();
 
-        desired_tile.x = SensorReadings::currentTargetPoint.x;
-        desired_tile.y = SensorReadings::currentTargetPoint.y;
+        desired_tile.x = sensor_readings.currentTargetPoint.x;
+        desired_tile.y = sensor_readings.currentTargetPoint.y;
 
-        SensorReadings::planner->publishDriveToTile(SensorReadings::current_tile.x,
-                                                    SensorReadings::current_tile.y,
-                                                    desired_tile.x,
-                                                    desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
+            sensor_readings.getCurrentTileY(),
+            desired_tile.x,
+            desired_tile.y, 0.4);
 
         //Drive to position
-        while (SensorReadings::current_tile.x != desired_tile.x
-               && SensorReadings::current_tile.y != desired_tile.y);
+        while ((sensor_readings.getCurrentTileX() != desired_tile.x
+               || sensor_readings.getCurrentTileY() != desired_tile.y)
+               && !KILL_SWITCH)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
 
         // TODO BEFORE WHILE
         // We could possibly trigger a scan in here but maybe we should create a scan tile
         // function in planner to search tile for one of the 3 objects
-        while (SensorReadings::detection_bit == 0x00)
+        while (sensor_readings.getDetectionBit() == 0x00
+            && !KILL_SWITCH)
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if (SensorReadings::detection_bit == 0x01)
+        if (sensor_readings.getDetectionBit() == 0x01)
         {
             fireOut();
         }
-        else if (SensorReadings::current_state = STATE::BUILDING_SEARCH)
+        else if (sensor_readings.getCurrentState() = STATE::BUILDING_SEARCH)
         {
-            SensorReadings::planner->signalComplete();
-            if (SensorReadings::detection_bit == 0x03)
+            planner.signalComplete();
+            if (sensor_readings.getDetectionBit() == 0x03)
             {
-                large_building_tile.x = SensorReadings::current_tile.x;
-                large_building_tile.x = SensorReadings::current_tile.y;
+                large_building_tile.x = sensor_readings.getCurrentTileX();
+                large_building_tile.x = sensor_readings.getCurrentTileY();
             }
         }
         else
         {
-            SensorReadings::points_of_interest.push(SensorReadings::currentTargetPoint);
+            sensor_readings.points_of_interest.push(sensor_readings.currentTargetPoint);
         }
     }
 }
-
 
 void conductGridSearch()
 {
@@ -406,25 +401,29 @@ void conductGridSearch()
 
 void driveToLargeBuilding()
 {
-    SensorReadings::currentTargetPoint.x = large_building_tile.x;
-    SensorReadings::currentTargetPoint.y = large_building_tile.y;
+    sensor_readings.currentTargetPoint.x = large_building_tile.x;
+    sensor_readings.currentTargetPoint.y = large_building_tile.y;
 
     desired_tile.x = large_building_tile.x;
     desired_tile.y = large_building_tile.y;
 
+    planner.publishDriveToTile(sensor_readings.getCurrentTileX(),
+        sensor_readings.getCurrentTileY(),
+        desired_tile.x,
+        desired_tile.y, 0.4);
 
-    SensorReadings::planner->publishDriveToTile(SensorReadings::current_tile.x,
-                                                SensorReadings::current_tile.y,
-                                                desired_tile.x,
-                                                desired_tile.y, 0.4);
-
-    while (SensorReadings::current_tile.x != desired_tile.x
-           && SensorReadings::current_tile.y != desired_tile.y);
+    while ((sensor_readings.getCurrentTileX() != desired_tile.x
+           || sensor_readings.getCurrentTileY() != desired_tile.y)
+           && !KILL_SWITCH)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     // TODO
     // We could possibly trigger a scan in here but maybe we should create a scan tile
     // function in planner to search tile for one of the 3 objects
-    while (SensorReadings::detection_bit == 0x00)
+    while (sensor_readings.getDetectionBit() == 0x00 && !KILL_SWITCH)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }

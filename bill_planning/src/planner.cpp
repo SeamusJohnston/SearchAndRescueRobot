@@ -1,6 +1,11 @@
 #include "bill_planning/planner.hpp"
 #include "bill_planning/sensor_readings.hpp"
 
+Planner::Planner()
+{
+    drivePoints = std::queue<TilePosition>();
+}
+
 void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ros::Publisher lp)
 {
     _motor_pub = mp;
