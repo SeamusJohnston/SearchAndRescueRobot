@@ -8,7 +8,7 @@
 
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
 const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
-const float WHEEL_BASE = 5.76;
+const float WHEEL_BASE = 5.76; // TODO: Get measurement
 const int MOTORA_COUNTER_KEY = 0;
 const int MOTORB_COUNTER_KEY = 1;
 
@@ -21,8 +21,8 @@ int motorB_counter = 0;
 int motorA_counter_prev = 0;
 int motorB_counter_prev = 0;
 float theta = 0;  // In radians TODO: Determine what our starting orientation is
-float x = 0;      // m
-float y = 0;      // m
+float x = 0;      // m TODO: get starting position
+float y = 0;      // m TODO: get starting position
 
 void setup()
 {
