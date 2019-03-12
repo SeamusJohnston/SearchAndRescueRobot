@@ -7,28 +7,36 @@
 #include "bill_drivers/constant_definition.hpp"
 #include "bill_drivers/filters.hpp"
 
-const float TOL = 10.0;
-const float COURSE_DIM = 1.8;
-const float ROBOT_WIDTH = 0.20;
+const float TOL = 5.0; // TODO: Determine appropriate range
+const float COURSE_DIM = 1.8; // TODO: Measure
+const float ROBOT_WIDTH = 0.20; // TODO: Measure
+const float ROBOT_LENGTH = 0.30; // TODO: Measure
 
 struct Position
 {
+    Position(float xin, float yin): x(xin), y(yin){};
     float x;
     float y;
 };
 
 float front_dist = 0;
+float prev_front_dist = -1;
 float right_dist = 0;
 float left_dist = 0;
-Position odom_pos;
-Position ultra_pos;
-int current_heading;
+Position odom_pos(0,0); // TODO: Determine start position
+Position ultra_pos(0,0); // TODO: Determine start position
+int current_heading = 90;
 bool turning = false;
-ComplementaryFilter comp_filter_x(1.0, 0.1); // TODO: figure out sampling time
-ComplementaryFilter comp_filter_y(1.0, 0.1); // TODO: figure out sampling time
-LowPassFilter lp_right(1.0, 0.1);
-LowPassFilter lp_left(1.0, 0.1);
-LowPassFilter lp_front(1.0, 0.1);
+ComplementaryFilter comp_filter_x(1.0, 0.1); // TODO: figure out sampling time, frequency
+ComplementaryFilter comp_filter_y(1.0, 0.1); // TODO: figure out sampling time, frequency
+LowPassFilter lp_right(1.0, 0.1); // TODO: figure out sampling time, frequency
+LowPassFilter lp_left(1.0, 0.1); // TODO: figure out sampling time, frequency
+LowPassFilter lp_front(1.0, 0.1); // TODO: figure out sampling time, frequency
+
+float cosDegrees(int angle)
+{
+    return std::cos(angles::from_degrees(angle));
+}
 
 void updatePosition()
 {
@@ -38,15 +46,44 @@ void updatePosition()
     ROS_INFO("Current filtered position x: %f, y: %f", x, y);
     ROS_INFO("Current ultrasonic position x: %f, y: %f", ultra_pos.x, ultra_pos.y);
     // TODO: Publish here
+    // TODO: re-update ultra pos with filtered values?
 }
 
 void updateSideDist()
 {
-    float expected_right = 0;
-    float expected_left = 0;
+    if (45 < current_heading && current_heading <= 135) // Facing positive y
+    {
+        float expected_dist = COURSE_DIM / cosDegrees(90 - current_heading) - ROBOT_WIDTH;
+        if (std::abs(expected_dist - (right_dist + left_dist)) < 2*TOL) // Distance is valid, update pos
+        {
+            ultra_pos.x = (left_dist * cosDegrees(90 - current_heading) + (COURSE_DIM - right_dist * cosDegrees(90 - current_heading))) / 2.0; // Average * cos(theta)
+        }
+    }
+    else if (135 < current_heading && current_heading <= 225) // Facing negative x
+    {
+        float expected_dist = COURSE_DIM / cosDegrees(current_heading - 180) - ROBOT_WIDTH;
+        if (std::abs(expected_dist - (right_dist + left_dist)) < 2*TOL) // Distance is valid, update pos
+        {
+            ultra_pos.y = (left_dist * cosDegrees(current_heading - 180) + (COURSE_DIM - right_dist * cosDegrees(current_heading - 180))) / 2.0; // Average * cos(theta)
+        }
+    }
+    else if (225 < current_heading && current_heading <= 315) // Facing negative y
+    {
+        float expected_dist = COURSE_DIM / cosDegrees(270 - current_heading) - ROBOT_WIDTH;
+        if (std::abs(expected_dist - (right_dist + left_dist)) < 2*TOL) // Distance is valid, update pos
+        {
+            ultra_pos.x = ((COURSE_DIM - left_dist * cosDegrees(270 - current_heading)) + right_dist * cosDegrees(270 - current_heading)) / 2.0; // Average * cos*(theta)
+        }
+    }
+    else // Facing positive x
+    {
+        float expected_dist = COURSE_DIM / cosDegrees(current_heading) - ROBOT_WIDTH;
+        if (std::abs(expected_dist - (right_dist + left_dist)) < 2*TOL) // Distance is valid, update pos
+        {
+            ultra_pos.y = ((COURSE_DIM - left_dist * cosDegrees(current_heading)) + right_dist * cosDegrees(current_heading)) / 2.0; // Average * cos*(theta)
+        }
+    }
 
-    // TODO: Depending on the angle, use side dist to calculate either x or y position absolutely
-    // Only if it adds to the expected value though
     // We could say that if there is an obstacle then we add the delta position in whichever direction from the encoders
     // But since we are always travelling parallel to the walls it should not make a huge difference.
 
@@ -55,12 +92,61 @@ void updateSideDist()
 
 void updateFrontDist()
 {
-    // TODO: Depending on the angle, use front dist to calculate either x or y position absolutely or relatively
     // If current_ultra_pos + front_dist == expected_vale +- TOL then use absolute positioning
-        // y = 1.8 - front_pos - robot_length/2.0;
+    // y = 1.8 - front_pos - robot_length/2.0;
     // else then use relative positioning (could find a datum or something) but currently do this
-        // y = ultra_pos + (last_front_dist - front_dist)
+    // y = ultra_pos + (last_front_dist - front_dist)
 
+    if (45 < current_heading && current_heading <= 135) // Facing positive y
+    {
+        float expected_dist = (COURSE_DIM - ultra_pos.y) / cosDegrees(90 - current_heading) - ROBOT_LENGTH / 2.0;
+        if (std::abs(expected_dist - front_dist) < TOL) // If expected, use absolute positioning
+        {
+            ultra_pos.y = COURSE_DIM - front_dist * cosDegrees(90 - current_heading) - ROBOT_LENGTH / 2.0;
+        }
+        else if (prev_front_dist > 0)// Use relative positioning, if we have previous measurement
+        {
+            ultra_pos.y += prev_front_dist - front_dist;
+        }
+    }
+    else if (135 < current_heading && current_heading <= 225) // Facing negative x
+    {
+        float expected_dist = ultra_pos.x / cosDegrees(current_heading - 180) - ROBOT_LENGTH / 2.0;
+        if (std::abs(expected_dist - front_dist) < TOL) // If expected, use absolute positioning
+        {
+            ultra_pos.x = front_dist * cosDegrees(current_heading - 180) + ROBOT_LENGTH / 2.0;
+        }
+        else if (prev_front_dist > 0)// Use relative positioning, if we have previous measurement
+        {
+            ultra_pos.x -= prev_front_dist - front_dist;
+        }
+    }
+    else if (225 < current_heading && current_heading <= 315) // Facing negative y
+    {
+        float expected_dist = ultra_pos.y / cosDegrees(270 - current_heading) - ROBOT_LENGTH / 2.0;
+        if (std::abs(expected_dist - front_dist) < TOL) // If expected, use absolute positioning
+        {
+            ultra_pos.y = front_dist * cosDegrees(270 - current_heading) + ROBOT_LENGTH / 2.0;
+        }
+        else if (prev_front_dist > 0)// Use relative positioning, if we have previous measurement
+        {
+            ultra_pos.y -= prev_front_dist - front_dist;
+        }
+    }
+    else // Facing positive x
+    {
+        float expected_dist = (COURSE_DIM - ultra_pos.x) / cosDegrees(current_heading) - ROBOT_LENGTH / 2.0;
+        if (std::abs(expected_dist - front_dist) < TOL) // If expected, use absolute positioning
+        {
+            ultra_pos.x = COURSE_DIM - front_dist * cosDegrees(90 - current_heading) - ROBOT_LENGTH / 2.0;
+        }
+        else if (prev_front_dist > 0)// Use relative positioning, if we have previous measurement
+        {
+            ultra_pos.x += prev_front_dist - front_dist;
+        }
+    }
+
+    prev_front_dist = front_dist;
     updatePosition();
 }
 
@@ -95,9 +181,16 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
 {
     if (msg->command == bill_msgs::MotorCommands::TURN)
+    {
         turning = true;
+        prev_front_dist = -1;
+    }
     else
+    {
         turning = false;
+    }
+
+    // TODO: Determine if there is a special case for stop action
 }
 
 int main(int argc, char** argv)
@@ -109,6 +202,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_right = nh.subscribe("ultra_right", 1, rightUltrasonicCallback);
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
     ros::Subscriber sub_motors = nh.subscribe("motor_cmd", 1, motorCallback);
+    // TODO: Add publisher
     ros::spin();
     return 0;
 }
