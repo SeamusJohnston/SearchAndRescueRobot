@@ -13,6 +13,7 @@
 class Planner
 {
   public:
+    Planner();
     void setPubs(ros::Publisher mp, ros::Publisher fp, ros::Publisher lp);
     void gridSearch();
     void publishStop();

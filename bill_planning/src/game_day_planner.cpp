@@ -22,7 +22,7 @@ void robotPerformanceThread(int n);
 void conductGridSearch();
 void driveToLargeBuilding();
 
-SensorReadings sensor_readings();
+SensorReadings sensor_readings;
 
 int found_fire = 0;
 unsigned char start_course = 0x00;
@@ -79,10 +79,10 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     sensor_readings.setUltraFwd(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x01;
-    if(!sensor_readingsgetStartRobotPerformanceThread())
+    if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        sensor_readingssetStartRobotPerformanceThread(true);
+        sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
@@ -102,10 +102,10 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
     sensor_readings.setUltraLeft(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x02;
-    if(!sensor_readingsgetStartRobotPerformanceThread())
+    if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        sensor_readingssetStartRobotPerformanceThread(true);
+        sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
@@ -125,10 +125,10 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
     sensor_readings.setUltraRight(msg->data);
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x04;
-    if(!sensor_readingsgetStartRobotPerformanceThread())
+    if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        sensor_readingssetStartRobotPerformanceThread(true);
+        sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
@@ -192,7 +192,7 @@ void robotPerformanceThread(int n)
 {
     ROS_INFO("RUNNING SEPARATE THREAD: %i", n);
     // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
-    while (!sensor_readingsgetStartRobotPerformanceThread() && !KILL_SWITCH)
+    while (!sensor_readings.getStartRobotPerformanceThread() && !KILL_SWITCH)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -378,7 +378,7 @@ void driveToDesiredPoints()
         {
             fireOut();
         }
-        else if (sensor_readings.getCurrentState() = STATE::BUILDING_SEARCH)
+        else if (sensor_readings.getCurrentState() == STATE::BUILDING_SEARCH)
         {
             planner.signalComplete();
             if (sensor_readings.getDetectionBit() == 0x03)

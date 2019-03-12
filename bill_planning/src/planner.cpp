@@ -88,7 +88,7 @@ void Planner::publishDriveToTile(const int currentX, const int currentY, const i
     }
     if (xDistSq <= yDistSq)
     {
-        SensorReadings::currentTargetPoint = TilePosition(currentX, y);
+        //SensorReadings::currentTargetPoint = TilePosition(currentX, y);
 
         drivePoints.emplace(currentX, y);
         heading = currentY > y ? 270 : 90;
@@ -102,7 +102,7 @@ void Planner::publishDriveToTile(const int currentX, const int currentY, const i
     }
     else
     {
-        SensorReadings::currentTargetPoint = TilePosition(x, currentY);
+        //SensorReadings::currentTargetPoint = TilePosition(x, currentY);
 
         drivePoints.emplace(x,currentY);
         heading = currentX > x ? 180 : 0;
@@ -154,7 +154,7 @@ void Planner::ProcessNextDrivePoint(const int currentX, const int currentY)
                 heading = currentX > nextLeg.x ? 180 : 0;
             }
 
-            SensorReadings::currentTargetPoint = nextLeg;
+            //SensorReadings::currentTargetPoint = nextLeg;
             publishDrive(heading, driveSpeed);
             return;
         }

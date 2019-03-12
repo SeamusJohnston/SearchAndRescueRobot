@@ -3,6 +3,9 @@
 
 #include <queue>
 #include <mutex>
+#include <thread>
+#include <list>
+#include <algorithm>
 #include "bill_planning/planner.hpp"
 
 enum STATE
@@ -29,7 +32,6 @@ class SensorReadings
         void setUltraRight(float val);
         float getUltraRight();
 
-        // WHEN SET TO TRUE, THE THREAD WILL START
         void setDetectedFire(bool val);
         bool getDetectedFire();
 
@@ -55,28 +57,28 @@ class SensorReadings
 
     private:
         std::mutex _start_robot_performance_thread_mutex;
-        std::mutex _detected_fire_mutex;        
-        bool _start_robot_performance_thread;
-        bool _detected_fire;
+        std::mutex _detected_fire_mutex;
+        bool _start_robot_performance_thread = false;
+        bool _detected_fire = false;
 
         std::mutex _ultra_fwd_mutex;
         std::mutex _ultra_left_mutex;
         std::mutex _ultra_right_mutex;
-        float _ultra_fwd;
-        float _ultra_left;
-        float _ultra_right;
+        float _ultra_fwd = -500;
+        float _ultra_left = -500;
+        float _ultra_right = -500;
 
         std::mutex _current_heading_mutex;
-        int _current_heading;
+        int _current_heading = 90;
 
         std::mutex _current_tile_mutex;
-        TilePosition _current_tile;
+        TilePosition _current_tile = TilePosition(0,0);
 
         std::mutex _current_state_mutex;
-        STATE _current_state;
+        STATE _current_state = INIT_SEARCH;
 
         std::mutex _detection_bit_mutex;
-        unsigned char _detection_bit;
+        unsigned char _detection_bit = 0x00;
 };
 
 #endif
