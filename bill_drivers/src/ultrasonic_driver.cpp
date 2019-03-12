@@ -17,13 +17,13 @@ int echo_pin;
 void setup()
 {
     // Init GPIO
-    wiringPiSetupGpio();
+    //wiringPiSetupGpio();
 
     // Set up pins
-    pinMode(trig_pin, OUTPUT);
-    pinMode(echo_pin, INPUT);
-    ROS_INFO("Trigger pin is: %i", wpiPinToGpio(trig_pin));
-    ROS_INFO("Echo pin is: %i", wpiPinToGpio(echo_pin));
+    //pinMode(trig_pin, OUTPUT);
+    //pinMode(echo_pin, INPUT);
+    ROS_INFO("Trigger pin is: %i", trig_pin);
+    ROS_INFO("Echo pin is: %i", echo_pin);
 
     // Init trigger as low
     digitalWrite(trig_pin, LOW);
@@ -93,7 +93,7 @@ std_msgs::Float32 read()
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "ultrasonic_driver");
-    ros::NodeHandle nh;
+    ros::NodeHandle nh("~");
     std::string topic;
     nh.getParam("trigger_pin", trig_pin);
     nh.getParam("echo_pin", echo_pin);

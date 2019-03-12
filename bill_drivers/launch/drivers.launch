@@ -26,20 +26,20 @@
     name="reset_driver">
   </node>
 
-  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver1">
-    <param name="topic" value="ultra_top"/>
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver1" output="screen">
+    <param name="topic" value="/ultra_top"/>
     <param name="trigger_pin" value="17"/>
     <param name="echo_pin" value="27"/>
   </node>
 
-  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver2">
-    <param name="topic" value="ultra_left"/>
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver2" output="screen">
+    <param name="topic" value="/ultra_left"/>
     <param name="trigger_pin" value="9"/>
     <param name="echo_pin" value="11"/>
   </node>
 
-  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver3">
-    <param name="topic" value="ultra_right"/>
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver3" output="screen">
+    <param name="topic" value="/ultra_right"/>
     <param name="trigger_pin" value="20"/>
     <param name="echo_pin" value="21"/>
   </node>
