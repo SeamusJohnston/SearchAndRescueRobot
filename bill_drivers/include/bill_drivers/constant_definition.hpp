@@ -11,6 +11,8 @@ const int ULTRA_TRIGGER_PIN1 = 17;
 const int ULTRA_ECHO_PIN1 = 27;
 const int ULTRA_TRIGGER_PIN2 = 9;
 const int ULTRA_ECHO_PIN2 = 11;
+const int ULTRA_TRIGGER_PIN3 = 20;
+const int ULTRA_ECHO_PIN3 = 21;
 
 // Motors
 const int MOTORA_PWM = 12;      // PWMA
