@@ -161,7 +161,7 @@ add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(reset_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
-target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
+target_link_libraries(ultrasonic_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} filters)
 target_link_libraries(led_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})

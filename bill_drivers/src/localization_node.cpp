@@ -27,14 +27,7 @@ float prev_front_dist = -1;
 float right_dist = 0;
 float left_dist = 0;
 
-auto last_front_msg = std::chrono::high_resolution_clock::now();
-auto last_right_msg = std::chrono::high_resolution_clock::now();
-auto last_left_msg = std::chrono::high_resolution_clock::now();
 auto last_comp_msg = std::chrono::high_resolution_clock::now();
-
-bool first_front_msg = true;
-bool first_right_msg = true;
-bool first_left_msg = true;
 bool first_comp_msg = true;
 
 Position odom_pos(0,0); // TODO: Determine start position
@@ -192,71 +185,20 @@ void updateFrontDist()
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (!std::isnan(msg->data) && (msg->data /100.0) <= (COURSE_DIM / cosDegrees(45))) {
-        auto time_now = std::chrono::high_resolution_clock::now();
-        if (!first_front_msg)
-        {
-            lp_front.setSamplingTime(std::chrono::duration<float>(time_now - last_front_msg).count());
-            front_dist = lp_front.update(msg->data / 100.0);
-        }
-        else
-        {
-            front_dist = msg->data / 100.0;
-            lp_front.setPrevOutput(front_dist); // Reset filter to maintain continuity
-            first_front_msg = false;
-        }
-
-        last_front_msg = time_now;
-
-        if (!turning)
-            updateFrontDist();
-    }
+    front_dist = msg->data / 100.0;
+    updateFrontDist();
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (!std::isnan(msg->data))
-    {
-        auto time_now = std::chrono::high_resolution_clock::now();
-        if (!first_left_msg)
-        {
-            lp_left.setSamplingTime(std::chrono::duration<float>(time_now - last_left_msg).count());
-            left_dist = lp_left.update(msg->data / 100.0);
-        }
-        else
-        {
-            left_dist = msg->data / 100.0;
-            lp_left.setPrevOutput(left_dist); // Reset filter to maintain continuity
-            first_left_msg = false;
-        }
-        last_left_msg = time_now;
-
-        if (!turning)
-            updateSideDist();
-    }
+    left_dist = msg->data / 100.0;
+    updateSideDist();
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (!std::isnan(msg->data))
-    {
-        auto time_now = std::chrono::high_resolution_clock::now();
-        if (!first_right_msg)
-        {
-            lp_right.setSamplingTime(std::chrono::duration<float>(time_now - last_right_msg).count());
-            right_dist = lp_right.update(msg->data / 100.0);
-        }
-        else
-        {
-            right_dist = msg->data / 100.0;
-            lp_right.setPrevOutput(right_dist); // Reset filter to maintain continuity
-            first_right_msg = false;
-        }
-        last_right_msg = time_now;
-
-        if (!turning)
-            updateSideDist();
-    }
+    right_dist = msg->data / 100.0;
+    updateSideDist();
 }
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
@@ -277,17 +219,12 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     {
         if (turning) // Was just turning but has now stopped, then reset the filters and clear previous distances
         {
-            first_front_msg = true;
-            first_left_msg = true;
-            first_right_msg = true;
             first_comp_msg = true;
             prev_front_dist = -1;
 
         }
         turning = false;
     }
-
-    // TODO: Determine if there is a special case for stop action
 }
 
 int main(int argc, char** argv)
