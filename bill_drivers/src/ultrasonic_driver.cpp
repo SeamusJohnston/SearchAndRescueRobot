@@ -6,22 +6,22 @@
 #include <limits>  // for NaN
 
 const static int ECHO_RECIEVE_TIMEOUT = 30000;
-const static int ECHO_READ_TIMEOUT = 30000;
-const static float DISTANCE_SCALE_CM = 58.0;
+const static int ECHO_READ_TIMEOUT = 15000;
+const static float DISTANCE_SCALE_CM = 57.0;
 // Assumes speed of sound is 340 m/s
 // The below value must be converted to cm/microsecond
-const static float SPEED_OF_SOUND_CMPUS = 0.0340;
+// const static float SPEED_OF_SOUND_CMPUS = 0.0340;
 int trig_pin;
 int echo_pin;
 
 void setup()
 {
     // Init GPIO
-    //wiringPiSetupGpio();
+    wiringPiSetupGpio();
 
     // Set up pins
-    //pinMode(trig_pin, OUTPUT);
-    //pinMode(echo_pin, INPUT);
+    pinMode(trig_pin, OUTPUT);
+    pinMode(echo_pin, INPUT);
     ROS_INFO("Trigger pin is: %i", trig_pin);
     ROS_INFO("Echo pin is: %i", echo_pin);
 
@@ -33,12 +33,12 @@ float ReadDistance()
 {
     // Make sure the trigger pin starts low
     digitalWrite(trig_pin, LOW);
-    delayMicroseconds(2);
+    delayMicroseconds(4);
 
     // Send pulse of 10 microseconds
     digitalWrite(trig_pin, HIGH);
     // Note this delay MUST be longer than 10 microseconds
-    delayMicroseconds(20);
+    delayMicroseconds(10);
     digitalWrite(trig_pin, LOW);
 
     // Wait for echo to return
@@ -56,21 +56,22 @@ float ReadDistance()
     // Echo has been detected, measure how long its high for
     // *High by Young Thug and Elton John plays softly in the background*
 
-    int readTimeout = ECHO_READ_TIMEOUT;
+    //int readTimeout = ECHO_READ_TIMEOUT;
     long startTime = micros();
 
     while (digitalRead(echo_pin) == HIGH)
     {
-        if (--readTimeout == 0)
+        if (micros() - startTime > ECHO_READ_TIMEOUT)
         {
             ROS_WARN("Ultrasonic sensor timed out while reading echo");
+            ROS_INFO("TIME: %i", micros() - startTime);
             return std::numeric_limits<double>::quiet_NaN();
         }
     }
 
     long echoTime = micros() - startTime;
 
-    return (echoTime * SPEED_OF_SOUND_CMPUS) / 2.0;
+    return (echoTime / DISTANCE_SCALE_CM);
 }
 
 std_msgs::Float32 read()
