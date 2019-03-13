@@ -142,3 +142,27 @@ unsigned char SensorReadings::getDetectionBit()
     std::lock_guard<std::mutex> guard(_detection_bit_mutex);
     return _detection_bit;
 }
+
+void SensorReadings::setCurrentPositionX(float val)
+{
+    std::lock_guard<std::mutex> guard(_current_position_mutex);
+    _current_position.x = val;
+}
+
+void SensorReadings::setCurrentPositionY(float val)
+{
+    std::lock_guard<std::mutex> guard(_current_position_mutex);
+    _current_position.y = val;
+}
+
+float SensorReadings::getCurrentPositionX()
+{
+    std::lock_guard<std::mutex> guard(_current_position_mutex);
+    return _current_position.x;
+}
+
+float SensorReadings::getCurrentPositionY()
+{
+    std::lock_guard<std::mutex> guard(_current_position_mutex);
+    return _current_position.y;
+}

@@ -9,6 +9,7 @@
 #include <thread>
 #include <chrono>
 #include <bill_planning/planner.hpp>
+#include <cmath>
 
 // PLAY WITH THREAD SLEEP IN robotPerformanceThread
 
@@ -16,7 +17,6 @@
 void fireOut();
 void findClearPathFwd();
 void completeStraightLineSearch();
-void scanForFire();
 void driveToDesiredPoints();
 void robotPerformanceThread(int n);
 //TODO IMPLEMENT
@@ -25,7 +25,9 @@ void driveToLargeBuilding();
 
 SensorReadings sensor_readings;
 
-int found_fire = 0;
+int found_fire_front = 0;
+int found_fire_left = 0;
+int found_fire_right = 0;
 unsigned char start_course = 0x00;
 Planner planner;
 
@@ -42,15 +44,17 @@ int desired_heading = 90;
 // CONSTANTS
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
+const float DELTA = 10; //cm
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
-    // UPDATE HEADING AND POSSIBLY POSITION IN SENSOR READINGS
 
     // Truncate this instead of floor to
-    int currentX = (int)std::trunc(msg->pose.pose.position.x);
-    int currentY = (int)std::trunc(msg->pose.pose.position.y);
+    float currentX = std::trunc(msg->pose.pose.position.x);
+    float currentY = std::trunc(msg->pose.pose.position.y);
+
+    sensor_readings.setCurrentPositionX(currentX)
 
     // This may cause weird behaviour when the robot is on the edges of a tile
     if (sensor_readings.getTargetTileX() == currentX && sensor_readings.getTargetTileY() == currentY)
@@ -63,21 +67,9 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     ROS_INFO("Front Ultra Callback: %f \n", msg->data);
-    if(msg->data > 400)
-    {
-        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
-        return;
-    }
-
-    // TODO DON'T USE 170
-    // HOW CAN WE DISTINGUISH BETW WALL AND OBJECT HERE?
-    // If we have increased then decreased over past 5 msrmts?
-    if (sensor_readings.getCurrentState() == STATE::INIT_FIRE_SCAN && msg->data < 170)
-    {
-        // Mark New Object Using Math STUFF
-    }
 
     sensor_readings.setUltraFwd(msg->data);
+    
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x01;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -89,18 +81,16 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    if(msg->data > 400)
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && std::abs(msg->data - sensor_readings.getUltraLeft) > DELTA)
     {
-        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
-        return;
-    }
-
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH && msg->data < 170)
-    {
-        // Mark New Object Using Math
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX * 100 - msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY * 100)
+        sensor_readings.points_of_interest.emplace(tileFromPoint(signal_point_x, signal_point_y));
     }
 
     sensor_readings.setUltraLeft(msg->data);
+
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x02;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -112,18 +102,16 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
-    if(msg->data > 400)
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && std::abs(msg->data - sensor_readings.getUltraRight) > DELTA)
     {
-        // NOT POSSIBLE IN THE COURSE ~ BAD DATA
-        return;
-    }
-
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH && msg->data < 170)
-    {
-        // Mark New Object Using Math
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX * 100 + msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY * 100)
+        sensor_readings.points_of_interest.emplace(tileFromPoint(signal_point_x, signal_point_y));
     }
 
     sensor_readings.setUltraRight(msg->data);
+
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x04;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -133,14 +121,16 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
     }
 }
 
-void fireCallback(const std_msgs::Bool::ConstPtr& msg)
+//TODO MAKE A LEFT AND RIGHT FIRE CALLBACK
+void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (msg->data)
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire < 3)
+        if (found_fire_front < 3)
         {
-            found_fire++;
+            found_fire_front++;
             sensor_readings.setDetectedFire(false);
         }
         else
@@ -150,7 +140,52 @@ void fireCallback(const std_msgs::Bool::ConstPtr& msg)
     }
     else
     {
-        found_fire = 0;
+        found_fire_front = 0;
+        sensor_readings.setDetectedFire(false);
+    }
+}
+
+void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
+{
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && msg->data)
+    {
+        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        if (found_fire_left < 3)
+        {
+            found_fire_left++;
+            sensor_readings.setDetectedFire(false);
+        }
+        else
+        {
+            sensor_readings.setDetectedFire(true);
+        }
+    }
+    else
+    {
+        found_fire_left = 0;
+        sensor_readings.setDetectedFire(false);
+    }
+}
+
+void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
+{
+    if (msg->data)
+    {
+        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        if (found_fire_right < 3)
+        {
+            found_fire_right++;
+            sensor_readings.setDetectedFire(false);
+        }
+        else
+        {
+            sensor_readings.setDetectedFire(true);
+        }
+    }
+    else
+    {
+        found_fire_right = 0;
         sensor_readings.setDetectedFire(false);
     }
 }
@@ -171,7 +206,7 @@ int main(int argc, char** argv)
 
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
-    ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallback);
+    ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
     ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
 
@@ -182,7 +217,7 @@ int main(int argc, char** argv)
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
 
-    std::thread robot_execution_thread(robotPerformanceThread, 5);
+    std::thread robot_execution_thread(robotPerformanceThread, 1);
     ros::spin();
     KILL_SWITCH = true;
     robot_execution_thread.join();
@@ -198,18 +233,22 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    ROS_INFO("PASSED FIRST WHILE LOOP");
+    ROS_INFO("ROBOT COMMENCING");
+
     findClearPathFwd();
 
     completeStraightLineSearch();
-    sensor_readings.setCurrentState(STATE::INIT_FIRE_SCAN);
 
-    scanForFire();
+    //TODO FIND CLEAR HORIZONTAL PATHS
+    //TODO CONDUCT HORIZONTAL GRID SEARCH "T Search"
+    // TODO GET RID OF DUPLICATES IN points_of_interest
 
     if(sensor_readings.points_of_interest.size() < 3)
     {
+        ROS_INFO("FOUND LESS THAN 3 POINTS OF INTEREST");
         // SOMETHING WENT WRONG WE SHOULD HAVE DETECTED BY NOW
-        // THIS PROBABLY MEANS THEY ARE BACK TO BACK
+        // THIS PROBABLY MEANS BUILDINGS ARE BACK TO BACK OR ALONG THE SIDES
+        // OR OUR ULTRASONICS DUN GOOFED
     }
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
@@ -309,7 +348,7 @@ void completeStraightLineSearch()
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.2);
 
     while(!_driven_fwd && !KILL_SWITCH)
     {
@@ -322,33 +361,20 @@ void completeStraightLineSearch()
     }
 }
 
-void scanForFire()
-{
-    desired_heading = 0;
-    planner.publishTurn(desired_heading);
-    while (sensor_readings.getCurrentHeading() != desired_heading && !KILL_SWITCH)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    // 181 ENSURES FRONT WILL DO THE SCANNING (WE ARE AT TOP OF GRID)
-    // AND THE ULTRASONIC CAN AID IN OBJECT DETECTION
-    desired_heading = 181;
-    planner.publishTurn(desired_heading);
-    while (sensor_readings.getCurrentHeading() != desired_heading && !KILL_SWITCH)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-}
-
 void driveToDesiredPoints()
 {
     while (!sensor_readings.points_of_interest.empty() && !KILL_SWITCH)
     {
         TilePosition newTarget = sensor_readings.points_of_interest.front();
+        sensor_readings.points_of_interest.pop();
+
+        if (newTarget.x < 0 || newTarget.y < 0)
+        {
+            //GARBAGE DATA, CONTINUE
+            continue;
+        }
 
         sensor_readings.setTargetPoint(newTarget.x, newTarget.y);
-        sensor_readings.points_of_interest.pop();
 
         desired_tile.x = sensor_readings.getTargetTileX();
         desired_tile.y = sensor_readings.getTargetTileY();
@@ -389,7 +415,7 @@ void driveToDesiredPoints()
         }
         else
         {
-            sensor_readings.points_of_interest.emplace(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
+            sensor_readings.points_of_interest.emplace(TilePosition(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
         }
     }
 }
@@ -424,4 +450,62 @@ void driveToLargeBuilding()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+}
+
+// THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
+TilePosition tileFromPoint(float x_pos, float y_pos)
+{
+    int x = -1, y = -1;
+    switch(x_pos) 
+    {
+        case 0...30:
+            x = 0;
+            break;
+        case 31...60:
+            x = 0;
+            break;
+        case 61...90:
+            x = 0;
+            break;
+        case 91...120:
+            x = 0;
+            break;
+        case 121...150:
+            x = 0;
+            break;
+        case 151...180:
+            x = 0;
+            break;
+        default
+            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
+            x = 0;
+            break;
+    }
+
+    switch(x_pos) 
+    {
+        case 0...30:
+            y = 0;
+            break;
+        case 31...60:
+            y = 1;
+            break;
+        case 61...90:
+            y = 2;
+            break;
+        case 91...120:
+            y = 3;
+            break;
+        case 121...150:
+            y = 4;
+            break;
+        case 151...180:
+            y = 5;
+            break;
+        default
+            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
+            break;
+    }
+
+    return TilePosition(x,y);
 }

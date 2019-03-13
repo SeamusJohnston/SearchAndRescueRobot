@@ -12,11 +12,10 @@
 enum STATE
 {
     INIT_SEARCH = 0,
-    INIT_FIRE_SCAN = 1,
-    FLAME_SEARCH = 2,
-    BUILDING_SEARCH = 3,
-    HALL_SEARCH = 4,
-    RETURN_HOME = 5
+    FLAME_SEARCH = 1,
+    BUILDING_SEARCH = 2,
+    HALL_SEARCH = 3,
+    RETURN_HOME = 4
 };
 
 class SensorReadings
@@ -43,6 +42,11 @@ class SensorReadings
         void setCurrentTileY(int val);
         int getCurrentTileX();
         int getCurrentTileY();
+
+        void setCurrentPositionX(float val);
+        void setCurrentPositionY(float val);
+        float getCurrentPositionX();
+        float getCurrentPositionY();
 
         void setTargetPoint(int x, int y);
         int getTargetTileX();
@@ -75,9 +79,6 @@ class SensorReadings
         std::mutex _current_heading_mutex;
         int _current_heading = 90;
 
-        std::mutex _current_tile_mutex;
-        TilePosition _current_tile = TilePosition(0,0);
-
         std::mutex _current_state_mutex;
         STATE _current_state = INIT_SEARCH;
 
@@ -85,6 +86,10 @@ class SensorReadings
         unsigned char _detection_bit = 0x00;
 
         std::mutex _target_tile_mutex;
+        std::mutex _current_tile_mutex;
+        std::mutex _current_position_mutex;
+        Position _current_position = Position(0,0);
+        TilePosition _current_tile = TilePosition(0,0);
         TilePosition _current_target_tile = TilePosition(0,0);
 };
 
