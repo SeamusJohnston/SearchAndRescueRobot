@@ -164,7 +164,7 @@ void turningCallback(int heading, float dt)
         heading_error_turn_sum += heading_error * dt;
     }
 
-    int turning_speed = (int)(heading_error * KP_TURNING + heading_error_turn_sum * KI_TURNING);
+    int turning_speed = (int)std::abs(heading_error * KP_TURNING + heading_error_turn_sum * KI_TURNING);
     if (turning_speed > MAX_TURNING_SPEED)
         turning_speed = MAX_TURNING_SPEED;
 
