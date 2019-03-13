@@ -55,19 +55,35 @@ int desired_heading = 90;
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 10; //cm
+const float TILE_WIDTH = 0.3;
+const float TILE_HEIGHT = 0.3;
+const float POSITION_ACCURACY_BUFFER = 0.075;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
 
     // Truncate this instead of floor to
-    float currentX = std::trunc(msg->pose.pose.position.x);
-    float currentY = std::trunc(msg->pose.pose.position.y);
+    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
 
-    sensor_readings.setCurrentPositionX(currentX);
+    float currentWholeX;
+    float currentWholeY;
+
+    float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
+    float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
+
+    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+
+    if (isOnXTile && isOnYTile)
+    {
+        sensor_readings.setCurrentPositionX((int)currentWholeX);
+        sensor_readings.setCurrentPositionY((int)currentWholeY);
+    }
 
     // This may cause weird behaviour when the robot is on the edges of a tile
-    if (sensor_readings.getTargetTileX() == currentX && sensor_readings.getTargetTileY() == currentY)
+    if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
     {
         // We have arrived at our current target point
         planner.ProcessNextDrivePoint(sensor_readings);
@@ -432,7 +448,9 @@ void driveToDesiredPoints()
 
 void conductGridSearch()
 {
-
+    // TODO
+    // Fill out the rest of this method with what we want?
+    planner.gridSearch(sensor_readings);
 }
 
 void driveHome()

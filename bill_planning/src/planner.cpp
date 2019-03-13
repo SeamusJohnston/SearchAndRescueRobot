@@ -12,9 +12,51 @@ void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ro
     _led_pub = lp;
 }
 
-void Planner::gridSearch()
+void Planner::gridSearch(SensorReadings &sensorReadings)
 {
-    // TODO: Implement grid search
+    // Starting quadrants go:
+    //   3   2
+    //   4   1
+    // Origin on bottom left
+
+    int quadrant = 0;
+    int startingX = sensorReadings.getCurrentTileX() < 4 ? 0 : 6;
+    int startingY = sensorReadings.getCurrentTileY() < 4 ? 0 : 6;
+
+    if (sensorReadings.getCurrentTileX() < 4)
+    {
+        quadrant = sensorReadings.getCurrentTileY() < 4 ? 4 : 3;
+
+        startingY = quadrant == 3 ? 6 : 0;
+        startingX = 0;
+    }
+    else
+    {
+        quadrant = sensorReadings.getCurrentTileY() < 4 ? 1 : 2;
+
+        startingY = quadrant == 2 ? 6 : 0;
+        startingX = 6;
+    }
+
+    // Drive to the first point
+    publishDriveToTile(sensorReadings, startingX, startingY, 0.4);
+
+    int xIncrement = (quadrant == 1) || (quadrant == 2) ? -1 : 1;
+
+    for (int i = 0; i < 11; ++i)
+    {
+        if (i % 2 == 1)
+        {
+            startingX += xIncrement;
+        }
+        else if (i % 2 == 0)
+        {
+            startingY = startingY == 6 ? 0 : 6;
+        }
+
+        // Queue up the rest of the grid search points
+        drivePoints.emplace(startingX, startingY);
+    }
 }
 
 void Planner::publishStop()
