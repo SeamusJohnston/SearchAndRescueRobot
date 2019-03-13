@@ -19,6 +19,7 @@ void findClearPathFwd();
 void completeStraightLineSearch();
 void driveToDesiredPoints();
 void robotPerformanceThread(int n);
+TilePosition tileFromPoint(int x_pos, int y_pos);
 //TODO IMPLEMENT
 void conductGridSearch();
 void driveToLargeBuilding();
@@ -54,7 +55,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     float currentX = std::trunc(msg->pose.pose.position.x);
     float currentY = std::trunc(msg->pose.pose.position.y);
 
-    sensor_readings.setCurrentPositionX(currentX)
+    sensor_readings.setCurrentPositionX(currentX);
 
     // This may cause weird behaviour when the robot is on the edges of a tile
     if (sensor_readings.getTargetTileX() == currentX && sensor_readings.getTargetTileY() == currentY)
@@ -82,10 +83,10 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && std::abs(msg->data - sensor_readings.getUltraLeft) > DELTA)
+        && std::abs(msg->data - sensor_readings.getUltraLeft()) > DELTA)
     {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX * 100 - msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY * 100)
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
         sensor_readings.points_of_interest.emplace(tileFromPoint(signal_point_x, signal_point_y));
     }
 
@@ -103,10 +104,10 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && std::abs(msg->data - sensor_readings.getUltraRight) > DELTA)
+        && std::abs(msg->data - sensor_readings.getUltraRight()) > DELTA)
     {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX * 100 + msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY * 100)
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
         sensor_readings.points_of_interest.emplace(tileFromPoint(signal_point_x, signal_point_y));
     }
 
@@ -415,7 +416,7 @@ void driveToDesiredPoints()
         }
         else
         {
-            sensor_readings.points_of_interest.emplace(TilePosition(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
+            sensor_readings.points_of_interest.emplace(TilePosition(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY()));
         }
     }
 }
@@ -453,56 +454,56 @@ void driveToLargeBuilding()
 }
 
 // THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
-TilePosition tileFromPoint(float x_pos, float y_pos)
+TilePosition tileFromPoint(int x_pos, int y_pos)
 {
     int x = -1, y = -1;
     switch(x_pos) 
     {
-        case 0...30:
+        case 0 ... 30:
             x = 0;
             break;
-        case 31...60:
-            x = 0;
+        case 31 ... 60:
+            x = 1;
             break;
-        case 61...90:
-            x = 0;
+        case 61 ... 90:
+            x = 2;
             break;
-        case 91...120:
-            x = 0;
+        case 91 ... 120:
+            x = 3;
             break;
-        case 121...150:
-            x = 0;
+        case 121 ... 150:
+            x = 4;
             break;
-        case 151...180:
-            x = 0;
+        case 151 ... 180:
+            x = 5;
             break;
-        default
+        default:
             ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
             x = 0;
             break;
     }
 
-    switch(x_pos) 
+    switch(y_pos)
     {
-        case 0...30:
+        case 0   ... 30:
             y = 0;
             break;
-        case 31...60:
+        case 31 ... 60:
             y = 1;
             break;
-        case 61...90:
+        case 61 ... 90:
             y = 2;
             break;
-        case 91...120:
+        case 91 ... 120:
             y = 3;
             break;
-        case 121...150:
+        case 121 ... 150:
             y = 4;
             break;
-        case 151...180:
+        case 151 ... 180:
             y = 5;
             break;
-        default
+        default:
             ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
             break;
     }
