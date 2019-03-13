@@ -7,6 +7,8 @@
 #include <list>
 #include <algorithm>
 #include "position.hpp"
+#include <set>
+#include <utility>      // std::pair, std::make_pair
 //#include "bill_planning/planner.hpp"
 
 enum STATE
@@ -58,12 +60,25 @@ class SensorReadings
         void setDetectionBit(unsigned char val);
         unsigned char getDetectionBit();
 
-        std::queue<TilePosition> points_of_interest;
+        bool pointsOfInterestEmpty();
+        int pointsOfInterestSize();
+        TilePosition pointsOfInterestFront();
+        void pointsOfInterestPop();
+        void pointsOfInterestEmplace(TilePosition tp);
 
+        int freeRowTile();
+
+        TilePosition home(-1,-1);
         //Set to 1 if fire, 2 if small building and 3 if large
         unsigned char detection_bit;
 
     private:
+        // Stored y,x for future use
+        std::vector<int> _y_Objects = {0,1,2,3,4,5};
+        std::set<std::reference_wrapper<std::pair <int, int>>> _s = {};
+        std::mutex _points_of_interest_mutex;
+        std::queue<TilePosition> _points_of_interest;
+
         std::mutex _start_robot_performance_thread_mutex;
         std::mutex _detected_fire_mutex;
         bool _start_robot_performance_thread = false;

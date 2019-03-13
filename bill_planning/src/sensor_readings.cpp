@@ -2,7 +2,7 @@
 
 SensorReadings::SensorReadings()
 {
-    points_of_interest = std::queue<TilePosition>();
+    _points_of_interest = std::queue<TilePosition>();
 }
 
 void SensorReadings::setStartRobotPerformanceThread(bool val)
@@ -165,4 +165,48 @@ float SensorReadings::getCurrentPositionY()
 {
     std::lock_guard<std::mutex> guard(_current_position_mutex);
     return _current_position.y;
+}
+
+bool SensorReadings::pointsOfInterestEmpty()
+{
+    std::lock_guard<std::mutex> guard(_points_of_interest_mutex);
+    return _points_of_interest.empty();
+}
+
+int SensorReadings::pointsOfInterestSize()
+{
+    std::lock_guard<std::mutex> guard(_points_of_interest_mutex);
+    return _points_of_interest.size();
+}
+
+TilePosition SensorReadings::pointsOfInterestFront()
+{
+    std::lock_guard<std::mutex> guard(_points_of_interest_mutex);
+    return _points_of_interest.front();
+}
+
+void SensorReadings::pointsOfInterestPop()
+{
+    std::lock_guard<std::mutex> guard(_points_of_interest_mutex);
+    _points_of_interest.pop();
+}
+
+// Prevent Duplicates
+void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
+{
+    std::pair <int,int> newVal (tp.x, tp.y);
+    
+    if (_s.find(newVal) == _s.end())
+    {
+        std::lock_guard<std::mutex> guard(_points_of_interest_mutex);    
+        _y_Objects.erase(std::remove(_y_Objects.begin(), _y_Objects.end(), tp.y), _y_Objects.end());
+        _points_of_interest.emplace(tp);
+        _s.insert(newVal);  // or "s.emplace(q.back());"
+    }
+
+}
+
+int SensorReadings::freeRowTile()
+{
+    return _y_Objects.back();
 }
