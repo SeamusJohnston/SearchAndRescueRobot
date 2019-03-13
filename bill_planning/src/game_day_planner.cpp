@@ -92,7 +92,7 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        (sensor_readings.getUltraLeft() - msg->data) > DELTA)
+        && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
     {
         int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
         int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
@@ -243,8 +243,8 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    sensor_readings.home.x = sensor_readings.current_x_tile;
-    sensor_readings.home.y = sensor_readings.current_y_tile;
+    sensor_readings.home.x = sensor_readings.getCurrentTileX();
+    sensor_readings.home.y = sensor_readings.getCurrentTileY();
 
     ROS_INFO("ROBOT COMMENCING");
 
@@ -481,11 +481,8 @@ void completeTSearch()
 {
     ROS_INFO("FOUND LESS THAN 3 POINTS OF INTEREST");
 
-    desired = sensor_readings.getCurrentTileX();
-    desired = sensor_readings.getCurrentTileX();
-
     desired_tile.x = sensor_readings.getCurrentTileX();
-    desired_tile.y = freeRowTile();
+    desired_tile.y = sensor_readings.freeRowTile();
 
     planner.publishDriveToTile(
         sensor_readings,
@@ -494,7 +491,7 @@ void completeTSearch()
     waitToHitTile();
 
     desired_tile.x = 0;
-    desired_tile.y = getCurrentTileY();
+    desired_tile.y = sensor_readings.getCurrentTileY();
 
     planner.publishDriveToTile(
         sensor_readings,
@@ -521,15 +518,15 @@ void driveToFlame()
         planner.publishDriveToTile(
             sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4)
+            desired_tile.y, 0.4);
         waitToHitTile();
 
         // SCAN TILE FOR FLAME
         // TODO SCAN TILE
-        if (getDetectedFire)
+        if (sensor_readings.getDetectedFire())
         {
             //PUT OUT FLAME
-            fireout();
+            fireOut();
         }
     }
 }
@@ -560,7 +557,6 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
             break;
         default:
             ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            x = 0;
             break;
     }
 

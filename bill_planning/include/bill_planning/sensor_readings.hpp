@@ -68,14 +68,14 @@ class SensorReadings
 
         int freeRowTile();
 
-        TilePosition home(-1,-1);
+        TilePosition home;
         //Set to 1 if fire, 2 if small building and 3 if large
         unsigned char detection_bit;
 
     private:
         // Stored y,x for future use
         std::vector<int> _y_Objects = {0,1,2,3,4,5};
-        std::set<std::reference_wrapper<std::pair <int, int>>> _s = {};
+        std::set<std::pair <int, int>> _s = {};
         std::mutex _points_of_interest_mutex;
         std::queue<TilePosition> _points_of_interest;
 
