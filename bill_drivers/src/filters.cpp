@@ -1,58 +1,69 @@
+#include <iostream>
 #include "bill_drivers/filters.hpp"
 
 LowPassFilter::LowPassFilter()
 {
-    a = 1;
-    dt = 0;
-    f = 0;
-    y_prev = 0;
+    _a = 1;
+    _dt = 0;
+    _f = 0;
+    _y_prev = 0;
 }
 
-LowPassFilter::LowPassFilter(float freq, float ts)
+LowPassFilter::LowPassFilter(float freq)
 {
-    dt = ts;
-    f = freq;
-    a = dt/((1.0/f) + dt);
-    y_prev = 0;
+    _dt = 0;
+    _f = freq;
+    _a = _dt/((1.0/_f) + _dt);
+    _y_prev = 0;
 }
 
 float LowPassFilter::update(float u)
 {
-    y_prev = (1-a)*y_prev + a*u;
-    return y_prev;
+    _y_prev = (1-_a)*_y_prev + _a*u;
+    return _y_prev;
 }
 
 void LowPassFilter::setFrequency(float freq)
 {
-    f = freq;
-    a = dt/((1.0/f) + dt);
+    _f = freq;
+    _a = _dt/((1.0/_f) + _dt);
 }
 
 void LowPassFilter::setSamplingTime(float ts)
 {
-    dt = ts;
-    a = dt/((1.0/f) + dt);
+    _dt = ts;
+    _a = _dt/((1.0/_f) + _dt);
 }
 
-ComplementaryFilter::ComplementaryFilter(float freq, float ts)
+void LowPassFilter::setPrevOutput(float y)
 {
-    setSamplingTime(ts);
+    _y_prev = y;
+}
+
+ComplementaryFilter::ComplementaryFilter(float freq)
+{
     setFrequency(freq);
 }
 
 float ComplementaryFilter::update(float u_high, float u_low)
 {
-    return lowPass.update(u_low) + (u_high - highPass.update(u_high));
+    return _low_pass.update(u_low) + (u_high - _high_pass.update(u_high));
 }
 
 void ComplementaryFilter::setFrequency(float freq)
 {
-    highPass.setFrequency(freq);
-    lowPass.setFrequency(freq);
+    _high_pass.setFrequency(freq);
+    _low_pass.setFrequency(freq);
 }
 
 void ComplementaryFilter::setSamplingTime(float ts)
 {
-    highPass.setSamplingTime(ts);
-    lowPass.setSamplingTime(ts);
+    _high_pass.setSamplingTime(ts);
+    _low_pass.setSamplingTime(ts);
+}
+
+void ComplementaryFilter::setPrevOutput(float y_high, float y_low)
+{
+    _low_pass.setPrevOutput(y_low);
+    _high_pass.setPrevOutput(y_high);
 }

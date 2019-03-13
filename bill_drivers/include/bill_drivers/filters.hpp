@@ -5,32 +5,31 @@ class LowPassFilter
 {
 public:
     LowPassFilter();
-    LowPassFilter(float freq, float ts);
+    LowPassFilter(float freq);
     float update(float u);
     void setFrequency(float freq);
     void setSamplingTime(float ts);
+    void setPrevOutput(float y);
 
 private:
-    float a;
-    float f;
-    float dt;
-    float y_prev;
+    float _a;
+    float _f;
+    float _dt;
+    float _y_prev;
 };
 
 class ComplementaryFilter
 {
 public:
-    ComplementaryFilter(float freq, float ts);
+    ComplementaryFilter(float freq);
     float update(float u_high, float u_low);
     void setFrequency(float freq);
     void setSamplingTime(float ts);
+    void setPrevOutput(float y_high, float y_low);
 
 private:
-    float a;
-    float dt;
-    LowPassFilter lowPass;
-    LowPassFilter highPass;
-
+    LowPassFilter _low_pass;
+    LowPassFilter _high_pass;
 };
 
 #endif
