@@ -67,7 +67,8 @@ class SensorReadings
         void pointsOfInterestEmplace(TilePosition tp);
 
         int freeRowTile();
-
+        
+        TilePosition flame_tile(-1,-1);
         TilePosition home(-1,-1);
         //Set to 1 if fire, 2 if small building and 3 if large
         unsigned char detection_bit;

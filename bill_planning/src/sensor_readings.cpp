@@ -201,7 +201,7 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
         std::lock_guard<std::mutex> guard(_points_of_interest_mutex);    
         _y_Objects.erase(std::remove(_y_Objects.begin(), _y_Objects.end(), tp.y), _y_Objects.end());
         _points_of_interest.emplace(tp);
-        _s.insert(newVal);  // or "s.emplace(q.back());"
+        _s.push_back(newVal);  // or "s.emplace(q.back());"
     }
 
 }
@@ -209,4 +209,9 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 int SensorReadings::freeRowTile()
 {
     return _y_Objects.back();
+}
+
+int SensorReadings::getLastTileFromY(int y)
+{
+    if 
 }

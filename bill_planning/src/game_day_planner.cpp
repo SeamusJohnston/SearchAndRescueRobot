@@ -48,7 +48,7 @@ bool KILL_SWITCH = false;
 // POSITION
 TilePosition desired_tile(0,0);
 TilePosition large_building_tile(-1,-1);
-TilePosition flame_tile(-1,-1);
+
 int desired_heading = 90;
 
 // CONSTANTS
@@ -169,6 +169,8 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFire(true);
+            sensor_readings.flame_tile.y = sensor_readings.getCurrentTileY();
+            sensor_readings.flame_tile.x = getLastTileFromY(sensor_readings.flame_tile.y);
         }
     }
     else
@@ -191,6 +193,10 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFire(true);
+            sensor_readings.flame_tile.y = sensor_readings.getCurrentTileY();
+
+            //TODO IMPLEMENT GET LAST TILE FROM Y
+            sensor_readings.flame_tile.x = sensor_readings.getLastTileFromY(sensor_readings.flame_tile.y);
         }
     }
     else
@@ -513,10 +519,10 @@ void completeTSearch()
 
 void driveToFlame()
 {
-    if(flame_tile.x >= 0 && flame_tile.y >= 0)
+    if(sensor_readings.flame_tile.x >= 0 && flame_tile.y >= 0)
     {
-        desired_tile.x = flame_tile.x;
-        desired_tile.y = flame_tile.y;
+        desired_tile.x = sensor_readings.flame_tile.x;
+        desired_tile.y = sensor_readings.flame_tile.y;
 
         planner.publishDriveToTile(
             sensor_readings,
