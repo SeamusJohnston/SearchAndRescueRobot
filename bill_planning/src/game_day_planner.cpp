@@ -55,19 +55,35 @@ int desired_heading = 90;
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 10; //cm
+const float TILE_WIDTH = 0.3;
+const float TILE_HEIGHT = 0.3;
+const float POSITION_ACCURACY_BUFFER = 0.075;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
 
     // Truncate this instead of floor to
-    float currentX = std::trunc(msg->pose.pose.position.x);
-    float currentY = std::trunc(msg->pose.pose.position.y);
+    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
 
-    sensor_readings.setCurrentPositionX(currentX);
+    float currentWholeX;
+    float currentWholeY;
+
+    float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
+    float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
+
+    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+
+    if (isOnXTile && isOnYTile)
+    {
+        sensor_readings.setCurrentPositionX((int)currentWholeX);
+        sensor_readings.setCurrentPositionY((int)currentWholeY);
+    }
 
     // This may cause weird behaviour when the robot is on the edges of a tile
-    if (sensor_readings.getTargetTileX() == currentX && sensor_readings.getTargetTileY() == currentY)
+    if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
     {
         // We have arrived at our current target point
         planner.ProcessNextDrivePoint(sensor_readings);
@@ -92,7 +108,7 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        (sensor_readings.getUltraLeft() - msg->data) > DELTA)
+        && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
     {
         int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
         int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
@@ -249,8 +265,8 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    sensor_readings.home.x = sensor_readings.current_x_tile;
-    sensor_readings.home.y = sensor_readings.current_y_tile;
+    sensor_readings.home.x = sensor_readings.getCurrentTileX();
+    sensor_readings.home.y = sensor_readings.getCurrentTileY();
 
     ROS_INFO("ROBOT COMMENCING");
 
@@ -438,7 +454,9 @@ void driveToDesiredPoints()
 
 void conductGridSearch()
 {
-
+    // TODO
+    // Fill out the rest of this method with what we want?
+    planner.gridSearch(sensor_readings);
 }
 
 void driveHome()
@@ -487,11 +505,8 @@ void completeTSearch()
 {
     ROS_INFO("FOUND LESS THAN 3 POINTS OF INTEREST");
 
-    desired = sensor_readings.getCurrentTileX();
-    desired = sensor_readings.getCurrentTileX();
-
     desired_tile.x = sensor_readings.getCurrentTileX();
-    desired_tile.y = freeRowTile();
+    desired_tile.y = sensor_readings.freeRowTile();
 
     planner.publishDriveToTile(
         sensor_readings,
@@ -500,7 +515,7 @@ void completeTSearch()
     waitToHitTile();
 
     desired_tile.x = 0;
-    desired_tile.y = getCurrentTileY();
+    desired_tile.y = sensor_readings.getCurrentTileY();
 
     planner.publishDriveToTile(
         sensor_readings,
@@ -527,15 +542,15 @@ void driveToFlame()
         planner.publishDriveToTile(
             sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4)
+            desired_tile.y, 0.4);
         waitToHitTile();
 
         // SCAN TILE FOR FLAME
         // TODO SCAN TILE
-        if (getDetectedFire)
+        if (sensor_readings.getDetectedFire())
         {
             //PUT OUT FLAME
-            fireout();
+            fireOut();
         }
     }
 }
@@ -566,7 +581,6 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
             break;
         default:
             ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            x = 0;
             break;
     }
 

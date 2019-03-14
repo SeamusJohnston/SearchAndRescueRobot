@@ -16,7 +16,7 @@ class Planner
   public:
     Planner();
     void setPubs(ros::Publisher mp, ros::Publisher fp, ros::Publisher lp);
-    void gridSearch();
+    void gridSearch(SensorReadings &sensorReadings);
     void publishStop();
     void publishDrive(int heading, float speed);
     void publishTurn(int heading);
