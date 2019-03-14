@@ -231,7 +231,7 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 
     if (_mark_next_tile_as_flame)
     {
-        std::pair tile_pos = _s.back();
+        std::pair<int, int> tile_pos = _s.back();
         _flame_tile.x = tile_pos.first;
         _flame_tile.y = tile_pos.second;
         _mark_next_tile_as_flame = false;
@@ -246,7 +246,7 @@ int SensorReadings::freeRowTile()
 
 void SensorReadings::updateFlameTileFromLastSavedPoint(int y)
 {
-    std::pair tile_pos = _s.back();
+    std::pair<int, int> tile_pos = _s.back();
     if(tile_pos.second == y)
     {
         _flame_tile.x = tile_pos.first;
