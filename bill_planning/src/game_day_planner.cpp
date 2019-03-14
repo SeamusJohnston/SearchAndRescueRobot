@@ -222,9 +222,14 @@ void resetCallback(const std_msgs::Bool::ConstPtr& msg)
     //WRITE FUNCTION TO RESET SENSOR READINGS
 }
 
-// TODO MAKE CALLBACK FOR HALL EFFECT
-// STORE POINT IF IT EVER GOES OFF
-// DEFAULT TO -100,-100
+void hallCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+    if(!_found_hall && msg->data)
+    {
+        _found_hall = true;
+        planner.signalComplete();
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -234,8 +239,11 @@ int main(int argc, char** argv)
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
+    ros::Subscriber sub_fire = nh.subscribe("fire_left", 1, fireCallbackLeft);
+    ros::Subscriber sub_fire = nh.subscribe("fire_right", 1, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
     ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
+    ros::Subscriber sub_reset = nh.subscribe("food", 1, hallCallback);
 
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);

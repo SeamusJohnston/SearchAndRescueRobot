@@ -10,6 +10,8 @@
 // Analog
 #define Flame A0
 #define Hall A1
+#define FlameLeft A2
+#define FlameRight A3
 
 // IMU Registers 
 #define PAGE_SWAP     0x07
@@ -48,6 +50,8 @@ void setup()
   
   pinMode(Colour, INPUT);
   pinMode(Flame, INPUT);
+  pinMode(FlameLeft, INPUT);
+  pinMode(FlameRight, INPUT);
   pinMode(Hall, INPUT);
   
   // Setting frequency-scaling
@@ -145,20 +149,32 @@ void receiveEvent(int numBytes)
 
 byte readFlameSensor()
 {
-  int sensorValue = analogRead(Flame);
+  int sensorValueFront = analogRead(Flame);
+  int sensorValueLeft = analogRead(Flame);
+  int sensorValueRight = analogRead(Flame);
+
+  byte returnVal = 0x00;
   
   //Serial.print("Flame: ");
   //Serial.print(sensorValue);
-  if(sensorValue < 70)
+  if(sensorValueFront < 100)
   {
-    //Serial.println(" True");
-    return 0x01;
+    //Serial.print(" Front True");
+    returnVal = returnVal ^ 0x01;
   }
-  else
+  if(sensorValueLeft < 400)
   {
-    //Serial.println(" False");
-    return 0x00;
+    //Serial.print(" Left True");
+    returnVal = returnVal ^ 0x10;
   }
+  if(sensorValueRight < 400)
+  {
+    //Serial.print(" Right True");
+    returnVal = returnVal ^ 0x20;
+  }
+  //Serial.println("");
+  
+  return returnVal;
 }
 
 byte readHallEffectSensor()

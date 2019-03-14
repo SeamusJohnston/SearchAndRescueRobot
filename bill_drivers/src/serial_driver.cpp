@@ -24,11 +24,15 @@ int main(int argc, char** argv)
     ros::Publisher survivor_pub = nh.advertise<bill_msgs::Survivor>("survivors", 100);
     ros::Publisher food_pub = nh.advertise<std_msgs::Bool>("food", 100);
     ros::Publisher fire_pub = nh.advertise<std_msgs::Bool>("fire", 100);
+    ros::Publisher fire_left_pub = nh.advertise<std_msgs::Bool>("fire_left", 100);
+    ros::Publisher fire_right_pub = nh.advertise<std_msgs::Bool>("fire_right", 100);
     ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu", 100);
 
     std::bitset<8> fire_bitmap = 0x01;
     std::bitset<8> food_bitmap = 0x02;
     std::bitset<8> survivor_bitmap = 0x0C;
+    std::bitset<8> fire_left_bitmap = 0x10;
+    std::bitset<8> fire_right_bitmap = 0x20;
 
     serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
     if (my_serial.isOpen())
@@ -45,6 +49,8 @@ int main(int argc, char** argv)
         bill_msgs::Survivor survivor_msg;
         std_msgs::Bool food_msg;
         std_msgs::Bool fire_msg;
+        std_msgs::Bool fire_left_msg;
+        std_msgs::Bool fire_right_msg;
 
         std::string data = my_serial.readline(65536, "\r\n");
         size_t pos = 0;
@@ -101,12 +107,16 @@ int main(int argc, char** argv)
             survivor_msg.data = (int)((data_received & survivor_bitmap) >> 2).to_ulong();
             food_msg.data = (bool)(data_received & food_bitmap).to_ulong();
             fire_msg.data = (bool)(data_received & fire_bitmap).to_ulong();
+            fire_left_msg.data = (bool)(data_received & fire_left_bitmap).to_ulong();
+            fire_right_msg.data = (bool)(data_received & fire_right_bitmap).to_ulong();
 
             // Publish message, and spin thread
             imu_pub.publish(imu_msg);
             survivor_pub.publish(survivor_msg);
             food_pub.publish(food_msg);
             fire_pub.publish(fire_msg);
+            fire_left_pub.publish(fire_left_msg);
+            fire_left_pub.publish(fire_right_msg);
             ros::spinOnce();
         }
         loop_rate.sleep();
