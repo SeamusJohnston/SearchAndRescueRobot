@@ -9,10 +9,8 @@ const int RELAY_OUTPIN = 6;
 // Motors
 const int MOTORA_PWM = 12;      // PWMA
 const int MOTORB_PWM = 13;      // PWMB
-const int MOTORA_FORWARD = 10;  // AIN1
-const int MOTORA_REVERSE = 22;  // AIN2
-const int MOTORB_FORWARD = 23;  // BIN1
-const int MOTORB_REVERSE = 24;  // BIN2
+const int MOTORA_FORWARD = 10;  // MA
+const int MOTORB_FORWARD = 23;  // MB
 
 // Encoders
 const int MOTORB_ENCB_PIN = 1;   // Motor B (left) B channel

@@ -35,10 +35,6 @@ enum Direction
 void stop()
 {
     ROS_INFO("Stop");
-    digitalWrite(MOTORA_FORWARD, LOW);
-    digitalWrite(MOTORA_REVERSE, LOW);
-    digitalWrite(MOTORB_FORWARD, LOW);
-    digitalWrite(MOTORB_REVERSE, LOW);
     softPwmWrite(MOTORA_PWM, 0);
     softPwmWrite(MOTORB_PWM, 0);
 }
@@ -50,22 +46,18 @@ void drive(const int left_cmd, const int right_cmd)
     if (right_cmd >= 0)
     {
         digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORA_REVERSE, LOW);
     }
     else
     {
         digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORA_REVERSE, HIGH);
     }
     if (left_cmd >= 0)
     {
         digitalWrite(MOTORB_FORWARD, HIGH);
-        digitalWrite(MOTORB_REVERSE, LOW);
     }
     else
     {
         digitalWrite(MOTORB_FORWARD, LOW);
-        digitalWrite(MOTORB_REVERSE, HIGH);
     }
     softPwmWrite(MOTORA_PWM, std::abs(right_cmd));
     softPwmWrite(MOTORB_PWM, std::abs(left_cmd));
@@ -78,17 +70,13 @@ void turn(const Direction dir, const unsigned int speed)
     {
         ROS_INFO("Turning CW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORA_REVERSE, HIGH);
         digitalWrite(MOTORB_FORWARD, HIGH);
-        digitalWrite(MOTORB_REVERSE, LOW);
     }
     else
     {
         ROS_INFO("Turning CCW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORA_REVERSE, LOW);
         digitalWrite(MOTORB_FORWARD, LOW);
-        digitalWrite(MOTORB_REVERSE, HIGH);
     }
     softPwmWrite(MOTORA_PWM, speed);
     softPwmWrite(MOTORB_PWM, speed);
@@ -231,9 +219,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "motor_driver");
     wiringPiSetupGpio();
     pinMode(MOTORA_FORWARD, OUTPUT);
-    pinMode(MOTORA_REVERSE, OUTPUT);
     pinMode(MOTORB_FORWARD, OUTPUT);
-    pinMode(MOTORB_REVERSE, OUTPUT);
     pinMode(MOTORA_PWM, OUTPUT);
     pinMode(MOTORB_PWM, OUTPUT);
     softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
