@@ -147,7 +147,6 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side
     }
 }
 
-//TODO MAKE A LEFT AND RIGHT FIRE CALLBACK
 void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
@@ -157,17 +156,17 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire_front < 3)
         {
             found_fire_front++;
-            sensor_readings.setDetectedFire(false);
+            sensor_readings.setDetectedFireFwd(false);
         }
         else
         {
-            sensor_readings.setDetectedFire(true);
+            sensor_readings.setDetectedFireFwd(true);
         }
     }
     else
     {
         found_fire_front = 0;
-        sensor_readings.setDetectedFire(false);
+        sensor_readings.setDetectedFireFwd(false);
     }
 }
 
@@ -180,19 +179,18 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire_left < 3)
         {
             found_fire_left++;
-            sensor_readings.setDetectedFire(false);
+            sensor_readings.setDetectedFireLeft(false);
         }
         else
         {
-            sensor_readings.setDetectedFire(true);
-            sensor_readings.flame_tile.y = sensor_readings.getCurrentTileY();
-            sensor_readings.flame_tile.x = getLastTileFromY(sensor_readings.flame_tile.y);
+            sensor_readings.setDetectedFireLeft(true);
+            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
         }
     }
     else
     {
         found_fire_left = 0;
-        sensor_readings.setDetectedFire(false);
+        sensor_readings.setDetectedFireLeft(false);
     }
 }
 
@@ -204,21 +202,18 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         if (found_fire_right < 3)
         {
             found_fire_right++;
-            sensor_readings.setDetectedFire(false);
+            sensor_readings.setDetectedFireRight(false);
         }
         else
         {
-            sensor_readings.setDetectedFire(true);
-            sensor_readings.flame_tile.y = sensor_readings.getCurrentTileY();
-
-            //TODO IMPLEMENT GET LAST TILE FROM Y
-            sensor_readings.flame_tile.x = sensor_readings.getLastTileFromY(sensor_readings.flame_tile.y);
+            sensor_readings.setDetectedFireRight(true);
+            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
         }
     }
     else
     {
         found_fire_right = 0;
-        sensor_readings.setDetectedFire(false);
+        sensor_readings.setDetectedFireRight(false);
     }
 }
 
@@ -265,8 +260,7 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    sensor_readings.home.x = sensor_readings.getCurrentTileX();
-    sensor_readings.home.y = sensor_readings.getCurrentTileY();
+    sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
     ROS_INFO("ROBOT COMMENCING");
 
@@ -310,7 +304,7 @@ void fireOut()
 
     do
     {
-        if (initialCall || sensor_readings.getDetectedFire())
+        if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             planner.putOutFire();
             desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
@@ -326,7 +320,7 @@ void fireOut()
               && temp_desired_heading != sensor_readings.getCurrentHeading()
               && !KILL_SWITCH)
         {
-            if(sensor_readings.getDetectedFire())
+            if(sensor_readings.getDetectedFireFwd())
             {
                 planner.putOutFire();
                 desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
@@ -432,7 +426,7 @@ void driveToDesiredPoints()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if (sensor_readings.getDetectedFire())
+        if (sensor_readings.getDetectedFireFwd())
         {
             fireOut();
         }
@@ -461,8 +455,8 @@ void conductGridSearch()
 
 void driveHome()
 {
-    desired_tile.x = sensor_readings.home.x;
-    desired_tile.y = sensor_readings.home.y;
+    desired_tile.x = sensor_readings.getHomeTileX();
+    desired_tile.y = sensor_readings.getHomeTileY();
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
@@ -534,10 +528,10 @@ void completeTSearch()
 
 void driveToFlame()
 {
-    if(sensor_readings.flame_tile.x >= 0 && flame_tile.y >= 0)
+    if(sensor_readings.getFlameTileX() >= 0 && sensor_readings.getFlameTileY() >= 0)
     {
-        desired_tile.x = sensor_readings.flame_tile.x;
-        desired_tile.y = sensor_readings.flame_tile.y;
+        desired_tile.x = sensor_readings.getFlameTileX();
+        desired_tile.y = sensor_readings.getFlameTileY();
 
         planner.publishDriveToTile(
             sensor_readings,
@@ -547,7 +541,7 @@ void driveToFlame()
 
         // SCAN TILE FOR FLAME
         // TODO SCAN TILE
-        if (sensor_readings.getDetectedFire())
+        if (sensor_readings.getDetectedFireFwd())
         {
             //PUT OUT FLAME
             fireOut();

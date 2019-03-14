@@ -35,8 +35,12 @@ class SensorReadings
         void setUltraRight(float val);
         float getUltraRight();
 
-        void setDetectedFire(bool val);
-        bool getDetectedFire();
+        void setDetectedFireFwd(bool val);
+        void setDetectedFireLeft(bool val);
+        void setDetectedFireRight(bool val);
+        bool getDetectedFireFwd();
+        bool getDetectedFireLeft();
+        bool getDetectedFireRight();
 
         void setCurrentHeading(int val);
         int getCurrentHeading();
@@ -68,46 +72,61 @@ class SensorReadings
         void pointsOfInterestEmplace(TilePosition tp);
 
         int freeRowTile();
+        void updateFlameTileFromLastSavedPoint(int y);
         
-        TilePosition flame_tile;
-        TilePosition home;
+        void setFlameTileX(int val);
+        void setFlameTileY(int val);
+        int getFlameTileX();
+        int getFlameTileY();
+
+        void setHomeTile(int x, int y);
+        int getHomeTileX();
+        int getHomeTileY();
+
         //Set to 1 if fire, 2 if small building and 3 if large
         unsigned char detection_bit;
 
     private:
-        // Stored y,x for future use
-        std::vector<int> _y_Objects = {0,1,2,3,4,5};
-        std::vector<std::pair <int, int>> _s = {};
-        std::mutex _points_of_interest_mutex;
-        std::queue<TilePosition> _points_of_interest;
-
-        std::mutex _start_robot_performance_thread_mutex;
-        std::mutex _detected_fire_mutex;
-        bool _start_robot_performance_thread = false;
-        bool _detected_fire = false;
-
-        std::mutex _ultra_fwd_mutex;
-        std::mutex _ultra_left_mutex;
-        std::mutex _ultra_right_mutex;
-        float _ultra_fwd = -500;
-        float _ultra_left = -500;
-        float _ultra_right = -500;
-
-        std::mutex _current_heading_mutex;
-        int _current_heading = 90;
-
-        std::mutex _current_state_mutex;
-        STATE _current_state = INIT_SEARCH;
-
-        std::mutex _detection_bit_mutex;
-        unsigned char _detection_bit = 0x00;
 
         std::mutex _target_tile_mutex;
         std::mutex _current_tile_mutex;
         std::mutex _current_position_mutex;
+        std::mutex _flame_tile_mutex;
+        std::mutex _home_tile_mutex;
+        std::mutex _points_of_interest_mutex;
+        std::mutex _start_robot_performance_thread_mutex;
+        std::mutex _current_state_mutex;
+        std::mutex _ultra_fwd_mutex;
+        std::mutex _ultra_left_mutex;
+        std::mutex _ultra_right_mutex;
+        std::mutex _current_heading_mutex;
+        std::mutex _detection_bit_mutex;
+
+        // Stored y,x for future use
+        std::vector<int> _y_Objects = {0,1,2,3,4,5};
+        std::vector<std::pair <int, int>> _s = {};
+        std::queue<TilePosition> _points_of_interest;
+        STATE _current_state = INIT_SEARCH;
+
+        bool _start_robot_performance_thread = false;
+        bool _mark_next_tile_as_flame = false;
+
+        std::mutex _detected_fire_mutex;
+        bool _detected_fire_fwd = false;
+        bool _detected_fire_left = false;
+        bool _detected_fire_right = false;
+
+        float _ultra_fwd = -500;
+        float _ultra_left = -500;
+        float _ultra_right = -500;
+        int _current_heading = 90;
+        unsigned char _detection_bit = 0x00;
+
         Position _current_position = Position(0,0);
-        TilePosition _current_tile = TilePosition(0,0);
-        TilePosition _current_target_tile = TilePosition(0,0);
+        TilePosition _home_tile = TilePosition(-1,-1);
+        TilePosition _flame_tile = TilePosition(-1, -1);
+        TilePosition _current_tile = TilePosition(-1, -1);
+        TilePosition _current_target_tile = TilePosition(-1, -1);
 };
 
 #endif

@@ -3,6 +3,8 @@
 SensorReadings::SensorReadings()
 {
     _points_of_interest = std::queue<TilePosition>();
+    _flame_tile.x = -1;
+    _flame_tile.y = -1;
 }
 
 void SensorReadings::setStartRobotPerformanceThread(bool val)
@@ -53,16 +55,38 @@ float SensorReadings::getUltraRight()
     return _ultra_right;
 }
 
-void SensorReadings::setDetectedFire(bool val)
+void SensorReadings::setDetectedFireFwd(bool val)
 {
     std::lock_guard<std::mutex> guard(_detected_fire_mutex);
-    _detected_fire = val;
+    _detected_fire_fwd = val;
 }
 
-bool SensorReadings::getDetectedFire()
+bool SensorReadings::getDetectedFireFwd()
 {
     std::lock_guard<std::mutex> guard(_detected_fire_mutex);
-    return  _detected_fire;
+    return  _detected_fire_fwd;
+}
+void SensorReadings::setDetectedFireLeft(bool val)
+{
+    std::lock_guard<std::mutex> guard(_detected_fire_mutex);
+    _detected_fire_left = val;
+}
+
+bool SensorReadings::getDetectedFireLeft()
+{
+    std::lock_guard<std::mutex> guard(_detected_fire_mutex);
+    return  _detected_fire_left;
+}
+void SensorReadings::setDetectedFireRight(bool val)
+{
+    std::lock_guard<std::mutex> guard(_detected_fire_mutex);
+    _detected_fire_right = val;
+}
+
+bool SensorReadings::getDetectedFireRight()
+{
+    std::lock_guard<std::mutex> guard(_detected_fire_mutex);
+    return  _detected_fire_right;
 }
 
 void SensorReadings::setCurrentHeading(int val)
@@ -195,13 +219,22 @@ void SensorReadings::pointsOfInterestPop()
 void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 {
     std::pair <int,int> newVal (tp.x, tp.y);
-    
-    if (_s.find(newVal) == _s.end())
+
+    if (std::find(_s.begin(), _s.end(), newVal) != _s.end())
     {
         std::lock_guard<std::mutex> guard(_points_of_interest_mutex);    
         _y_Objects.erase(std::remove(_y_Objects.begin(), _y_Objects.end(), tp.y), _y_Objects.end());
         _points_of_interest.emplace(tp);
-        _s.push_back(newVal);  // or "s.emplace(q.back());"
+        _s.push_back(newVal);  
+        // or "s.emplace(q.back());"
+    }
+
+    if (_mark_next_tile_as_flame)
+    {
+        std::pair tile_pos = _s.back();
+        _flame_tile.x = tile_pos.first;
+        _flame_tile.y = tile_pos.second;
+        _mark_next_tile_as_flame = false;
     }
 
 }
@@ -211,7 +244,58 @@ int SensorReadings::freeRowTile()
     return _y_Objects.back();
 }
 
-int SensorReadings::getLastTileFromY(int y)
+void SensorReadings::updateFlameTileFromLastSavedPoint(int y)
 {
-    if 
+    std::pair tile_pos = _s.back();
+    if(tile_pos.second == y)
+    {
+        _flame_tile.x = tile_pos.first;
+        _flame_tile.y = y;
+    }
+    else
+    {
+        _mark_next_tile_as_flame = true;
+    }
+    
+}
+
+void SensorReadings::setFlameTileX(int val)
+{
+    std::lock_guard<std::mutex> guard(_flame_tile_mutex);
+    _flame_tile.x = val;
+}
+
+void SensorReadings::setFlameTileY(int val)
+{
+    std::lock_guard<std::mutex> guard(_flame_tile_mutex);
+    _flame_tile.y = val;
+}
+
+int SensorReadings::getFlameTileX()
+{
+    std::lock_guard<std::mutex> guard(_flame_tile_mutex);
+    return _flame_tile.x;
+}
+
+int SensorReadings::getFlameTileY()
+{
+    std::lock_guard<std::mutex> guard(_home_tile_mutex);
+    return _flame_tile.y;
+}
+
+void SensorReadings::setHomeTile(int x, int y)
+{
+    std::lock_guard<std::mutex> guard(_home_tile_mutex);
+    _home_tile.x = x;
+    _home_tile.y = y;
+}
+int SensorReadings::getHomeTileX()
+{
+    std::lock_guard<std::mutex> guard(_home_tile_mutex);
+    return _home_tile.x;
+}
+int SensorReadings::getHomeTileY()
+{
+    std::lock_guard<std::mutex> guard(_home_tile_mutex);
+    return _home_tile.y;
 }
