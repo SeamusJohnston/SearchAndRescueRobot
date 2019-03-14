@@ -239,11 +239,11 @@ int main(int argc, char** argv)
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
-    ros::Subscriber sub_fire = nh.subscribe("fire_left", 1, fireCallbackLeft);
-    ros::Subscriber sub_fire = nh.subscribe("fire_right", 1, fireCallbackRight);
+    ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
+    ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
     ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
-    ros::Subscriber sub_reset = nh.subscribe("food", 1, hallCallback);
+    ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
 
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
