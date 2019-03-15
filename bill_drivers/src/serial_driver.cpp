@@ -85,13 +85,23 @@ int main(int argc, char** argv)
             double zgyro = (double)(((signed short)(sensorData[11] << 8 | sensorData[10])) / 16.0);
 
             sensor_msgs::Imu imu_msg;
+            imu_msg.header.frame_id = "base_link";
             imu_msg.orientation.x = quatX;
             imu_msg.orientation.y = quatY;
             imu_msg.orientation.z = quatZ;
             imu_msg.orientation.w = quatW;
+            imu_msg.orientation_covariance = {0.001, 0, 0,
+                                              0, 0.001, 0.
+                                              0, 0, 0.001};
 
             imu_msg.angular_velocity.z = zgyro;
+            imu_msg.angular_velocity_covariance = {-1, 0, 0,
+                                                   0, -1, 0
+                                                   0, 0, 0.05};
             imu_msg.linear_acceleration.x = xaccel;
+            imu_msg.angular_velocity_covariance = {0.1, 0, 0,
+                                                   0, -1, 0,
+                                                   0, 0, -1};
 
             // Print out what the Arduino is sending...
             std::bitset<8> data_received(sensorData[12]);
