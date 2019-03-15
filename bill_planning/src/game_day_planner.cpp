@@ -58,6 +58,8 @@ const float DELTA = 10; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
+// This is in degrees
+const float HEADING_ACCURACY_BUFFER = 2.0;
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -231,6 +233,19 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
     }
 }
 
+bool shouldKeepTurning()
+{
+    if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
+    {
+        planner.publishStop();
+        return false;
+    }
+    else
+    {
+        return true;
+    }
+}
+
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "game_day_planner");
@@ -342,7 +357,7 @@ void fireOut()
         planner.publishTurn(desired_heading);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    } while(desired_heading != sensor_readings.getCurrentHeading() && !KILL_SWITCH);
+    } while(shouldKeepTurning() && !KILL_SWITCH);
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 }
