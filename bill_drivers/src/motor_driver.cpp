@@ -20,8 +20,6 @@ float KI_DRIVE;
 auto last_msg_time = std::chrono::high_resolution_clock::now();
 bill_msgs::MotorCommands last_command_msg;
 int last_heading = 90;
-//float last_speed = 0;
-//float speed_error_sum = 0;
 float heading_error_drive_sum = 0;
 float heading_error_turn_sum = 0;
 
@@ -45,19 +43,19 @@ void drive(const int left_cmd, const int right_cmd)
 
     if (right_cmd >= 0)
     {
-        digitalWrite(MOTORA_FORWARD, HIGH);
+        digitalWrite(MOTORA_FORWARD, LOW);
     }
     else
     {
-        digitalWrite(MOTORA_FORWARD, LOW);
+        digitalWrite(MOTORA_FORWARD, HIGH);
     }
     if (left_cmd >= 0)
     {
-        digitalWrite(MOTORB_FORWARD, HIGH);
+        digitalWrite(MOTORB_FORWARD, LOW);
     }
     else
     {
-        digitalWrite(MOTORB_FORWARD, LOW);
+        digitalWrite(MOTORB_FORWARD, HIGH);
     }
     softPwmWrite(MOTORA_PWM, std::abs(right_cmd));
     softPwmWrite(MOTORB_PWM, std::abs(left_cmd));
@@ -69,14 +67,14 @@ void turn(const Direction dir, const unsigned int speed)
     if (dir == CW)
     {
         ROS_INFO("Turning CW: Speed = %i", speed);
-        digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORB_FORWARD, HIGH);
+        digitalWrite(MOTORA_FORWARD, HIGH);
+        digitalWrite(MOTORB_FORWARD, LOW);
     }
     else
     {
         ROS_INFO("Turning CCW: Speed = %i", speed);
-        digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORB_FORWARD, LOW);
+        digitalWrite(MOTORA_FORWARD, LOW);
+        digitalWrite(MOTORB_FORWARD, HIGH);
     }
     softPwmWrite(MOTORA_PWM, speed);
     softPwmWrite(MOTORB_PWM, speed);
