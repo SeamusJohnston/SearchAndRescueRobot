@@ -59,6 +59,14 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
     }
 }
 
+void Planner::cancelGridSearch(SensorReadings &sensorReadings)
+{
+    // Stop all driving
+    publishStop();
+    sensorReadings.setTargetHeading(-1);
+    drivePoints.clear();
+}
+
 void Planner::publishStop()
 {
     ROS_INFO("Commanding stop");

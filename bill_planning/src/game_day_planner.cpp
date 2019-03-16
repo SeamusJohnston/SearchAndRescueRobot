@@ -196,7 +196,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     else
     {
         // Check for obstacles
-        if (sensor_readings.getUltraFwd() < OBSTACLE_THRESHOLD)
+        if (sensor_readings.getUltraFwd() < OBSTACLE_THRESHOLD && (sensor_readings.getDetectionBit() != 0))
         {
             // Brake immediately
             planner.publishStop();
@@ -374,8 +374,21 @@ void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 {
     if (planner.is_scanning)
     {
-        if ((msg->data == msg->SURVIVOR_MULTIPLE) || (msg->data == msg->SURVIVOR_SINGLE))
+        bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
+        bool single = msg->data == msg->SURVIVOR_SINGLE;
+
+        if (multiple || single)
         {
+            if (multiple)
+            {
+                sensor_readings.setDetectionBit(0x03);
+            }
+
+            if (single)
+            {
+                sensor_readings.setDetectionBit(0x02);
+            }
+
             ROS_INFO("Found a building!");
             planner.signalComplete();
             planner.publishStop();
