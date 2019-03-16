@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
    Survivor.msg
    MotorCommands.msg
    State.msg
+   Position.msg
  )
 
 ## Generate services in the 'srv' folder

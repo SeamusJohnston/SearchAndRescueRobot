@@ -1,17 +1,36 @@
 #include <Wire.h>
+#include <NewPing.h>
+#include <TimerOne.h>
 
 // Digital
+/*
 #define S0 4
 #define S1 5
 #define S2 6
 #define S3 7
 #define Colour 3
-
+*/
 // Analog
-#define Flame A2
-#define FlameRight A1
-#define FlameLeft A0
-#define Hall A3
+#define Flame A0
+#define Hall A1
+
+// Motor
+#define DIR_A 12
+#define DIR_B 13
+#define BRAKE_A 9
+#define BRAKE_B 8
+#define PWM_A 3
+#define PWM_B 11
+
+// Led 
+#define LED 10
+
+// Sonar
+#define TRIGGER_PIN  4  // Arduino pin tied to trigger pin on the ultrasonic sensor.
+#define ECHO_PIN     5  // Arduino pin tied to echo pin on the ultrasonic sensor.
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
 
 // IMU Registers 
 #define PAGE_SWAP     0x07
@@ -34,6 +53,8 @@
 
 // Globally Store Detected Colours
 int colours[4];
+int count = 0;
+bool turning = false;
 
 // Global byte array for all of our IMU data
 // 8 for LSB and MSB of Orientation Quaternion x,y,z and w
@@ -43,138 +64,114 @@ byte data[13];
 
 void setup() 
 {
-  pinMode(S0, OUTPUT);
-  pinMode(S1, OUTPUT);
-  pinMode(S2, OUTPUT);
-  pinMode(S3, OUTPUT);
-  
-  pinMode(Colour, INPUT);
   pinMode(Flame, INPUT);
-  pinMode(FlameLeft, INPUT);
-  pinMode(FlameRight, INPUT);
   pinMode(Hall, INPUT);
-  
-  // Setting frequency-scaling
-  digitalWrite(S0,HIGH);
-  digitalWrite(S1,LOW);
+
+  pinMode(PWM_A, OUTPUT);
+  pinMode(PWM_B, OUTPUT);
+  pinMode(DIR_A, OUTPUT);
+  pinMode(DIR_B, OUTPUT);
+
+  pinMode(LED, OUTPUT);
+  digitalWrite(LED, LOW);
   
   Serial.begin(9600);
-  Wire.begin(0x07); //Set Arduino up as an I2C slave at address 0x07
-  Wire.onRequest(requestEvent); //Prepare to send data
-  Wire.onReceive(receiveEvent); //Prepare to recieve data
+  //Timer1.initialize(5000000); // set a timer of length 100000 microseconds (or 0.1 sec - or 10Hz => the led will blink 5 times, 5 cycles of on-and-off, per second)
+  //Timer1.attachInterrupt( plan ); // attach the service routine here
+  //analogWrite(PWM_A, 0);
+  //analogWrite(PWM_B, 0);
+  plan();
+}
+  //Wire.begin(0x07); //Set Arduino up as an I2C slave at address 0x07
+  //Wire.onRequest(requestEvent); //Prepare to send data
+  //Wire.onReceive(receiveEvent); //Prepare to recieve data
 
   // Config IMU 
-  delay(20);
-  config_BNO055();
-  delay(20);
-}
+  //delay(20);
+  //config_BNO055();
+  //delay(20);
+  
+
 
 void loop()
-{  
-  // Request the IMU to write the orientation registers
-  Wire.beginTransmission(ADDRESS);  
-  Wire.write(ORIENTATION);
-  Wire.endTransmission(false);
+{
+  /*
+    bool fire = readFlameSensor();
+    if (fire)
+      digitalWrite(LED, HIGH);
+    else
+      digitalWrite(LED, LOW);
+      
+    int dist = sonar.ping_cm();
+    Serial.print("Distance: ");
+    Serial.println(dist);
+    if (dist <= 30 && dist != 0)
+    {
+      Serial.println("Turning");
+      turning = true;
+      Timer1.stop();
+      digitalWrite(DIR_A, LOW);
+      digitalWrite(DIR_B, HIGH);
+      analogWrite(PWM_A, 255);
+      analogWrite(PWM_B, 255);
+    }
+    else if (turning)
+    {
+      Serial.println("Stop turning");
+      turning = false;
+      count--;
+      if (count < 0)
+        count == 3;
+      plan();
+      Timer1.resume();
+    }
+    */
+    
+}
 
-  // Read the data from orientation registers
-  Wire.requestFrom(ADDRESS, 8);
-
-  while(Wire.available() < 8);
-
-  data[0] = Wire.read();  // Orientation W LSB
-  data[1] = Wire.read();  // Orientation W MSB
-  data[2] = Wire.read();  // Orientation X LSB
-  data[3] = Wire.read();  // Orientation X MSB
-  data[4] = Wire.read();  // Orientation Y LSB
-  data[5] = Wire.read();  // Orientation Y MSB
-  data[6] = Wire.read();  // Orientation Z LSB
-  data[7] = Wire.read();  // Orientation Z MSB
-
-  // Request the IMU to write the acceleration registers
-  Wire.beginTransmission(ADDRESS);
-  Wire.write(XACCEL);
-  Wire.endTransmission(false);
-
-  // Read the data from acceleration registers
-  Wire.requestFrom(ADDRESS, 2);
-
-  while(Wire.available() < 2);  
-
-  data[8] = Wire.read();  // X accel LSB
-  data[9] = Wire.read();  // X accel MSB
-
-  // Request the IMU to write the gyro registers
-  Wire.beginTransmission(ADDRESS);
-  Wire.write(ZGYRO);
-  Wire.endTransmission();
-
-  // Read the data from gyro registers
-  Wire.requestFrom(ADDRESS, 2);
-
-  while(Wire.available() < 2);
-
-  data[10] = Wire.read();  // Z Gyro LSB
-  data[11] = Wire.read();  // Z Gyro MSB
-  
-  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ breadColourSensor();
-  for (int i = 0; i < 13; ++i)
+void plan()
+{
+  if (count == 0)
   {
-    Serial.print(data[i]);
-    Serial.print(" ");
+    Serial.println("Forward");
+    digitalWrite(DIR_A, LOW);
+    digitalWrite(DIR_B, LOW);
+    analogWrite(PWM_A, 255);
+    analogWrite(PWM_B, 255);
   }
-  Serial.println();
-}
-
-void requestEvent()
-{
-}
-
-void receiveEvent(int numBytes)
-{
-  //Set Up Vars
-  int receive_int=0;
-  int count=0;
-
-  //We'll recieve one byte at a time. Stop when none left
-  while(Wire.available())
+  if (count% 2 == 1)
   {
-    char c = Wire.read(); // receive a byte as character
-    //Create Int from the Byte Array
-    receive_int = c << (8 * count) | receive_int;
-    count++;
+    Serial.println("Stop");
+    analogWrite(PWM_A, 0);
+    analogWrite(PWM_B, 0);
   }
-  Serial.print("Received Number: ");
-  Serial.println(receive_int);
+  if (count == 2)
+  {
+    Serial.println("Backwards");
+    digitalWrite(DIR_A, HIGH);
+    digitalWrite(DIR_B, HIGH);
+    analogWrite(PWM_A, 255);
+    analogWrite(PWM_B, 255);
+  }
+  count = (count + 1) % 4;
 }
 
-byte readFlameSensor()
+bool readFlameSensor()
 {
-  int sensorValueFront = analogRead(Flame);
-  int sensorValueLeft = analogRead(Flame);
-  int sensorValueRight = analogRead(Flame);
-
-  byte returnVal = 0x00;
+  int sensorValue = analogRead(Flame);
   
   //Serial.print("Flame: ");
   //Serial.print(sensorValue);
-  if(sensorValueFront < 100)
+  if(sensorValue < 70)
   {
-    //Serial.print(" Front True");
-    returnVal = returnVal ^ 0x01;
+    //Serial.println(" True");
+    return true;
   }
-  if(sensorValueLeft < 400)
+  else
   {
-    //Serial.print(" Left True");
-    returnVal = returnVal ^ 0x10;
+    //Serial.println(" False");
+    return false;
   }
-  if(sensorValueRight < 400)
-  {
-    //Serial.print(" Right True");
-    returnVal = returnVal ^ 0x20;
-  }
-  //Serial.println("");
-  
-  return returnVal;
 }
 
 byte readHallEffectSensor()
@@ -193,55 +190,6 @@ byte readHallEffectSensor()
     //Serial.println(" False");
     return 0x00;
   }
-}
-
-byte readColourSensor()
-{
-  ReadRGBC();
-  
-  if (LargeBuilding())
-  {
-    return 0x08;
-  }
-  else if (SmallBuilding())
-  {
-    return 0x04;
-  }
-
-  return 0x00;
-}
-
-void ReadRGBC()
-{
-  // RED
-  digitalWrite(S2,LOW);
-  digitalWrite(S3,LOW);
-  colours[0] = pulseIn(Colour, LOW);
-  
-  // Green
-  digitalWrite(S2,HIGH);
-  digitalWrite(S3,HIGH);
-  colours[1] = pulseIn(Colour, LOW);
-
-  // Blue 
-  digitalWrite(S2,LOW);
-  digitalWrite(S3,HIGH);
-  colours[2] = pulseIn(Colour, LOW);
-  
-  // Clear
-  digitalWrite(S2,HIGH);
-  digitalWrite(S3,LOW);
-  colours[3] = pulseIn(Colour, LOW);
-/*
-  Serial.print("rgbc: ");
-  Serial.print(colours[0]);
-  Serial.print(", ");
-  Serial.print(colours[1]);
-  Serial.print(", ");
-  Serial.print(colours[2]);
-  Serial.print(", ");
-  Serial.println(colours[3]);
-*/
 }
 
 bool LargeBuilding()

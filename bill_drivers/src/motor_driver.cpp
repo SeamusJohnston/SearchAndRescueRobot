@@ -2,26 +2,27 @@
 #include "tf/transform_datatypes.h"
 #include "angles/angles.h"
 #include "bill_msgs/MotorCommands.h"
-#include "nav_msgs/Odometry.h"
+#include "bill_msgs/Position.h"
 #include "wiringPi.h"
 #include <softPwm.h>
 #include "bill_drivers/constant_definition.hpp"
+#include <chrono>
 
 const int PWM_RANGE = 100;  // Max pwm value
-const int TURNING_SPEED = 30;
+const int MAX_TURNING_SPEED = 100;
 const float INT_CLAMP = 2.0;
-const float dt = 0.1;  // TODO: Define this based off the frequency the odom channel gets published
 const float MAX_VEL = 0.4;
-float KP_HEADING;
-float KI_HEADING;
-float KP_SPEED;
-float KI_SPEED;
+float KP_TURNING;
+float KI_TURNING;
+float KP_DRIVE;
+float KI_DRIVE;
 
+auto last_msg_time = std::chrono::high_resolution_clock::now();
 bill_msgs::MotorCommands last_command_msg;
 int last_heading = 90;
-//float last_speed = 0;
-//float speed_error_sum = 0;
-float heading_error_sum = 0;
+float heading_error_drive_sum = 0;
+float heading_error_turn_sum = 0;
+
 
 enum Direction
 {
@@ -32,10 +33,6 @@ enum Direction
 void stop()
 {
     ROS_INFO("Stop");
-    digitalWrite(MOTORA_FORWARD, LOW);
-    digitalWrite(MOTORA_REVERSE, LOW);
-    digitalWrite(MOTORB_FORWARD, LOW);
-    digitalWrite(MOTORB_REVERSE, LOW);
     softPwmWrite(MOTORA_PWM, 0);
     softPwmWrite(MOTORB_PWM, 0);
 }
@@ -46,23 +43,19 @@ void drive(const int left_cmd, const int right_cmd)
 
     if (right_cmd >= 0)
     {
-        digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORA_REVERSE, LOW);
+        digitalWrite(MOTORA_FORWARD, LOW);
     }
     else
     {
-        digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORA_REVERSE, HIGH);
+        digitalWrite(MOTORA_FORWARD, HIGH);
     }
     if (left_cmd >= 0)
     {
-        digitalWrite(MOTORB_FORWARD, HIGH);
-        digitalWrite(MOTORB_REVERSE, LOW);
+        digitalWrite(MOTORB_FORWARD, LOW);
     }
     else
     {
-        digitalWrite(MOTORB_FORWARD, LOW);
-        digitalWrite(MOTORB_REVERSE, HIGH);
+        digitalWrite(MOTORB_FORWARD, HIGH);
     }
     softPwmWrite(MOTORA_PWM, std::abs(right_cmd));
     softPwmWrite(MOTORB_PWM, std::abs(left_cmd));
@@ -75,25 +68,20 @@ void turn(const Direction dir, const unsigned int speed)
     {
         ROS_INFO("Turning CW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, LOW);
-        digitalWrite(MOTORA_REVERSE, HIGH);
         digitalWrite(MOTORB_FORWARD, HIGH);
-        digitalWrite(MOTORB_REVERSE, LOW);
     }
     else
     {
         ROS_INFO("Turning CCW: Speed = %i", speed);
         digitalWrite(MOTORA_FORWARD, HIGH);
-        digitalWrite(MOTORA_REVERSE, LOW);
         digitalWrite(MOTORB_FORWARD, LOW);
-        digitalWrite(MOTORB_REVERSE, HIGH);
     }
     softPwmWrite(MOTORA_PWM, speed);
     softPwmWrite(MOTORB_PWM, speed);
 }
 
-void drivePI(int heading)
+void drivePI(int heading, float dt)
 {
-    // NOTE: Writing speed PI for now, although open loop speed control may be good enough for our purposes
     int heading_error = last_command_msg.heading - heading;
     // Keep heading error centered at 0 between -180 and 180
     if (heading_error > 180)
@@ -105,20 +93,12 @@ void drivePI(int heading)
         heading_error += 360;
     }
 
-    /*
-    float speed_error = last_command_msg.speed - speed;
-    if (std::abs(speed_error_sum + speed_error * dt) < INT_CLAMP)
+    if (std::abs(heading_error_drive_sum + heading_error * dt) <= INT_CLAMP)
     {
-        speed_error_sum += speed_error * dt;
+        heading_error_drive_sum += heading_error * dt;
     }
-     */
-    if (std::abs(heading_error_sum + heading_error * dt) < INT_CLAMP)
-    {
-        heading_error_sum += heading_error * dt;
-    }
-    //float speed_command = speed_error * KP_SPEED + speed_error_sum * KI_SPEED;
 
-    float heading_command = heading_error * KP_HEADING + heading_error_sum * KI_HEADING;
+    float heading_command = heading_error * KP_DRIVE + heading_error_drive_sum * KI_DRIVE;
 
     // Note: this PI calculation assumes forward motion, since the robot should never have to reverse
     // Except for construction check, but the errors will be 0 for said check
@@ -151,37 +131,58 @@ void drivePI(int heading)
     drive(left_speed, right_speed);
 }
 
-void turningCallback(int heading)
+void turningCallback(int heading, float dt)
 {
-    ROS_INFO("In Turning Callback");
-    int error = last_command_msg.heading - heading;
-    if ((error >= 0 && error <= 180) || (error < 0 && error >= -180))
+    int heading_error = last_command_msg.heading - heading;
+
+    // Keep heading error centered at 0 between -180 and 180
+    if (heading_error > 180)
     {
-        // For now turn at a constant speed always
-        turn(CW, TURNING_SPEED);
+        heading_error -= 360;
+    }
+    else if (heading_error < -180)
+    {
+        heading_error += 360;
+    }
+
+    if (std::abs(heading_error_turn_sum + heading_error * dt) <= INT_CLAMP)
+    {
+        heading_error_turn_sum += heading_error * dt;
+    }
+
+    int turning_speed = (int)std::abs(heading_error * KP_TURNING + heading_error_turn_sum * KI_TURNING);
+    if (turning_speed > MAX_TURNING_SPEED)
+        turning_speed = MAX_TURNING_SPEED;
+
+    if (heading_error >= 0)
+    {
+        turn(CCW, turning_speed);
     }
     else
     {
-        // For now turn at a constant speed always
-        turn(CCW, TURNING_SPEED);
+        turn(CW, turning_speed);
     }
     // Could add a condition here to stop turning if within a certain threshold, right now
     // We leave that up to the planner
 }
 
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 {
-    int heading = (int)(angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+    int heading = msg->heading;
     last_heading = heading;
+    auto time_now = std::chrono::high_resolution_clock::now();
 
     if (last_command_msg.command == bill_msgs::MotorCommands::TURN)
     {
-        turningCallback(heading);
+        turningCallback(heading, std::chrono::duration<float>(time_now - last_msg_time).count());
     }
     else if (last_command_msg.command == bill_msgs::MotorCommands::DRIVE)
     {
-        drivePI(heading);
+        drivePI(heading, std::chrono::duration<float>(time_now - last_msg_time).count());
     }
+
+    last_msg_time = time_now;
+
 }
 
 void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
@@ -199,13 +200,15 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     {
         ROS_INFO("Calling Turn");
         // Call these here to start a robots action, callback from odom continues the action until completion
-        turningCallback(last_heading);
+        last_msg_time = std::chrono::high_resolution_clock::now();
+        turningCallback(last_heading, 0);
     }
     else
     {
         ROS_INFO("Calling Drive");
         // Call these here to start a robots action, callback from odom continues the action until completion
-        drivePI(last_heading);
+        last_msg_time = std::chrono::high_resolution_clock::now();
+        drivePI(last_heading, 0);
     }
 }
 
@@ -214,9 +217,7 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "motor_driver");
     wiringPiSetupGpio();
     pinMode(MOTORA_FORWARD, OUTPUT);
-    pinMode(MOTORA_REVERSE, OUTPUT);
     pinMode(MOTORB_FORWARD, OUTPUT);
-    pinMode(MOTORB_REVERSE, OUTPUT);
     pinMode(MOTORA_PWM, OUTPUT);
     pinMode(MOTORB_PWM, OUTPUT);
     softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
@@ -224,13 +225,14 @@ int main(int argc, char** argv)
 
     ros::NodeHandle nh;
     ros::Subscriber sub_motor = nh.subscribe("motor_cmd", 1, motorCallback);
-    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
 
     // Load parameters from yaml
-    nh.getParam("/bill/motor_params/kp_heading", KP_HEADING);
-    nh.getParam("/bill/motor_params/ki_heading", KI_HEADING);
-    nh.getParam("/bill/motor_params/kp_speed", KP_SPEED);
-    nh.getParam("/bill/motor_params/ki_speed", KI_SPEED);
+    nh.getParam("/bill/motor_params/kp_turning", KP_TURNING);
+    nh.getParam("/bill/motor_params/ki_turning", KI_TURNING);
+    nh.getParam("/bill/motor_params/kp_drive", KP_DRIVE);
+    nh.getParam("/bill/motor_params/ki_drive", KI_DRIVE);
+    last_command_msg.command = bill_msgs::MotorCommands::STOP;
 
     ros::spin();
     return 0;

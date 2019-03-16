@@ -16,7 +16,18 @@
 
 // PLAY WITH THREAD SLEEP IN robotPerformanceThread
 
-// FUNCTIONS
+// CALLBACKS
+void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg);
+void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg);
+void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg);
+void hallCallback(const std_msgs::Bool::ConstPtr& msg);
+void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg);
+
+// HELPER FUNCTIONS
 void fireOut();
 void findClearPathFwd();
 void completeStraightLineSearch();
@@ -27,11 +38,10 @@ void waitToHitTile();
 void completeTSearch();
 void driveToFlame();
 void driveHome();
+void driveToLargeBuilding();
 
 //TODO IMPLEMENT
 void conductGridSearch();
-void driveToLargeBuilding();
-//TODO HALL CALLBACK
 
 SensorReadings sensor_readings;
 
@@ -64,6 +74,90 @@ const float POSITION_ACCURACY_BUFFER = 0.075;
 const float HEADING_ACCURACY_BUFFER = 2.0;
 // This is in CM
 const float OBSTACLE_THRESHOLD = 3.0;
+
+int main(int argc, char** argv)
+{
+    ros::init(argc, argv, "game_day_planner");
+    ros::NodeHandle nh;
+
+    // Subscribing to Topics
+    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+    ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
+    ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
+    ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
+    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
+    ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
+
+    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
+    ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
+    ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
+    ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
+
+    planner.setPubs(motor_pub, fan_pub, led_pub);
+
+    std::thread robot_execution_thread(robotPerformanceThread, 1);
+    ros::spin();
+    KILL_SWITCH = true;
+    robot_execution_thread.join();
+    return 0;
+}
+
+void robotPerformanceThread(int n)
+{
+    ROS_INFO("RUNNING SEPARATE THREAD: %i", n);
+    // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
+    while (!sensor_readings.getStartRobotPerformanceThread() && !KILL_SWITCH)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
+
+    ROS_INFO("TESTING FLAME OUT");
+
+    //findClearPathFwd();
+
+    while(!sensor_readings.getDetectedFireFwd())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    if (sensor_readings.getDetectedFireFwd())
+    {
+        //PUT OUT FLAME
+        fireOut();
+    }
+    ROS_INFO("ROBOT COMMENCING");
+
+    completeStraightLineSearch();
+
+    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
+    if(sensor_readings.pointsOfInterestSize() < 3)
+    {
+        completeTSearch();
+    }
+
+    sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
+
+    driveToFlame();
+    driveToDesiredPoints();
+
+    // Conduct our grid search
+    if (!_found_hall)
+    {
+        sensor_readings.setCurrentState(STATE::HALL_SEARCH);
+        conductGridSearch();
+        // TODO  If we ever get hall data
+        //      Cancel Grid search
+    }
+
+    sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
+    driveToLargeBuilding();
+
+    sensor_readings.setCurrentState(STATE::RETURN_HOME);
+    driveHome();
+}
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
@@ -147,7 +241,7 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     }
 }
 
-void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
+void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
@@ -168,7 +262,7 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side 
     }
 }
 
-void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraRight() - msg->data) > DELTA)
@@ -214,6 +308,11 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 {
+    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
+    {
+        return;
+    }
+
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && msg->data)
     {
@@ -238,6 +337,11 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 {
+    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
+    {
+        return;
+    }
+    
     if (msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
@@ -257,11 +361,6 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         found_fire_right = 0;
         sensor_readings.setDetectedFireRight(false);
     }
-}
-
-void resetCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-    //WRITE FUNCTION TO RESET SENSOR READINGS
 }
 
 void hallCallback(const std_msgs::Bool::ConstPtr& msg)
@@ -299,79 +398,6 @@ bool shouldKeepTurning()
     }
 }
 
-int main(int argc, char** argv)
-{
-    ros::init(argc, argv, "game_day_planner");
-    ros::NodeHandle nh;
-
-    // Subscribing to Topics
-    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
-    ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
-    ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
-    ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
-    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
-    ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
-    ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
-    ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
-
-    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
-    ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
-    ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
-    ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
-
-    planner.setPubs(motor_pub, fan_pub, led_pub);
-
-    std::thread robot_execution_thread(robotPerformanceThread, 1);
-    ros::spin();
-    KILL_SWITCH = true;
-    robot_execution_thread.join();
-    return 0;
-}
-
-void robotPerformanceThread(int n)
-{
-    ROS_INFO("RUNNING SEPARATE THREAD: %i", n);
-    // WAIT ON DATA FROM EACH ULTRASONIC SENSOR
-    while (!sensor_readings.getStartRobotPerformanceThread() && !KILL_SWITCH)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
-
-    ROS_INFO("ROBOT COMMENCING");
-
-    findClearPathFwd();
-
-    completeStraightLineSearch();
-
-    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
-    if(sensor_readings.pointsOfInterestSize() < 3)
-    {
-        completeTSearch();
-    }
-
-    sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
-
-    driveToFlame();
-    driveToDesiredPoints();
-
-    // Conduct our grid search
-    if (!_found_hall)
-    {
-        sensor_readings.setCurrentState(STATE::HALL_SEARCH);
-        conductGridSearch();
-        // TODO  If we ever get hall data
-        //      Cancel Grid search
-    }
-
-    sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
-    driveToLargeBuilding();
-
-    sensor_readings.setCurrentState(STATE::RETURN_HOME);
-    driveHome();
-}
-
 void fireOut()
 {
     bool initialCall = true;
@@ -394,7 +420,7 @@ void fireOut()
         }
 
         while(check_temp_heading
-              && temp_desired_heading != sensor_readings.getCurrentHeading()
+              && fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER
               && !KILL_SWITCH)
         {
             if(sensor_readings.getDetectedFireFwd())
