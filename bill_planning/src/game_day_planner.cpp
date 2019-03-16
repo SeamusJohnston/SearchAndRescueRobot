@@ -108,9 +108,21 @@ void robotPerformanceThread(int n)
 
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-    ROS_INFO("ROBOT COMMENCING");
+    ROS_INFO("TESTING FLAME OUT");
 
-    findClearPathFwd();
+    //findClearPathFwd();
+
+    while(!sensor_readings.getDetectedFireFwd())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    if (sensor_readings.getDetectedFireFwd())
+    {
+        //PUT OUT FLAME
+        fireOut();
+    }
+    ROS_INFO("ROBOT COMMENCING");
 
     completeStraightLineSearch();
 
@@ -254,7 +266,7 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getFlameTileX != -1 || sensor_readings.getFlameTileY!= -1)
+    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
     {
         return;
     }
@@ -283,7 +295,7 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getFlameTileX != -1 || sensor_readings.getFlameTileY!= -1)
+    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
     {
         return;
     }
@@ -353,7 +365,7 @@ void fireOut()
         }
 
         while(check_temp_heading
-              && temp_desired_heading != sensor_readings.getCurrentHeading()
+              && fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER
               && !KILL_SWITCH)
         {
             if(sensor_readings.getDetectedFireFwd())
