@@ -13,9 +13,6 @@
 #include <vector>
 #include "bill_msgs/Survivor.h"
 
-
-// PLAY WITH THREAD SLEEP IN robotPerformanceThread
-
 // CALLBACKS
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -40,6 +37,7 @@ void driveToFlame();
 void driveHome();
 void driveToLargeBuilding();
 void conductGridSearch();
+void waitForPlannerScan();
 
 SensorReadings sensor_readings;
 
@@ -372,7 +370,7 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 {
-    if (planner.is_scanning)
+    if (planner.getIsScanning())
     {
         bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
         bool single = msg->data == msg->SURVIVOR_SINGLE;
@@ -529,7 +527,8 @@ void driveToDesiredPoints()
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4, true);
-        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
+        
+        waitForPlannerScan();
 
         while (sensor_readings.getDetectionBit() == 0x00
             && !KILL_SWITCH)
@@ -585,8 +584,8 @@ void driveToLargeBuilding()
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.4, true);
-        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
-    
+    waitForPlannerScan();
+
     while (sensor_readings.getDetectionBit() == 0x00 && !KILL_SWITCH)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -645,13 +644,31 @@ void driveToFlame()
             sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4);
-        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
+
+        waitForPlannerScan();
 
         if (sensor_readings.getDetectedFireFwd())
         {
             //PUT OUT FLAME
             fireOut();
         }
+    }
+}
+
+void waitForPlannerScan()
+{
+    int i = 0;
+    while(!planner.getIsScanning() && i < 200)
+    {
+        i++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    i = 0;
+    while(planner.getIsScanning() && i < 200)
+    {
+        i++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 

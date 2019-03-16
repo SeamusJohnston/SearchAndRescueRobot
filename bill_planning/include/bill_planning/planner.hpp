@@ -31,12 +31,15 @@ class Planner
 
     bool is_moving = false;
 
-    bool is_scanning = false;
+    void setIsScanning(bool val);
+    bool getIsScanning(bool val);
 
     // This function returns a pointer so that we can return a nullptr if the queue is empty
     void ProcessNextDrivePoint(SensorReadings &sensorReadings);
 
   private:
+    std::mutex _is_scanning_mutex;
+    bool _is_scanning = false;
 
     void scanTimerCallback(const ros::TimerEvent& event);
     bill_msgs::MotorCommands _command_msg;

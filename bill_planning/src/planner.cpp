@@ -246,7 +246,7 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
 
 void Planner::scanTimerCallback(const ros::TimerEvent& event)
 {
-    is_scanning = false;
+    setIsScanning(false);
 }
 
 void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
@@ -299,7 +299,7 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
         {
             if (scanOnReachLastPoint)
             {
-                is_scanning = true;
+                setIsScanning(true);
 
                 // Timeout for scan
                 ros::NodeHandle nh;
@@ -316,4 +316,15 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
             return;
         }
     }
+}
+
+void Planner::setIsScanning(bool val)
+{
+    std::lock_guard<std::mutex> guard(_is_scanning_mutex);    
+    _is_scanning = val;
+}
+bool Planner::getIsScanning(bool val)
+{
+    std::lock_guard<std::mutex> guard(_is_scanning_mutex); 
+    return _is_scanning;
 }
