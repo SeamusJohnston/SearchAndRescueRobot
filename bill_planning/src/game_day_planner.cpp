@@ -531,11 +531,8 @@ void driveToDesiredPoints()
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4, true);
-        waitToHitTile();
+        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
 
-        // TODO BEFORE WHILE
-        // We could possibly trigger a scan in here but maybe we should create a scan tile
-        // function in planner to search tile for one of the 3 objects
         while (sensor_readings.getDetectionBit() == 0x00
             && !KILL_SWITCH)
         {
@@ -559,13 +556,13 @@ void driveToDesiredPoints()
         {
             sensor_readings.pointsOfInterestEmplace(TilePosition(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY()));
         }
+
+        sensor_readings.setDetectionBit(0x00);
     }
 }
 
 void conductGridSearch()
 {
-    // TODO
-    // Fill out the rest of this method with what we want?
     planner.gridSearch(sensor_readings);
 }
 
@@ -590,11 +587,8 @@ void driveToLargeBuilding()
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.4, true);
-    waitToHitTile();
-
-    // TODO
-    // We could possibly trigger a scan in here but maybe we should create a scan tile
-    // function in planner to search tile for one of the 3 objects
+        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
+    
     while (sensor_readings.getDetectionBit() == 0x00 && !KILL_SWITCH)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -653,10 +647,8 @@ void driveToFlame()
             sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4);
-        waitToHitTile();
+        waitToHitTile();//TODO BM HOW DO WE KNOW WHEN WE HAVE FINISHED SCAN? @JIWOO SET FLAG?
 
-        // SCAN TILE FOR FLAME
-        // TODO SCAN TILE
         if (sensor_readings.getDetectedFireFwd())
         {
             //PUT OUT FLAME
