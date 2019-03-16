@@ -14,7 +14,17 @@
 
 // PLAY WITH THREAD SLEEP IN robotPerformanceThread
 
-// FUNCTIONS
+// CALLBACKS
+void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
+void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg);
+void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg);
+void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg);
+void hallCallback(const std_msgs::Bool::ConstPtr& msg);
+
+// HELPER FUNCTIONS
 void fireOut();
 void findClearPathFwd();
 void completeStraightLineSearch();
@@ -25,11 +35,10 @@ void waitToHitTile();
 void completeTSearch();
 void driveToFlame();
 void driveHome();
+void driveToLargeBuilding();
 
 //TODO IMPLEMENT
 void conductGridSearch();
-void driveToLargeBuilding();
-//TODO HALL CALLBACK
 
 SensorReadings sensor_readings;
 
@@ -61,191 +70,6 @@ const float POSITION_ACCURACY_BUFFER = 0.075;
 // This is in degrees
 const float HEADING_ACCURACY_BUFFER = 2.0;
 
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
-{
-    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
-
-    // Truncate this instead of floor to
-    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
-    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
-
-    float currentWholeX;
-    float currentWholeY;
-
-    float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
-    float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
-
-    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-
-    if (isOnXTile && isOnYTile)
-    {
-        sensor_readings.setCurrentPositionX((int)currentWholeX);
-        sensor_readings.setCurrentPositionY((int)currentWholeY);
-    }
-
-    // This may cause weird behaviour when the robot is on the edges of a tile
-    if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
-    {
-        // We have arrived at our current target point
-        planner.ProcessNextDrivePoint(sensor_readings);
-    }
-}
-
-void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-    ROS_INFO("Front Ultra Callback: %f \n", msg->data);
-
-    sensor_readings.setUltraFwd(msg->data);
-    
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    start_course = start_course ^ 0x01;
-    if(!sensor_readings.getStartRobotPerformanceThread()
-       && 0x07 - start_course == 0x00)
-    {
-        sensor_readings.setStartRobotPerformanceThread(true);
-    }
-}
-
-void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
-{
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
-    {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
-        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
-    }
-
-    sensor_readings.setUltraLeft(msg->data);
-
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    start_course = start_course ^ 0x02;
-    if(!sensor_readings.getStartRobotPerformanceThread()
-       && 0x07 - start_course == 0x00)
-    {
-        sensor_readings.setStartRobotPerformanceThread(true);
-    }
-}
-
-void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg) //left side maybe
-{
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && (sensor_readings.getUltraRight() - msg->data) > DELTA)
-    {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
-        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
-    }
-
-    sensor_readings.setUltraRight(msg->data);
-
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    start_course = start_course ^ 0x04;
-    if(!sensor_readings.getStartRobotPerformanceThread()
-       && 0x07 - start_course == 0x00)
-    {
-        sensor_readings.setStartRobotPerformanceThread(true);
-    }
-}
-
-void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
-{
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && msg->data)
-    {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_front < 3)
-        {
-            found_fire_front++;
-            sensor_readings.setDetectedFireFwd(false);
-        }
-        else
-        {
-            sensor_readings.setDetectedFireFwd(true);
-        }
-    }
-    else
-    {
-        found_fire_front = 0;
-        sensor_readings.setDetectedFireFwd(false);
-    }
-}
-
-void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
-{
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && msg->data)
-    {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_left < 3)
-        {
-            found_fire_left++;
-            sensor_readings.setDetectedFireLeft(false);
-        }
-        else
-        {
-            sensor_readings.setDetectedFireLeft(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
-        }
-    }
-    else
-    {
-        found_fire_left = 0;
-        sensor_readings.setDetectedFireLeft(false);
-    }
-}
-
-void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
-{
-    if (msg->data)
-    {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_right < 3)
-        {
-            found_fire_right++;
-            sensor_readings.setDetectedFireRight(false);
-        }
-        else
-        {
-            sensor_readings.setDetectedFireRight(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
-        }
-    }
-    else
-    {
-        found_fire_right = 0;
-        sensor_readings.setDetectedFireRight(false);
-    }
-}
-
-void resetCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-    //WRITE FUNCTION TO RESET SENSOR READINGS
-}
-
-void hallCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-    if(!_found_hall && msg->data)
-    {
-        _found_hall = true;
-        planner.signalComplete();
-    }
-}
-
-bool shouldKeepTurning()
-{
-    if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
-    {
-        planner.publishStop();
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-}
-
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "game_day_planner");
@@ -257,7 +81,6 @@ int main(int argc, char** argv)
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
-    ros::Subscriber sub_reset = nh.subscribe("reset", 1, resetCallback);
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
 
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
@@ -316,6 +139,196 @@ void robotPerformanceThread(int n)
 
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
     driveHome();
+}
+
+void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+{
+    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+
+    // Truncate this instead of floor to
+    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
+
+    float currentWholeX;
+    float currentWholeY;
+
+    float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
+    float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
+
+    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+
+    if (isOnXTile && isOnYTile)
+    {
+        sensor_readings.setCurrentPositionX((int)currentWholeX);
+        sensor_readings.setCurrentPositionY((int)currentWholeY);
+    }
+
+    // This may cause weird behaviour when the robot is on the edges of a tile
+    if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
+    {
+        // We have arrived at our current target point
+        planner.ProcessNextDrivePoint(sensor_readings);
+    }
+}
+
+void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+    ROS_INFO("Front Ultra Callback: %f \n", msg->data);
+
+    sensor_readings.setUltraFwd(msg->data);
+    
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x01;
+    if(!sensor_readings.getStartRobotPerformanceThread()
+       && 0x07 - start_course == 0x00)
+    {
+        sensor_readings.setStartRobotPerformanceThread(true);
+    }
+}
+
+void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
+    {
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+    }
+
+    sensor_readings.setUltraLeft(msg->data);
+
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x02;
+    if(!sensor_readings.getStartRobotPerformanceThread()
+       && 0x07 - start_course == 0x00)
+    {
+        sensor_readings.setStartRobotPerformanceThread(true);
+    }
+}
+
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && (sensor_readings.getUltraRight() - msg->data) > DELTA)
+    {
+        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
+        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+    }
+
+    sensor_readings.setUltraRight(msg->data);
+
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x04;
+    if(!sensor_readings.getStartRobotPerformanceThread()
+       && 0x07 - start_course == 0x00)
+    {
+        sensor_readings.setStartRobotPerformanceThread(true);
+    }
+}
+
+void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
+{
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && msg->data)
+    {
+        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        if (found_fire_front < 3)
+        {
+            found_fire_front++;
+            sensor_readings.setDetectedFireFwd(false);
+        }
+        else
+        {
+            sensor_readings.setDetectedFireFwd(true);
+        }
+    }
+    else
+    {
+        found_fire_front = 0;
+        sensor_readings.setDetectedFireFwd(false);
+    }
+}
+
+void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
+{
+    if (sensor_readings.getFlameTileX != -1 || sensor_readings.getFlameTileY!= -1)
+    {
+        return;
+    }
+
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && msg->data)
+    {
+        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        if (found_fire_left < 3)
+        {
+            found_fire_left++;
+            sensor_readings.setDetectedFireLeft(false);
+        }
+        else
+        {
+            sensor_readings.setDetectedFireLeft(true);
+            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+        }
+    }
+    else
+    {
+        found_fire_left = 0;
+        sensor_readings.setDetectedFireLeft(false);
+    }
+}
+
+void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
+{
+    if (sensor_readings.getFlameTileX != -1 || sensor_readings.getFlameTileY!= -1)
+    {
+        return;
+    }
+    
+    if (msg->data)
+    {
+        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+        if (found_fire_right < 3)
+        {
+            found_fire_right++;
+            sensor_readings.setDetectedFireRight(false);
+        }
+        else
+        {
+            sensor_readings.setDetectedFireRight(true);
+            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+        }
+    }
+    else
+    {
+        found_fire_right = 0;
+        sensor_readings.setDetectedFireRight(false);
+    }
+}
+
+void hallCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+    if(!_found_hall && msg->data)
+    {
+        _found_hall = true;
+        planner.signalComplete();
+    }
+}
+
+bool shouldKeepTurning()
+{
+    if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
+    {
+        planner.publishStop();
+        return false;
+    }
+    else
+    {
+        return true;
+    }
 }
 
 void fireOut()

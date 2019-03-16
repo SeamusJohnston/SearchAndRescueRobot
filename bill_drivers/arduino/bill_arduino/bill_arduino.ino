@@ -8,10 +8,10 @@
 #define Colour 3
 
 // Analog
-#define Flame A0
-#define Hall A1
-#define FlameLeft A2
-#define FlameRight A3
+#define Flame A2
+#define FlameRight A1
+#define FlameLeft A0
+#define Hall A3
 
 // IMU Registers 
 #define PAGE_SWAP     0x07
