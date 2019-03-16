@@ -498,11 +498,12 @@ void findClearPathFwd()
 void completeStraightLineSearch()
 {
     desired_tile.x = sensor_readings.getCurrentTileX();
-    desired_tile.y = 6;
+    desired_tile.y = 5;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.2);
+        
     waitToHitTile();
 }
 
