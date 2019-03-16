@@ -517,7 +517,7 @@ void driveToDesiredPoints()
 
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4);
+            desired_tile.y, 0.4, true);
         waitToHitTile();
 
         // TODO BEFORE WHILE
@@ -576,7 +576,7 @@ void driveToLargeBuilding()
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.4, true);
     waitToHitTile();
 
     // TODO
