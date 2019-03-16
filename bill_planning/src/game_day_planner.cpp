@@ -39,8 +39,6 @@ void completeTSearch();
 void driveToFlame();
 void driveHome();
 void driveToLargeBuilding();
-
-//TODO IMPLEMENT
 void conductGridSearch();
 
 SensorReadings sensor_readings;
