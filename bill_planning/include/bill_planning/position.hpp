@@ -13,10 +13,11 @@ struct Position
 struct TilePosition
 {
     public:
-        TilePosition(int xc, int yc);
+        TilePosition(int xc, int yc, bool scanOnReachc = false);
         TilePosition();
         int x;
         int y;
+        bool scanOnReach;
 };
 
 

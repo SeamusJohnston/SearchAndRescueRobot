@@ -45,6 +45,9 @@ class SensorReadings
         void setCurrentHeading(int val);
         int getCurrentHeading();
 
+        void setTargetHeading(int val);
+        int getTargetHeading();
+
         void setCurrentTileX(int val);
         void setCurrentTileY(int val);
         int getCurrentTileX();
@@ -100,6 +103,7 @@ class SensorReadings
         std::mutex _ultra_left_mutex;
         std::mutex _ultra_right_mutex;
         std::mutex _current_heading_mutex;
+        std::mutex _target_heading_mutex;
         std::mutex _detection_bit_mutex;
 
         // Stored y,x for future use
@@ -120,6 +124,7 @@ class SensorReadings
         float _ultra_left = -500;
         float _ultra_right = -500;
         int _current_heading = 90;
+        int _target_heading = 90;
         unsigned char _detection_bit = 0x00;
 
         Position _current_position = Position(0,0);
