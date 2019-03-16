@@ -7,8 +7,8 @@
 #include <cmath>
 
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
-const float DIST_PER_TICK = (M_PI * 2.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
-const float WHEEL_BASE = 5.76;
+const float DIST_PER_TICK = (M_PI * 4.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
+const float WHEEL_BASE = 7 * 0.0254; // TODO: Get measurement
 const int MOTORA_COUNTER_KEY = 0;
 const int MOTORB_COUNTER_KEY = 1;
 
@@ -20,9 +20,9 @@ int motorA_counter = 0;
 int motorB_counter = 0;
 int motorA_counter_prev = 0;
 int motorB_counter_prev = 0;
-float theta = 0;  // In radians TODO: Determine what our starting orientation is
-float x = 0;      // m
-float y = 0;      // m
+float theta = M_PI_2;  // In radians
+float x = 0;      // m TODO: get starting position
+float y = 0;      // m TODO: get starting position
 
 void setup()
 {
@@ -102,6 +102,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piLock(MOTORB_COUNTER_KEY);
     int delta_right = motorA_counter - motorA_counter_prev;
     int delta_left = motorB_counter - motorB_counter_prev;
+    ROS_INFO("Delta Right: %i, Delta Left: %i", delta_right, delta_left);
     motorA_counter = 0;
     motorB_counter = 0;
     motorA_counter_prev = motorA_counter;
@@ -109,8 +110,8 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piUnlock(MOTORA_COUNTER_KEY);
     piUnlock(MOTORB_COUNTER_KEY);
 
-    float v_right = delta_right * DIST_PER_TICK;
-    float v_left = delta_left * DIST_PER_TICK;
+    float v_right = delta_right * DIST_PER_TICK / dt;
+    float v_left = delta_left * DIST_PER_TICK / dt;
 
     float v_robot = (v_right + v_left) / 2.0;
     float v_th = (v_right - v_left) / WHEEL_BASE;  // rad/s
@@ -133,14 +134,28 @@ nav_msgs::Odometry calculateOdometry(float dt)
     }
 
     nav_msgs::Odometry msg;
+    msg.header.frame_id = "odom";
     msg.pose.pose.position.x = x;
     msg.pose.pose.position.y = y;
     msg.pose.pose.position.z = 0;
     msg.pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
-    msg.twist.twist.linear.x = delta_x / dt;
-    msg.twist.twist.linear.y = delta_y / dt;
+    msg.pose.covariance = {0.3, 0, 0, 0, 0, 0,
+                           0, 0.3, 0, 0, 0, 0,
+                           0, 0, -1, 0, 0, 0,
+                           0, 0, 0, -1, 0, 0,
+                           0, 0, 0, 0, -1, 0,
+                           0, 0, 0, 0, 0, 0.1};
+    msg.child_frame_id  = "base_link";
+    msg.twist.twist.linear.x = v_robot;
+    msg.twist.twist.linear.y = 0;
     msg.twist.twist.linear.z = 0;
     msg.twist.twist.angular.z = v_th;
+    msg.twist.covariance = {0.02, 0, 0, 0, 0, 0,
+                           0, -1, 0, 0, 0, 0,
+                           0, 0, -1, 0, 0, 0,
+                           0, 0, 0, -1, 0, 0,
+                           0, 0, 0, 0, -1, 0,
+                           0, 0, 0, 0, 0, 0.01};
 
     ROS_INFO("Heading: %f", angles::to_degrees(theta));
 
@@ -151,7 +166,7 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "encoder_driver");
     ros::NodeHandle nh;
-    ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odom", 100);
+    ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 100);
     ros::Rate loop_rate(LOOP_RATE_ENCODER);
 
     // Call sensor setup

@@ -3,24 +3,14 @@
 
 // Pins
 const int LED_PIN = 19;
-const int BUTTON_PIN = 26;
-const int RELAY_OUTPIN = 6;
-
-// Ultrasonic
-const int ULTRA_TRIGGER_PIN1 = 17;
-const int ULTRA_ECHO_PIN1 = 27;
-const int ULTRA_TRIGGER_PIN2 = 9;
-const int ULTRA_ECHO_PIN2 = 11;
-const int ULTRA_TRIGGER_PIN3 = 20;
-const int ULTRA_ECHO_PIN3 = 21;
+const int BUTTON_PIN = 6;
+const int RELAY_OUTPIN = 26;
 
 // Motors
 const int MOTORA_PWM = 12;      // PWMA
-const int MOTORB_PWM = 13;      // PWMB
-const int MOTORA_FORWARD = 10;  // AIN1
-const int MOTORA_REVERSE = 22;  // AIN2
-const int MOTORB_FORWARD = 23;  // BIN1
-const int MOTORB_REVERSE = 24;  // BIN2
+const int MOTORB_PWM = 10;      // PWMB
+const int MOTORA_FORWARD = 13;  // MA
+const int MOTORB_FORWARD = 23;  // MB
 
 // Encoders
 const int MOTORB_ENCB_PIN = 1;   // Motor B (left) B channel
