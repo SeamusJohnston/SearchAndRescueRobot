@@ -20,21 +20,21 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
     // Origin on bottom left
 
     int quadrant = 0;
-    int startingX = sensorReadings.getCurrentTileX() < 4 ? 0 : 6;
-    int startingY = sensorReadings.getCurrentTileY() < 4 ? 0 : 6;
+    int startingX = sensorReadings.getCurrentTileX() < 3 ? 0 : 5;
+    int startingY = sensorReadings.getCurrentTileY() < 3 ? 0 : 5;
 
-    if (sensorReadings.getCurrentTileX() < 4)
+    if (sensorReadings.getCurrentTileX() < 3)
     {
-        quadrant = sensorReadings.getCurrentTileY() < 4 ? 4 : 3;
+        quadrant = sensorReadings.getCurrentTileY() < 3 ? 4 : 3;
 
-        startingY = quadrant == 3 ? 6 : 0;
+        startingY = quadrant == 3 ? 5 : 0;
         startingX = 0;
     }
     else
     {
-        quadrant = sensorReadings.getCurrentTileY() < 4 ? 1 : 2;
+        quadrant = sensorReadings.getCurrentTileY() < 3 ? 1 : 2;
 
-        startingY = quadrant == 2 ? 6 : 0;
+        startingY = quadrant == 2 ? 5 : 0;
         startingX = 6;
     }
 
@@ -51,7 +51,7 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
         }
         else if (i % 2 == 0)
         {
-            startingY = startingY == 6 ? 0 : 6;
+            startingY = startingY == 5 ? 0 : 5;
         }
 
         // Queue up the rest of the grid search points
