@@ -32,7 +32,7 @@ class Planner
     bool is_moving = false;
 
     void setIsScanning(bool val);
-    bool getIsScanning(bool val);
+    bool getIsScanning();
 
     // This function returns a pointer so that we can return a nullptr if the queue is empty
     void ProcessNextDrivePoint(SensorReadings &sensorReadings);

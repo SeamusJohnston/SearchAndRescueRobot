@@ -323,7 +323,7 @@ void Planner::setIsScanning(bool val)
     std::lock_guard<std::mutex> guard(_is_scanning_mutex);    
     _is_scanning = val;
 }
-bool Planner::getIsScanning(bool val)
+bool Planner::getIsScanning()
 {
     std::lock_guard<std::mutex> guard(_is_scanning_mutex); 
     return _is_scanning;
