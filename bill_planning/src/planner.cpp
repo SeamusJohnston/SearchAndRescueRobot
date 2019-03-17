@@ -123,6 +123,7 @@ void Planner::signalComplete()
 
 void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, const int y, const float speed, bool scanOnReach)
 {
+    ROS_INFO("Driving to tile: %i, %i", x, y);
     int heading;
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
@@ -142,6 +143,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         sensorReadings.setTargetPoint(currentX, y);
 
         drivePoints.emplace_back(currentX, y);
+        //ROS_INFO("Targeting point: %i, %i", currentX, y);
         sensorReadings.setTargetPoint(currentX, y);
 
         heading = currentY > y ? 270 : 90;
@@ -149,6 +151,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         if (xDistSq == 0)
         {
             // We only need one leg to drive to this point
+            //ROS_INFO("Driving in one leg");
             publishTurn(heading);
             sensorReadings.setTargetHeading(heading);
             return;
@@ -159,12 +162,14 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         sensorReadings.setTargetPoint(x, currentY);
 
         drivePoints.emplace_back(x,currentY);
+        //ROS_INFO("Targeting point: %i, %i", x, currentY);
         sensorReadings.setTargetPoint(x, currentY);
         heading = currentX > x ? 180 : 0;
 
         if (yDistSq == 0)
         {
             // We only need one leg to drive to this point
+            //ROS_INFO("Driving in one leg");
             publishTurn(heading);
             sensorReadings.setTargetHeading(heading);
             return;
@@ -173,6 +178,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
 
     // Scan at the end of a drive to point if needed
     drivePoints.emplace_back(x,y, scanOnReach);
+    //ROS_INFO("Targeting point: %i, %i", x, y);
 
     // Publish a drive to the first queued point
     publishTurn(heading);
