@@ -8,6 +8,7 @@
 #include <softPwm.h>
 #include "bill_drivers/constant_definition.hpp"
 #include <chrono>
+#include <signal.h>
 
 const int PWM_RANGE = 100;  // Max pwm value
 const float INT_CLAMP = 5.0;
@@ -245,16 +246,22 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     }
 }
 
+void sigIntHandler(int sig)
+{
+    stop();
+    ros::shutdown();
+}
+
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "motor_driver");
-    //wiringPiSetupGpio();
-    /*pinMode(MOTORA_FORWARD, OUTPUT);
+    ros::init(argc, argv, "motor_driver", ros::init_options::NoSigintHandler);
+    wiringPiSetupGpio();
+    pinMode(MOTORA_FORWARD, OUTPUT);
     pinMode(MOTORB_FORWARD, OUTPUT);
     pinMode(MOTORA_PWM, OUTPUT);
     pinMode(MOTORB_PWM, OUTPUT);
     softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
-    softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);*/
+    softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);
 
     ros::NodeHandle nh;
     ros::Subscriber sub_motor = nh.subscribe("motor_cmd", 1, motorCallback);
@@ -267,12 +274,8 @@ int main(int argc, char** argv)
     nh.getParam("/bill/motor_params/kp_drive", KP_DRIVE);
     nh.getParam("/bill/motor_params/ki_drive", KI_DRIVE);
     last_command_msg.command = bill_msgs::MotorCommands::STOP;
+    signal(SIGINT, sigIntHandler);
 
     ros::spin();
-
-    std::cout << "Shutting down turning off motors" << std::endl;
-    softPwmWrite(MOTORA_PWM, 0);
-    softPwmWrite(MOTORB_PWM, 0);
-
     return 0;
 }
