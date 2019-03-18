@@ -187,6 +187,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
 
     nav_msgs::Odometry msg;
     msg.header.frame_id = "odom";
+    msg.header.stamp = ros::Time::now();
     msg.pose.pose.position.x = x;
     msg.pose.pose.position.y = y;
     msg.pose.pose.position.z = 0;
