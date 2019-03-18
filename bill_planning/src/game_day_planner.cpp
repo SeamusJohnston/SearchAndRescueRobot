@@ -67,9 +67,9 @@ const float DELTA = 10; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
-// This is in degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
-// This is in CM
+// There is a buffer in the robot response time so let's be a bit more generous here. In degrees
+const float HEADING_ACCURACY_BUFFER = 5.0;
+// There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
 int main(int argc, char** argv)
@@ -387,6 +387,8 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     if(!_found_hall && msg->data)
     {
+        // TODO MAKE SURE THIS DOESN'T DO ANYTHING IF NOT CURRENTLY GRID SEARCHING?
+        planner.cancelGridSearch(sensor_readings);
         _found_hall = true;
         planner.signalComplete();
     }
@@ -447,8 +449,8 @@ void fireOut()
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             planner.putOutFire();
-            desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-            temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+            desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+            temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
 
             planner.publishTurn(temp_desired_heading);
 
@@ -463,8 +465,8 @@ void fireOut()
             if(sensor_readings.getDetectedFireFwd())
             {
                 planner.putOutFire();
-                desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-                temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+                desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+                temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
                 planner.publishTurn(temp_desired_heading);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
