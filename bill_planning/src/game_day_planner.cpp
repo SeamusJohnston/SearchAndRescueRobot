@@ -374,27 +374,31 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 {
-    if (planner.getIsScanning())
+    bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
+    bool single = msg->data == msg->SURVIVOR_SINGLE;
+
+    if (multiple || single)
     {
-        bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
-        bool single = msg->data == msg->SURVIVOR_SINGLE;
-
-        if (multiple || single)
+        if (multiple)
         {
-            if (multiple)
-            {
-                sensor_readings.setDetectionBit(0x03);
-            }
+            sensor_readings.setDetectionBit(0x03);
+        }
 
-            if (single)
-            {
-                sensor_readings.setDetectionBit(0x02);
-            }
+        if (single)
+        {
+            sensor_readings.setDetectionBit(0x02);
+        }
 
+        if (planner.getIsScanning())
+        {
             ROS_INFO("Found a building!");
             planner.signalComplete();
             planner.publishStop();
         }
+    }
+    else
+    {
+        sensor_readings.setDetectionBit(0);
     }
 }
 

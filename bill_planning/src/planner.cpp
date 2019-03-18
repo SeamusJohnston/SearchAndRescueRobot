@@ -208,7 +208,7 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
     else if(currentHeading >= 90 && currentHeading < 180)
     {
         int currentX = sensorReadings.getCurrentTileX();
-        int avoidanceX = takeLeft ? currentX + 1 : currentX - 1;
+        int avoidanceX = takeLeft ? currentX - 1 : currentX + 1;
         int currentY = sensorReadings.getCurrentTileY();
 
         drivePoints.emplace_front(currentX, currentY + 2);
@@ -243,6 +243,13 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
 
         targetHeading  = takeLeft ? 180 : 0;
     }
+//    std::list<TilePosition>::iterator it = drivePoints.begin();
+//
+//    ROS_INFO("Targeting first obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting second obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting third obstacle avoidance point %i, %i", it->x, it->y);
 
     // Target the new point we just injected into the target queue
     sensorReadings.setTargetPoint(drivePoints.front().x, drivePoints.front().y);
@@ -267,7 +274,7 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 
         if (arrivedPosition.x != currentX || arrivedPosition.y != currentY)
         {
-            ROS_WARN("We are assuming we have arrived at a point when we havent, stopping movement");
+            ROS_WARN("We are assuming we have arrived at a point when we haven't, stopping movement");
             sensorReadings.setTargetHeading(-1);
             publishStop();
             return;
@@ -295,6 +302,7 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
                 heading = currentX > nextLeg.x ? 180 : 0;
             }
 
+            //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
             sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
             sensorReadings.setTargetHeading(heading);
             publishTurn(heading);
