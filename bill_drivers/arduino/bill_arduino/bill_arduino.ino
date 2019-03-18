@@ -8,8 +8,8 @@
 #define Colour 3
 
 // Analog
-#define Flame A2
-#define FlameRight A1
+#define Flame A1
+#define FlameRight A2
 #define FlameLeft A0
 #define Hall A3
 
