@@ -115,26 +115,12 @@ void robotPerformanceThread(int n)
 
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-    ROS_INFO("TESTING FLAME OUT");
-
-    //findClearPathFwd();
-    ROS_INFO("LOOKING FOR FLAME");
-
-    while(!sensor_readings.getDetectedFireFwd())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    if (sensor_readings.getDetectedFireFwd())
-    {
-        //PUT OUT FLAME
-        ROS_INFO("PUTTING OUT FLAME NOW");
-        fireOut();
-    }
     ROS_INFO("STARTING STRAIGHT LINE SEARCH");
 
     completeStraightLineSearch();
 
+
+    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
     // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
     if(sensor_readings.pointsOfInterestSize() < 3)
     {
@@ -448,14 +434,11 @@ void fireOut()
 
     do
     {
-        ROS_INFO("Detected Fire = %i", sensor_readings.getDetectedFireFwd());
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
-            ROS_INFO("Found another fire while main heading ");
             planner.putOutFire();
             desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
             temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
-            ROS_INFO("Updated final heading to %i, with intermediate heading %i", desired_heading, temp_desired_heading);
 
             planner.publishTurn(temp_desired_heading);
 
@@ -465,25 +448,20 @@ void fireOut()
         }
 
         while(check_temp_heading
-              && fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER
+              && !(fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
               && !KILL_SWITCH)
         {
             if(sensor_readings.getDetectedFireFwd())
             {
-                ROS_INFO("Found fire while temp heading");
                 planner.putOutFire();
                 desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
                 temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
-                ROS_INFO("Updated final heading to %i, with intermediate heading %i", desired_heading, temp_desired_heading);
                 planner.publishTurn(temp_desired_heading);
             }
             set_desired_heading = false;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        
-        ROS_INFO("In first while loop", sensor_readings.getDetectedFireFwd());
         }
-	
-        ROS_INFO("Detected Fire = %i Exited first while loop", sensor_readings.getDetectedFireFwd());
+
         check_temp_heading = false; 
         if (!set_desired_heading)
         {
@@ -543,13 +521,17 @@ void findClearPathFwd()
 
 void completeStraightLineSearch()
 {
+    ROS_INFO("Findings Clear Path Fwd");
+    findClearPathFwd();
+    ROS_INFO("Found Clear Path Fwd");
+
     desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = 5;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.2);
-        
+    
     waitToHitTile();
 }
 
@@ -684,6 +666,7 @@ void driveToFlame()
 {
     if(sensor_readings.getFlameTileX() >= 0 && sensor_readings.getFlameTileY() >= 0)
     {
+        ROS_INFO("Have a flam tile stored");
         desired_tile.x = sensor_readings.getFlameTileX();
         desired_tile.y = sensor_readings.getFlameTileY();
 
