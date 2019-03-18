@@ -123,6 +123,7 @@ void Planner::signalComplete()
 
 void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, const int y, const float speed, bool scanOnReach)
 {
+    ROS_INFO("Driving to tile: %i, %i", x, y);
     int heading;
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
@@ -142,6 +143,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         sensorReadings.setTargetPoint(currentX, y);
 
         drivePoints.emplace_back(currentX, y);
+        //ROS_INFO("Targeting point: %i, %i", currentX, y);
         sensorReadings.setTargetPoint(currentX, y);
 
         heading = currentY > y ? 270 : 90;
@@ -149,6 +151,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         if (xDistSq == 0)
         {
             // We only need one leg to drive to this point
+            //ROS_INFO("Driving in one leg");
             publishTurn(heading);
             sensorReadings.setTargetHeading(heading);
             return;
@@ -159,12 +162,14 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         sensorReadings.setTargetPoint(x, currentY);
 
         drivePoints.emplace_back(x,currentY);
+        //ROS_INFO("Targeting point: %i, %i", x, currentY);
         sensorReadings.setTargetPoint(x, currentY);
         heading = currentX > x ? 180 : 0;
 
         if (yDistSq == 0)
         {
             // We only need one leg to drive to this point
+            //ROS_INFO("Driving in one leg");
             publishTurn(heading);
             sensorReadings.setTargetHeading(heading);
             return;
@@ -173,6 +178,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
 
     // Scan at the end of a drive to point if needed
     drivePoints.emplace_back(x,y, scanOnReach);
+    //ROS_INFO("Targeting point: %i, %i", x, y);
 
     // Publish a drive to the first queued point
     publishTurn(heading);
@@ -202,7 +208,7 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
     else if(currentHeading >= 90 && currentHeading < 180)
     {
         int currentX = sensorReadings.getCurrentTileX();
-        int avoidanceX = takeLeft ? currentX + 1 : currentX - 1;
+        int avoidanceX = takeLeft ? currentX - 1 : currentX + 1;
         int currentY = sensorReadings.getCurrentTileY();
 
         drivePoints.emplace_front(currentX, currentY + 2);
@@ -237,6 +243,13 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
 
         targetHeading  = takeLeft ? 180 : 0;
     }
+//    std::list<TilePosition>::iterator it = drivePoints.begin();
+//
+//    ROS_INFO("Targeting first obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting second obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting third obstacle avoidance point %i, %i", it->x, it->y);
 
     // Target the new point we just injected into the target queue
     sensorReadings.setTargetPoint(drivePoints.front().x, drivePoints.front().y);
@@ -261,7 +274,7 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 
         if (arrivedPosition.x != currentX || arrivedPosition.y != currentY)
         {
-            ROS_WARN("We are assuming we have arrived at a point when we havent, stopping movement");
+            ROS_WARN("We are assuming we have arrived at a point when we haven't, stopping movement");
             sensorReadings.setTargetHeading(-1);
             publishStop();
             return;
@@ -289,6 +302,7 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
                 heading = currentX > nextLeg.x ? 180 : 0;
             }
 
+            //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
             sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
             sensorReadings.setTargetHeading(heading);
             publishTurn(heading);
@@ -323,7 +337,7 @@ void Planner::setIsScanning(bool val)
     std::lock_guard<std::mutex> guard(_is_scanning_mutex);    
     _is_scanning = val;
 }
-bool Planner::getIsScanning(bool val)
+bool Planner::getIsScanning()
 {
     std::lock_guard<std::mutex> guard(_is_scanning_mutex); 
     return _is_scanning;

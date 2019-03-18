@@ -169,20 +169,23 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
     float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
 
-    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    bool isOnXTile = fabs(0.5 - fabs(localTileXCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
+    bool isOnYTile = fabs(0.5 - fabs(localTileYCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
+    //bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    //bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
 
     if (isOnXTile && isOnYTile)
     {
-        sensor_readings.setCurrentPositionX((int)currentWholeX);
-        sensor_readings.setCurrentPositionY((int)currentWholeY);
+        sensor_readings.setCurrentTileX(currentWholeX);
+        sensor_readings.setCurrentTileY(currentWholeY);
     }
 
     // If there is a valid target heading that means we are turning
-    if (sensor_readings.getTargetHeading() > 0)
+    if (sensor_readings.getTargetHeading() >= 0)
     {
         if (fabs(sensor_readings.getTargetHeading() - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
         {
+            //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
             planner.publishStop();
             planner.publishDrive(sensor_readings.getCurrentHeading(), 0.4);
 
@@ -216,6 +219,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
         // Regular free driving
         else if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
         {
+            //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
             // We have arrived at our current target point
             planner.ProcessNextDrivePoint(sensor_readings);
         }
@@ -370,27 +374,31 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 
 void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 {
-    if (planner.getIsScanning())
+    bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
+    bool single = msg->data == msg->SURVIVOR_SINGLE;
+
+    if (multiple || single)
     {
-        bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
-        bool single = msg->data == msg->SURVIVOR_SINGLE;
-
-        if (multiple || single)
+        if (multiple)
         {
-            if (multiple)
-            {
-                sensor_readings.setDetectionBit(0x03);
-            }
+            sensor_readings.setDetectionBit(0x03);
+        }
 
-            if (single)
-            {
-                sensor_readings.setDetectionBit(0x02);
-            }
+        if (single)
+        {
+            sensor_readings.setDetectionBit(0x02);
+        }
 
+        if (planner.getIsScanning())
+        {
             ROS_INFO("Found a building!");
             planner.signalComplete();
             planner.publishStop();
         }
+    }
+    else
+    {
+        sensor_readings.setDetectionBit(0);
     }
 }
 
