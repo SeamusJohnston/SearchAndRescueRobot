@@ -15,7 +15,7 @@
 #include "bill_msgs/Survivor.h"
 
 // CALLBACKS
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg);
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);

@@ -243,32 +243,40 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 
     if (_mark_next_tile_as_flame)
     {
-        std::pair<int, int> tile_pos = _s.back();
-        _flame_tile.x = tile_pos.first;
-        _flame_tile.y = tile_pos.second;
-        _mark_next_tile_as_flame = false;
+        if (!_s.empty())
+        {
+            std::pair<int, int> tile_pos = _s.back();
+            _flame_tile.x = tile_pos.first;
+            _flame_tile.y = tile_pos.second;
+            _mark_next_tile_as_flame = false;
+        }
     }
-
 }
 
 int SensorReadings::freeRowTile()
 {
-    return _y_Objects.back();
+    if (!_y_Objects.empty())
+    {
+        return _y_Objects.back();
+    }
+     return -1;
 }
 
 void SensorReadings::updateFlameTileFromLastSavedPoint(int y)
 {
-    std::pair<int, int> tile_pos = _s.back();
-    if(tile_pos.second == y)
+    if(!_s.empty())
     {
-        _flame_tile.x = tile_pos.first;
-        _flame_tile.y = y;
+        std::pair<int, int> tile_pos = _s.back();
+        if(tile_pos.second == y)
+        {
+            _flame_tile.x = tile_pos.first;
+            _flame_tile.y = y;
+        }
+        else
+        {
+            _mark_next_tile_as_flame = true;
+        }
     }
-    else
-    {
-        _mark_next_tile_as_flame = true;
-    }
-    
 }
 
 void SensorReadings::setFlameTileX(int val)
