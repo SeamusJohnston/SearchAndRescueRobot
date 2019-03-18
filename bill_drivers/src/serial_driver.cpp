@@ -99,6 +99,7 @@ int main(int argc, char** argv)
                 // Save the initial orientation so that the imu is aligned to the courses axis and not the earth's field
                 tf::Quaternion temp(quatX, quatY, quatZ, quatW);
                 transformation.setRPY(0,0,-tf::getYaw(temp)+M_PI_2);
+                ROS_INFO("First Yaw: %f", tf::getYaw(temp));
                 ROS_INFO("Transformation: %f", -tf::getYaw(temp)+M_PI_2);
                 first_msg = false;
             }
@@ -109,6 +110,7 @@ int main(int argc, char** argv)
 
             // Rotate current rotation into new frame
             tf::Quaternion quat(quatX, quatY, quatZ, quatW);
+            ROS_INFO("Non corrected Yaw: %f", tf::getYaw(quat));
             quat = (transformation * quat).normalize();
             ROS_INFO("Yaw: %f", tf::getYaw(quat));
 

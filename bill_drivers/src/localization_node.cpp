@@ -50,8 +50,8 @@ void publishPosition()
 {
     bill_msgs::Position msg;
     msg.heading = current_heading;
-    msg.x = ultra_pos.x;
-    msg.y = ultra_pos.y;
+    msg.x = odom_pos.x;
+    msg.y = odom_pos.y;
     position_pub.publish(msg);
 }
 
