@@ -251,12 +251,15 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
+        ROS_INFO("Signalling Front");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
+    ROS_INFO("Left Ultra Callback: %f \n", msg->data);
+
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
     {
@@ -272,12 +275,15 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
+        ROS_INFO("Signalling left");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
+    ROS_INFO("Front Right Callback: %f \n", msg->data);
+
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraRight() - msg->data) > DELTA)
     {
@@ -293,6 +299,7 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
+        ROS_INFO("Signalling Right");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
