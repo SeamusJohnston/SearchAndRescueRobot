@@ -448,6 +448,7 @@ void fireOut()
 
     do
     {
+        ROS_INFO("Detected Fire = %i", sensor_readings.getDetectedFireFwd());
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             ROS_INFO("Found another fire while main heading ");
@@ -478,8 +479,11 @@ void fireOut()
             }
             set_desired_heading = false;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        
+        ROS_INFO("In first while loop", sensor_readings.getDetectedFireFwd());
         }
-
+	
+        ROS_INFO("Detected Fire = %i Exited first while loop", sensor_readings.getDetectedFireFwd());
         check_temp_heading = false; 
         if (!set_desired_heading)
         {
