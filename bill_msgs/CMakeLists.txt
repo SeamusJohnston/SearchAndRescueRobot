@@ -51,7 +51,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    Survivor.msg
    MotorCommands.msg
-   State.msg
+   MotorDirection.msg
    Position.msg
  )
 
