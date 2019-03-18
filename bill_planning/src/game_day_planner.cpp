@@ -68,7 +68,7 @@ const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 5.0;
+const float HEADING_ACCURACY_BUFFER = 2.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -443,21 +443,24 @@ void fireOut()
 {
     bool initialCall = true;
     bool check_temp_heading = true;
-
+    bool set_desired_heading = false;
     int temp_desired_heading = 0;
 
     do
     {
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
+            ROS_INFO("Found another fire while main heading ");
             planner.putOutFire();
             desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
             temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
+            ROS_INFO("Updated final heading to %i, with intermediate heading %i", desired_heading, temp_desired_heading);
 
             planner.publishTurn(temp_desired_heading);
 
             initialCall = false;
             check_temp_heading = true;
+            set_desired_heading = false;
         }
 
         while(check_temp_heading
@@ -466,16 +469,23 @@ void fireOut()
         {
             if(sensor_readings.getDetectedFireFwd())
             {
+                ROS_INFO("Found fire while temp heading");
                 planner.putOutFire();
                 desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
                 temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
+                ROS_INFO("Updated final heading to %i, with intermediate heading %i", desired_heading, temp_desired_heading);
                 planner.publishTurn(temp_desired_heading);
             }
+            set_desired_heading = false;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        check_temp_heading = false;
-        planner.publishTurn(desired_heading);
+        check_temp_heading = false; 
+        if (!set_desired_heading)
+        {
+            planner.publishTurn(desired_heading);
+            set_desired_heading = true;
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     } while(shouldKeepTurning() && !KILL_SWITCH);
