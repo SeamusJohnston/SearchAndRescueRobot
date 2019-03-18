@@ -235,5 +235,6 @@ int main(int argc, char** argv)
     last_command_msg.command = bill_msgs::MotorCommands::STOP;
 
     ros::spin();
+    stop();
     return 0;
 }
