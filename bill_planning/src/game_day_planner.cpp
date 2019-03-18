@@ -3,6 +3,7 @@
 #include "bill_planning/sensor_readings.hpp"
 #include <math.h>
 #include "bill_planning/position.hpp"
+#include "bill_msgs/Position.h"
 #include <cstddef>
 #include <iostream>
 #include <utility>
@@ -66,9 +67,9 @@ const float DELTA = 10; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
-// This is in degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
-// This is in CM
+// There is a buffer in the robot response time so let's be a bit more generous here. In degrees
+const float HEADING_ACCURACY_BUFFER = 5.0;
+// There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
 int main(int argc, char** argv)
@@ -77,7 +78,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // Subscribing to Topics
-    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("position", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
@@ -169,13 +170,13 @@ void robotPerformanceThread(int n)
     driveHome();
 }
 
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg)
 {
-    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+    sensor_readings.setCurrentHeading(msg->heading);
 
     // Convert units to tiles instead of meters
-    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
-    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
+    float currentXTileCoordinate = msg->x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->y / TILE_HEIGHT;
 
     float currentWholeX;
     float currentWholeY;
@@ -388,6 +389,8 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     if(!_found_hall && msg->data)
     {
+        // TODO MAKE SURE THIS DOESN'T DO ANYTHING IF NOT CURRENTLY GRID SEARCHING?
+        planner.cancelGridSearch(sensor_readings);
         _found_hall = true;
         planner.signalComplete();
     }
@@ -448,8 +451,8 @@ void fireOut()
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             planner.putOutFire();
-            desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-            temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+            desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+            temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
 
             planner.publishTurn(temp_desired_heading);
 
@@ -464,8 +467,8 @@ void fireOut()
             if(sensor_readings.getDetectedFireFwd())
             {
                 planner.putOutFire();
-                desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-                temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+                desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+                temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
                 planner.publishTurn(temp_desired_heading);
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(10));

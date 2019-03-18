@@ -4,6 +4,7 @@
 #include "wiringPi.h"
 #include "angles/angles.h"
 #include "bill_drivers/constant_definition.hpp"
+#include "bill_msgs/MotorCommands.h"
 #include <cmath>
 
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
@@ -18,8 +19,12 @@ int motorA_stateA;
 int motorB_stateA;
 int motorA_counter = 0;
 int motorB_counter = 0;
+int motorA_Acounter = 0;
+int motorB_Acounter = 0;
 int motorA_counter_prev = 0;
 int motorB_counter_prev = 0;
+int direction_right = 1;
+int direction_left = 1;
 float theta = M_PI_2;  // In radians
 float x = 0;      // m TODO: get starting position
 float y = 0;      // m TODO: get starting position
@@ -48,20 +53,21 @@ PI_THREAD(motorA_encoder)
         if (motorA_stateA != motorA_stateA_prev)
         {
             piLock(MOTORA_COUNTER_KEY);
+            motorA_Acounter++;
             // If the states are different then the encoder is rotating clockwise
-            if (digitalRead(MOTORA_ENCB_PIN) != motorA_stateA)
+            /*if (digitalRead(MOTORA_ENCB_PIN) != motorA_stateA)
             {
                 motorA_counter++;
             }
             else
             {
                 motorA_counter--;
-            }
+            }*/
             piUnlock(MOTORA_COUNTER_KEY);
             motorA_stateA_prev = motorA_stateA;
         }
 
-        delayMicroseconds(2);  // To soften the load on the processor
+        delayMicroseconds(30);  // To soften the load on the processor
     }
 }
 
@@ -78,20 +84,63 @@ PI_THREAD(motorB_encoder)
         if (motorB_stateA != motorB_stateA_prev)
         {
             piLock(MOTORB_COUNTER_KEY);
+            motorB_Acounter++;
             // If the states are different then the encoder is rotating clockwise
-            if (digitalRead(MOTORB_ENCB_PIN) != motorB_stateA)
+           /* if (digitalRead(MOTORB_ENCB_PIN) != motorB_stateA)
             {
                 motorB_counter++;
             }
             else
             {
                 motorB_counter--;
-            }
+            }*/
             piUnlock(MOTORB_COUNTER_KEY);
             motorB_stateA_prev = motorB_stateA;
         }
 
-        delayMicroseconds(2);  // To soften the load on the processor
+        delayMicroseconds(30);  // To soften the load on the processor
+    }
+}
+
+void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
+{
+    if (msg->command == bill_msgs::MotorCommands::TURN)
+    {
+        float heading_delta = angles::from_degrees(msg->heading) - theta;
+
+        // Keep heading error centered at 0 between -180 and 180
+        if (heading_delta > M_PI)
+        {
+            heading_delta -= 2*M_PI;
+        }
+        else if (heading_delta < -1*M_PI)
+        {
+            heading_delta += 2*M_PI;
+        }
+
+        if (heading_delta >= 0)
+        {
+            direction_right = 1;
+            direction_left = -1;
+        }
+        else
+        {
+            direction_right = -1;
+            direction_left = 1;
+        }
+    }
+    else if(msg->command == bill_msgs::MotorCommands::DRIVE)
+    {
+        if (msg->speed >= 0)
+        {
+            direction_right = 1;
+            direction_left = 1;
+        }
+        else
+        {
+            direction_right = -1;
+            direction_left = -1;
+        }
     }
 }
 
@@ -100,13 +149,16 @@ nav_msgs::Odometry calculateOdometry(float dt)
     // TODO: Account and determine slip coeff, radius inequalities and wheelbase errors
     piLock(MOTORA_COUNTER_KEY);
     piLock(MOTORB_COUNTER_KEY);
-    int delta_right = motorA_counter - motorA_counter_prev;
-    int delta_left = motorB_counter - motorB_counter_prev;
+    int delta_right = direction_right * (motorA_Acounter - motorA_counter_prev);
+    int delta_left = direction_left * (motorB_Acounter - motorB_counter_prev);
     ROS_INFO("Delta Right: %i, Delta Left: %i", delta_right, delta_left);
-    motorA_counter = 0;
-    motorB_counter = 0;
-    motorA_counter_prev = motorA_counter;
-    motorB_counter_prev = motorB_counter;
+    //motorA_counter = 0;
+    //motorB_counter = 0;
+    //ROS_INFO("RightA: %i, LeftA: %i", motorA_Acounter, motorB_Acounter);
+    motorA_Acounter = 0;
+    motorB_Acounter = 0;
+    motorA_counter_prev = motorA_Acounter;
+    motorB_counter_prev = motorB_Acounter;
     piUnlock(MOTORA_COUNTER_KEY);
     piUnlock(MOTORB_COUNTER_KEY);
 
@@ -135,6 +187,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
 
     nav_msgs::Odometry msg;
     msg.header.frame_id = "odom";
+    msg.header.stamp = ros::Time::now();
     msg.pose.pose.position.x = x;
     msg.pose.pose.position.y = y;
     msg.pose.pose.position.z = 0;
@@ -168,6 +221,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 100);
     ros::Rate loop_rate(LOOP_RATE_ENCODER);
+    ros::Subscriber motor_sub = nh.subscribe("motor_cmd", 1, motorCallback);
 
     // Call sensor setup
     setup();
@@ -194,6 +248,5 @@ int main(int argc, char** argv)
         ros::spinOnce();
         loop_rate.sleep();
     }
-
     return 0;
 }

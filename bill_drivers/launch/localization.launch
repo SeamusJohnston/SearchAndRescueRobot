@@ -11,7 +11,7 @@
     <param name="transform_time_offset" value="0.0"/>
     <param name="transform_offset" value="0.0"/>
 
-    <param name = "imu0" value="/test_imu"/>
+    <param name = "imu0" value="/imu"/>
     <param name = "imu0_queue_size" value="10"/>
     <param name = "imu0_nodelay" value="false"/>
     <param name = "imu0_differential" value="false"/>
@@ -24,7 +24,7 @@
           false, false, true,
           true, false, false]</rosparam>
   
-    <param name = "odom0" value="/test_odometry"/>
+    <param name = "odom0" value="/odometry"/>
     <param name = "odom0_queue_size" value="10"/>
     <param name = "odom0_nodelay" value="false"/>
     <param name = "odom0_differential" value="false"/>
