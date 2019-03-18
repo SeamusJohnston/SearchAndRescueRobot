@@ -7,12 +7,16 @@
 #include "bill_drivers/constant_definition.hpp"
 #include <bitset>
 #include <stdexcept>
+#include "tf/transform_datatypes.h"
+#include <cmath>
 
 const std::string port = "/dev/ttyUSB0";
 const int baud = 9600;
 const std::string delimiter = " ";
 const int msg_length = 13;
 
+bool first_msg = true;
+tf::Quaternion transformation;
 char sensorData[msg_length];
 
 int main(int argc, char** argv)
@@ -84,12 +88,28 @@ int main(int argc, char** argv)
             double xaccel = (double)(((signed short)(sensorData[9] << 8 | sensorData[8])) / 100.0);
             double zgyro = (double)(((signed short)(sensorData[11] << 8 | sensorData[10])) / 16.0);
 
+            if (first_msg)
+            {
+                // Save the initial orientation so that the imu is aligned to the courses axis and not the earth's field
+                tf::Quaternion temp(quatX, quatY, quatZ, quatW);
+                transformation.setRPY(0,0,-tf::getYaw(temp)+M_PI_2);
+                ROS_INFO("Transformation: %f", -tf::getYaw(temp)+M_PI_2);
+                first_msg = false;
+            }
+
             sensor_msgs::Imu imu_msg;
             imu_msg.header.frame_id = "base_link";
-            imu_msg.orientation.x = quatX;
-            imu_msg.orientation.y = quatY;
-            imu_msg.orientation.z = quatZ;
-            imu_msg.orientation.w = quatW;
+            imu_msg.header.stamp =  ros::Time::now();
+
+            // Rotate current rotation into new frame
+            tf::Quaternion quat(quatX, quatY, quatZ, quatW);
+            quat = (transformation * quat).normalize();
+            ROS_INFO("Yaw: %f", tf::getYaw(quat));
+
+            imu_msg.orientation.x = quat.x();
+            imu_msg.orientation.y = quat.y();
+            imu_msg.orientation.z = quat.z();
+            imu_msg.orientation.w = quat.w();
             imu_msg.orientation_covariance = {0.001, 0, 0,
                                               0, 0.001, 0,
                                               0, 0, 0.001};
