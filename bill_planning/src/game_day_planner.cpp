@@ -108,11 +108,14 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
     ROS_INFO("TESTING FLAME OUT");
 
     //findClearPathFwd();
+    ROS_INFO("LOOKING FOR FLAME");
 
     while(!sensor_readings.getDetectedFireFwd())
     {
@@ -122,21 +125,28 @@ void robotPerformanceThread(int n)
     if (sensor_readings.getDetectedFireFwd())
     {
         //PUT OUT FLAME
+        ROS_INFO("PUTTING OUT FLAME NOW");
         fireOut();
     }
-    ROS_INFO("ROBOT COMMENCING");
+    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
 
     completeStraightLineSearch();
 
     // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
     if(sensor_readings.pointsOfInterestSize() < 3)
     {
+        ROS_INFO("STARTING T SEARCH");
         completeTSearch();
+        ROS_INFO("FINISHING T SEARCH");
     }
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
 
+
+    ROS_INFO("DRIVING TO FLAME");
     driveToFlame();
+
+    ROS_INFO("DRIVING TO ALL OTHER SAVED POITNS");
     driveToDesiredPoints();
 
     // Conduct our grid search
@@ -149,8 +159,10 @@ void robotPerformanceThread(int n)
     }
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
+    // Drive to the large building again b/c we must have found the hall
     driveToLargeBuilding();
 
+    // Returning Home
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
     driveHome();
 }
