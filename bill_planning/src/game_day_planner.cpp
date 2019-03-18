@@ -3,6 +3,7 @@
 #include "bill_planning/sensor_readings.hpp"
 #include <math.h>
 #include "bill_planning/position.hpp"
+#include "bill_msgs/Position.h"
 #include <cstddef>
 #include <iostream>
 #include <utility>
@@ -77,7 +78,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // Subscribing to Topics
-    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("position", 1, fusedOdometryCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
@@ -167,13 +168,13 @@ void robotPerformanceThread(int n)
     driveHome();
 }
 
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg)
 {
-    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+    sensor_readings.setCurrentHeading(msg->heading);
 
     // Convert units to tiles instead of meters
-    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
-    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
+    float currentXTileCoordinate = msg->x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->y / TILE_HEIGHT;
 
     float currentWholeX;
     float currentWholeY;
