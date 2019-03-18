@@ -206,6 +206,10 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     odom_pos.x = msg->pose.pose.position.x;
     odom_pos.y = msg->pose.pose.position.y;
     current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
+    if(current_heading < 0)
+    {
+        current_heading += 360;
+    }
     updatePosition();
 }
 
@@ -234,7 +238,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_front = nh.subscribe("ultra_front", 10, frontUltrasonicCallback);
     ros::Subscriber sub_left = nh.subscribe("ultra_left", 10, leftUltrasonicCallback);
     ros::Subscriber sub_right = nh.subscribe("ultra_right", 10, rightUltrasonicCallback);
-    ros::Subscriber sub_odom = nh.subscribe("odometry", 10, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 10, fusedOdometryCallback);
     ros::Subscriber sub_motors = nh.subscribe("motor_cmd", 1, motorCallback);
     position_pub = nh.advertise<bill_msgs::Position>("position", 100);
 
