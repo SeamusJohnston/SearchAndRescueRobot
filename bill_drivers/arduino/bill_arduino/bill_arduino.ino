@@ -116,7 +116,8 @@ void loop()
   data[10] = Wire.read();  // Z Gyro LSB
   data[11] = Wire.read();  // Z Gyro MSB
   
-  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ breadColourSensor();
+  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ readColourSensor();
+
   for (int i = 0; i < 13; ++i)
   {
     Serial.print(data[i]);
@@ -150,29 +151,33 @@ void receiveEvent(int numBytes)
 byte readFlameSensor()
 {
   int sensorValueFront = analogRead(Flame);
-  int sensorValueLeft = analogRead(Flame);
-  int sensorValueRight = analogRead(Flame);
+  int sensorValueLeft = analogRead(FlameLeft);
+  int sensorValueRight = analogRead(FlameRight);
 
   byte returnVal = 0x00;
   
-  //Serial.print("Flame: ");
-  //Serial.print(sensorValue);
+  /*
+  Serial.print("Flame Front: ");
+  Serial.print(sensorValueFront);
+  Serial.print(" Flame Right: ");
+  Serial.print(sensorValueRight);
+  Serial.print(" Flame Left: ");
+  Serial.print(sensorValueLeft);
+  */
+  
   if(sensorValueFront < 100)
   {
-    //Serial.print(" Front True");
     returnVal = returnVal ^ 0x01;
   }
   if(sensorValueLeft < 400)
   {
-    //Serial.print(" Left True");
     returnVal = returnVal ^ 0x10;
   }
   if(sensorValueRight < 400)
   {
-    //Serial.print(" Right True");
     returnVal = returnVal ^ 0x20;
   }
-  //Serial.println("");
+  Serial.println("");
   
   return returnVal;
 }
