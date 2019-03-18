@@ -81,7 +81,9 @@ int main(int argc, char** argv)
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
-    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic = nh.subscribe("ultra_front", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic_right = nh.subscribe("ultra_right", 1, rightUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic_left = nh.subscribe("ultra_left", 1, leftUltrasonicCallback);
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
     ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
 
