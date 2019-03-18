@@ -1,6 +1,6 @@
 bill:
   motor_params:
-    kp_drive: 3
+    kp_drive: 3.0
     ki_drive: 0.2
-    kp_turning: 1.0
+    kp_turning: 4.0
     ki_turning: 0.3
