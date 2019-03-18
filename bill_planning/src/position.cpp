@@ -12,14 +12,16 @@ Position::Position()
     y = -500;
 }
 
-TilePosition::TilePosition(int xc, int yc)
+TilePosition::TilePosition(int xc, int yc, bool scanOnReachc)
 {
     x = xc;
     y = yc;
+    scanOnReach = scanOnReachc;
 }
 
 TilePosition::TilePosition()
 {
     x = -100;
     y = -100;
+    scanOnReach = false;
 }

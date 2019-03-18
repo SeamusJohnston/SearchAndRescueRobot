@@ -101,6 +101,18 @@ int SensorReadings::getCurrentHeading()
     return _current_heading;
 }
 
+void SensorReadings::setTargetHeading(int val)
+{
+    std::lock_guard<std::mutex> guard(_target_heading_mutex);
+    _target_heading = val;
+}
+
+int SensorReadings::getTargetHeading()
+{
+    std::lock_guard<std::mutex> guard(_target_heading_mutex);
+    return _target_heading;
+}
+
 void SensorReadings::setCurrentTileX(int val)
 {
     std::lock_guard<std::mutex> guard(_current_tile_mutex);

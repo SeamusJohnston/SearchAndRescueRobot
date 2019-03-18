@@ -2,7 +2,7 @@
 
 Planner::Planner()
 {
-    drivePoints = std::queue<TilePosition>();
+    drivePoints = std::list<TilePosition>();
 }
 
 void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ros::Publisher lp)
@@ -20,21 +20,21 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
     // Origin on bottom left
 
     int quadrant = 0;
-    int startingX = sensorReadings.getCurrentTileX() < 4 ? 0 : 6;
-    int startingY = sensorReadings.getCurrentTileY() < 4 ? 0 : 6;
+    int startingX = sensorReadings.getCurrentTileX() < 3 ? 0 : 5;
+    int startingY = sensorReadings.getCurrentTileY() < 3 ? 0 : 5;
 
-    if (sensorReadings.getCurrentTileX() < 4)
+    if (sensorReadings.getCurrentTileX() < 3)
     {
-        quadrant = sensorReadings.getCurrentTileY() < 4 ? 4 : 3;
+        quadrant = sensorReadings.getCurrentTileY() < 3 ? 4 : 3;
 
-        startingY = quadrant == 3 ? 6 : 0;
+        startingY = quadrant == 3 ? 5 : 0;
         startingX = 0;
     }
     else
     {
-        quadrant = sensorReadings.getCurrentTileY() < 4 ? 1 : 2;
+        quadrant = sensorReadings.getCurrentTileY() < 3 ? 1 : 2;
 
-        startingY = quadrant == 2 ? 6 : 0;
+        startingY = quadrant == 2 ? 5 : 0;
         startingX = 6;
     }
 
@@ -51,12 +51,20 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
         }
         else if (i % 2 == 0)
         {
-            startingY = startingY == 6 ? 0 : 6;
+            startingY = startingY == 5 ? 0 : 5;
         }
 
         // Queue up the rest of the grid search points
-        drivePoints.emplace(startingX, startingY);
+        drivePoints.emplace_back(startingX, startingY);
     }
+}
+
+void Planner::cancelGridSearch(SensorReadings &sensorReadings)
+{
+    // Stop all driving
+    publishStop();
+    sensorReadings.setTargetHeading(-1);
+    drivePoints.clear();
 }
 
 void Planner::publishStop()
@@ -113,8 +121,9 @@ void Planner::signalComplete()
     _led_pub.publish(msg);
 }
 
-void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, const int y, const float speed)
+void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, const int y, const float speed, bool scanOnReach)
 {
+    ROS_INFO("Driving to tile: %i, %i", x, y);
     int heading;
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
@@ -133,13 +142,18 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     {
         sensorReadings.setTargetPoint(currentX, y);
 
-        drivePoints.emplace(currentX, y);
+        drivePoints.emplace_back(currentX, y);
+        //ROS_INFO("Targeting point: %i, %i", currentX, y);
+        sensorReadings.setTargetPoint(currentX, y);
+
         heading = currentY > y ? 270 : 90;
 
         if (xDistSq == 0)
         {
             // We only need one leg to drive to this point
-            publishDrive(heading, driveSpeed);
+            //ROS_INFO("Driving in one leg");
+            publishTurn(heading);
+            sensorReadings.setTargetHeading(heading);
             return;
         }
     }
@@ -147,21 +161,105 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     {
         sensorReadings.setTargetPoint(x, currentY);
 
-        drivePoints.emplace(x,currentY);
+        drivePoints.emplace_back(x,currentY);
+        //ROS_INFO("Targeting point: %i, %i", x, currentY);
+        sensorReadings.setTargetPoint(x, currentY);
         heading = currentX > x ? 180 : 0;
 
         if (yDistSq == 0)
         {
             // We only need one leg to drive to this point
-            publishDrive(heading, driveSpeed);
+            //ROS_INFO("Driving in one leg");
+            publishTurn(heading);
+            sensorReadings.setTargetHeading(heading);
             return;
         }
     }
 
-    drivePoints.emplace(x,y);
+    // Scan at the end of a drive to point if needed
+    drivePoints.emplace_back(x,y, scanOnReach);
+    //ROS_INFO("Targeting point: %i, %i", x, y);
 
     // Publish a drive to the first queued point
-    publishDrive(heading, driveSpeed);
+    publishTurn(heading);
+    sensorReadings.setTargetHeading(heading);
+}
+
+void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
+{
+    int currentHeading = sensorReadings.getCurrentHeading();
+    int targetHeading;
+
+    // Facing 0
+    if (currentHeading >= 0 && currentHeading < 90)
+    {
+        int currentY = sensorReadings.getCurrentTileY();
+        int avoidanceY = takeLeft ? currentY + 1 : currentY - 1;
+        int currentX = sensorReadings.getCurrentTileX();
+
+        drivePoints.emplace_front(currentX + 2, currentY);
+        drivePoints.emplace_front(currentX + 2, avoidanceY);
+        drivePoints.emplace_front(currentX, avoidanceY);
+
+        targetHeading = takeLeft ? 90 : 270;
+
+    }
+    // Facing 90
+    else if(currentHeading >= 90 && currentHeading < 180)
+    {
+        int currentX = sensorReadings.getCurrentTileX();
+        int avoidanceX = takeLeft ? currentX - 1 : currentX + 1;
+        int currentY = sensorReadings.getCurrentTileY();
+
+        drivePoints.emplace_front(currentX, currentY + 2);
+        drivePoints.emplace_front(avoidanceX, currentY + 2);
+        drivePoints.emplace_front(avoidanceX, currentY);
+
+        targetHeading  = takeLeft ? 180 : 0;
+    }
+    // Facing 180
+    else if (currentHeading >= 180 && currentHeading < 270)
+    {
+        int currentY = sensorReadings.getCurrentTileY();
+        int avoidanceY = takeLeft ? currentY - 1 : currentY + 1;
+        int currentX = sensorReadings.getCurrentTileX();
+
+        drivePoints.emplace_front(currentX - 2, currentY);
+        drivePoints.emplace_front(currentX - 2, avoidanceY);
+        drivePoints.emplace_front(currentX, avoidanceY);
+
+        targetHeading = takeLeft ? 270 : 90;
+    }
+    // Facing 270
+    else
+    {
+        int currentX = sensorReadings.getCurrentTileX();
+        int avoidanceX = takeLeft ? currentX + 1 : currentX - 1;
+        int currentY = sensorReadings.getCurrentTileY();
+
+        drivePoints.emplace_front(currentX, currentY + 2);
+        drivePoints.emplace_front(avoidanceX, currentY + 2);
+        drivePoints.emplace_front(avoidanceX, currentY);
+
+        targetHeading  = takeLeft ? 180 : 0;
+    }
+//    std::list<TilePosition>::iterator it = drivePoints.begin();
+//
+//    ROS_INFO("Targeting first obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting second obstacle avoidance point %i, %i", it->x, it->y);
+//    it++;
+//    ROS_INFO("Targeting third obstacle avoidance point %i, %i", it->x, it->y);
+
+    // Target the new point we just injected into the target queue
+    sensorReadings.setTargetPoint(drivePoints.front().x, drivePoints.front().y);
+    sensorReadings.setTargetHeading(targetHeading);
+    publishTurn(targetHeading);
+}
+
+void Planner::scanTimerCallback(const ros::TimerEvent& event)
+{
+    setIsScanning(false);
 }
 
 void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
@@ -176,12 +274,16 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 
         if (arrivedPosition.x != currentX || arrivedPosition.y != currentY)
         {
-            ROS_WARN("We are assuming we have arrived at a point when we havent, bailing");
+            ROS_WARN("We are assuming we have arrived at a point when we haven't, stopping movement");
+            sensorReadings.setTargetHeading(-1);
+            publishStop();
             return;
         }
 
+        bool scanOnReachLastPoint = drivePoints.front().scanOnReach;
+
         // Remove the front point from the queue, we have arrived at it.
-        drivePoints.pop();
+        drivePoints.pop_front();
 
         if (!drivePoints.empty())
         {
@@ -200,13 +302,43 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
                 heading = currentX > nextLeg.x ? 180 : 0;
             }
 
+            //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
             sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
-            publishDrive(heading, driveSpeed);
+            sensorReadings.setTargetHeading(heading);
+            publishTurn(heading);
+            return;
+        }
+        // Processed the last point in the list
+        else
+        {
+            if (scanOnReachLastPoint)
+            {
+                setIsScanning(true);
+
+                // Timeout for scan
+                ros::NodeHandle nh;
+                ros::Timer scanTimeout = nh.createTimer(ros::Duration(2), &Planner::scanTimerCallback, this);
+
+                // Scan at quarter driving speed
+                publishDrive(sensorReadings.getCurrentHeading(), 0.16);
+            }
+
+            // Write an invalid target value
+            // Maybe do this for position as well
+            sensorReadings.setTargetHeading(-1);
+            ROS_INFO("Completed drive to point");
             return;
         }
     }
+}
 
-    // Write an invalid target value?
-    ROS_INFO("Completed drive to point");
-    return;
+void Planner::setIsScanning(bool val)
+{
+    std::lock_guard<std::mutex> guard(_is_scanning_mutex);    
+    _is_scanning = val;
+}
+bool Planner::getIsScanning()
+{
+    std::lock_guard<std::mutex> guard(_is_scanning_mutex); 
+    return _is_scanning;
 }

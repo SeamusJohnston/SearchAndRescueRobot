@@ -11,8 +11,7 @@
 #include <bill_planning/planner.hpp>
 #include <cmath>
 #include <vector>
-
-// PLAY WITH THREAD SLEEP IN robotPerformanceThread
+#include "bill_msgs/Survivor.h"
 
 // CALLBACKS
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
@@ -23,6 +22,7 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg);
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg);
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg);
 void hallCallback(const std_msgs::Bool::ConstPtr& msg);
+void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg);
 
 // HELPER FUNCTIONS
 void fireOut();
@@ -36,9 +36,8 @@ void completeTSearch();
 void driveToFlame();
 void driveHome();
 void driveToLargeBuilding();
-
-//TODO IMPLEMENT
 void conductGridSearch();
+void waitForPlannerScan();
 
 SensorReadings sensor_readings;
 
@@ -69,6 +68,8 @@ const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // This is in degrees
 const float HEADING_ACCURACY_BUFFER = 2.0;
+// This is in CM
+const float OBSTACLE_THRESHOLD = 3.0;
 
 int main(int argc, char** argv)
 {
@@ -82,6 +83,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
+    ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
 
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
@@ -157,7 +159,7 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
 
-    // Truncate this instead of floor to
+    // Convert units to tiles instead of meters
     float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
     float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
 
@@ -167,20 +169,60 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
     float localTileXCoverage = std::modf(currentXTileCoordinate, &currentWholeX);
     float localTileYCoverage = std::modf(currentYTileCoordinate, &currentWholeY);
 
-    bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-    bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    bool isOnXTile = fabs(0.5 - fabs(localTileXCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
+    bool isOnYTile = fabs(0.5 - fabs(localTileYCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
+    //bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
+    //bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
 
     if (isOnXTile && isOnYTile)
     {
-        sensor_readings.setCurrentPositionX((int)currentWholeX);
-        sensor_readings.setCurrentPositionY((int)currentWholeY);
+        sensor_readings.setCurrentTileX(currentWholeX);
+        sensor_readings.setCurrentTileY(currentWholeY);
     }
 
-    // This may cause weird behaviour when the robot is on the edges of a tile
-    if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
+    // If there is a valid target heading that means we are turning
+    if (sensor_readings.getTargetHeading() >= 0)
     {
-        // We have arrived at our current target point
-        planner.ProcessNextDrivePoint(sensor_readings);
+        if (fabs(sensor_readings.getTargetHeading() - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
+        {
+            //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
+            planner.publishStop();
+            planner.publishDrive(sensor_readings.getCurrentHeading(), 0.4);
+
+            // publish an invalid target heading
+            sensor_readings.setTargetHeading(-1);
+        }
+    }
+    // Other wise we must be driving
+    else
+    {
+        // Check for obstacles
+        if (sensor_readings.getUltraFwd() < OBSTACLE_THRESHOLD && (sensor_readings.getDetectionBit() != 0))
+        {
+            // Brake immediately
+            planner.publishStop();
+
+            // Should move into obstacle avoidance
+            // Left side is blocked
+            if (sensor_readings.getUltraLeft() < OBSTACLE_THRESHOLD)
+            {
+                planner.driveAroundObstacle(sensor_readings, false);
+            }
+            // Right side is blocked, or both sides are free.
+            else
+            {
+                planner.driveAroundObstacle(sensor_readings, true);
+            }
+
+            return;
+        }
+        // Regular free driving
+        else if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
+        {
+            //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
+            // We have arrived at our current target point
+            planner.ProcessNextDrivePoint(sensor_readings);
+        }
     }
 }
 
@@ -330,6 +372,36 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
     }
 }
 
+void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
+{
+    bool multiple = msg->data == msg->SURVIVOR_MULTIPLE;
+    bool single = msg->data == msg->SURVIVOR_SINGLE;
+
+    if (multiple || single)
+    {
+        if (multiple)
+        {
+            sensor_readings.setDetectionBit(0x03);
+        }
+
+        if (single)
+        {
+            sensor_readings.setDetectionBit(0x02);
+        }
+
+        if (planner.getIsScanning())
+        {
+            ROS_INFO("Found a building!");
+            planner.signalComplete();
+            planner.publishStop();
+        }
+    }
+    else
+    {
+        sensor_readings.setDetectionBit(0);
+    }
+}
+
 bool shouldKeepTurning()
 {
     if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
@@ -434,11 +506,12 @@ void findClearPathFwd()
 void completeStraightLineSearch()
 {
     desired_tile.x = sensor_readings.getCurrentTileX();
-    desired_tile.y = 6;
+    desired_tile.y = 5;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.2);
+        
     waitToHitTile();
 }
 
@@ -462,12 +535,10 @@ void driveToDesiredPoints()
 
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4);
-        waitToHitTile();
+            desired_tile.y, 0.4, true);
+        
+        waitForPlannerScan();
 
-        // TODO BEFORE WHILE
-        // We could possibly trigger a scan in here but maybe we should create a scan tile
-        // function in planner to search tile for one of the 3 objects
         while (sensor_readings.getDetectionBit() == 0x00
             && !KILL_SWITCH)
         {
@@ -491,13 +562,13 @@ void driveToDesiredPoints()
         {
             sensor_readings.pointsOfInterestEmplace(TilePosition(sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY()));
         }
+
+        sensor_readings.setDetectionBit(0x00);
     }
 }
 
 void conductGridSearch()
 {
-    // TODO
-    // Fill out the rest of this method with what we want?
     planner.gridSearch(sensor_readings);
 }
 
@@ -521,12 +592,9 @@ void driveToLargeBuilding()
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
-    waitToHitTile();
+        desired_tile.y, 0.4, true);
+    waitForPlannerScan();
 
-    // TODO
-    // We could possibly trigger a scan in here but maybe we should create a scan tile
-    // function in planner to search tile for one of the 3 objects
     while (sensor_readings.getDetectionBit() == 0x00 && !KILL_SWITCH)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -585,15 +653,31 @@ void driveToFlame()
             sensor_readings,
             desired_tile.x,
             desired_tile.y, 0.4);
-        waitToHitTile();
 
-        // SCAN TILE FOR FLAME
-        // TODO SCAN TILE
+        waitForPlannerScan();
+
         if (sensor_readings.getDetectedFireFwd())
         {
             //PUT OUT FLAME
             fireOut();
         }
+    }
+}
+
+void waitForPlannerScan()
+{
+    int i = 0;
+    while(!planner.getIsScanning() && i < 200)
+    {
+        i++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    i = 0;
+    while(planner.getIsScanning() && i < 200)
+    {
+        i++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
