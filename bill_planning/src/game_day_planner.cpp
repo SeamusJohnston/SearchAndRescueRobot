@@ -15,7 +15,7 @@
 #include "bill_msgs/Survivor.h"
 
 // CALLBACKS
-void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg);
+void positionCallback(const bill_msgs::Position::ConstPtr& msg);
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // Subscribing to Topics
-    ros::Subscriber sub_odom = nh.subscribe("position", 1, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
@@ -156,7 +156,7 @@ void robotPerformanceThread(int n)
     driveHome();
 }
 
-void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg)
+void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading(msg->heading);
 
