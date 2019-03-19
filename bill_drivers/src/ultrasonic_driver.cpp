@@ -155,7 +155,7 @@ int main(int argc, char** argv)
         std_msgs::Float32 msg = read();
 
         // Publish message if valid, and spin thread
-        if (!std::isnan(msg.data))
+        if (!std::isnan(msg.data) && !turning)
             ultrasonic_pub.publish(msg);
         ros::spinOnce();
         loop_rate.sleep();

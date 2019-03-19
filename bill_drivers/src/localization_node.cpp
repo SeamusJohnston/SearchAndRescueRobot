@@ -12,8 +12,8 @@
 
 const float TOL = 0.05; // TODO: Determine appropriate range
 const float COURSE_DIM = 1.8; // TODO: Measure
-const float ROBOT_WIDTH = 0.20; // TODO: Measure
-const float ROBOT_LENGTH = 0.15; // TODO: Measure
+const float ROBOT_WIDTH = 7.0 * 0.0254;
+const float ROBOT_LENGTH = 0.26;
 
 struct Position
 {
@@ -27,19 +27,17 @@ float prev_front_dist = -1;
 float right_dist = 0;
 float left_dist = 0;
 
-auto last_comp_msg = std::chrono::high_resolution_clock::now();
-bool first_comp_msg = true;
+//auto last_comp_msg = std::chrono::high_resolution_clock::now();
+//bool first_comp_msg = true;
 
-Position odom_pos(0,0); // TODO: Determine start position
-Position ultra_pos(0,0); // TODO: Determine start position
+//Position odom_pos(0,ROBOT_LENGTH/2.0); // TODO: Determine start position
+Position ultra_pos(1.05, ROBOT_LENGTH/2.0); // TODO: Determine start position
 int current_heading = 90;
 bool turning = false;
-ComplementaryFilter comp_filter_x(1.0); // TODO: figure out frequency
-ComplementaryFilter comp_filter_y(1.0); // TODO: figure out frequency
-LowPassFilter lp_right(1.0);
-LowPassFilter lp_left(1.0);
-LowPassFilter lp_front(2.0);
+//ComplementaryFilter comp_filter_x(2.0); // TODO: figure out frequency
+//ComplementaryFilter comp_filter_y(2.0); // TODO: figure out frequency
 ros::Publisher position_pub;
+ros::Publisher odom_ultra_pub;
 
 float cosDegrees(int angle)
 {
@@ -50,24 +48,36 @@ void publishPosition()
 {
     bill_msgs::Position msg;
     msg.heading = current_heading;
-    msg.x = odom_pos.x;
-    msg.y = odom_pos.y;
+    msg.x = ultra_pos.x;
+    msg.y = ultra_pos.y;
     position_pub.publish(msg);
+
+    nav_msgs::Odometry msg_odom;
+    msg_odom.header.stamp = ros::Time::now();
+    msg_odom.header.frame_id = "odom";
+    msg_odom.pose.pose.position.x = ultra_pos.x;
+    msg_odom.pose.pose.position.y = ultra_pos.y;
+    msg_odom.pose.covariance = {0.05, 0, 0, 0, 0, 0,
+                                0, 0.05, 0, 0, 0, 0,
+                                0, 0, -1, 0, 0, 0,
+                                0, 0, 0, -1, 0, 0,
+                                0, 0, 0, 0, -1, 0,
+                                0, 0, 0, 0, 0, -1};
+    odom_ultra_pub.publish(msg_odom);
 }
 
 void updatePosition()
 {
-
+/*
     auto time_now = std::chrono::high_resolution_clock::now();
     if (!first_comp_msg)
     {
         comp_filter_x.setSamplingTime(std::chrono::duration<float>(time_now - last_comp_msg).count());
         comp_filter_y.setSamplingTime(std::chrono::duration<float>(time_now - last_comp_msg).count());
-        float x = comp_filter_x.update(odom_pos.x, ultra_pos.x);
-        float y = comp_filter_y.update(odom_pos.y, ultra_pos.y);
+        //ultra_pos.x = comp_filter_x.update(odom_pos.x, ultra_pos.x);
+        //ultra_pos.y = comp_filter_y.update(odom_pos.y, ultra_pos.y);
         // TODO: re-update ultra pos with filtered values?
         //ROS_INFO("Current filtered position x: %f, y: %f", x, y);
-
     }
     else
     {
@@ -77,7 +87,7 @@ void updatePosition()
     }
 
     last_comp_msg = time_now;
-
+*/
     ROS_INFO("Current ultrasonic position x: %f, y: %f", ultra_pos.x, ultra_pos.y);
     publishPosition();
 }
@@ -186,25 +196,28 @@ void updateFrontDist()
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     front_dist = msg->data / 100.0;
-    updateFrontDist();
+    if (!turning)
+        updateFrontDist();
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     left_dist = msg->data / 100.0;
-    updateSideDist();
+    if (!turning)
+        updateSideDist();
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     right_dist = msg->data / 100.0;
-    updateSideDist();
+    if (!turning)
+        updateSideDist();
 }
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    odom_pos.x = msg->pose.pose.position.x;
-    odom_pos.y = msg->pose.pose.position.y;
+   // odom_pos.x = msg->pose.pose.position.x;
+   // odom_pos.y = msg->pose.pose.position.y + ROBOT_LENGTH / 2.0; //TODO: Remove this after testing
     current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
     if(current_heading < 0)
     {
@@ -223,7 +236,7 @@ void motorCallback(const bill_msgs::MotorCommands::ConstPtr& msg)
     {
         if (turning) // Was just turning but has now stopped, then reset the filters and clear previous distances
         {
-            first_comp_msg = true;
+            //first_comp_msg = true;
             prev_front_dist = -1;
 
         }
@@ -241,6 +254,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 10, fusedOdometryCallback);
     ros::Subscriber sub_motors = nh.subscribe("motor_cmd", 1, motorCallback);
     position_pub = nh.advertise<bill_msgs::Position>("position", 100);
+    odom_ultra_pub = nh.advertise<nav_msgs::Odometry>("odometry_ultra", 100);
 
     ros::spin();
     return 0;

@@ -26,8 +26,8 @@ int motorB_counter_prev = 0;
 int direction_right = 1;
 int direction_left = 1;
 float theta = M_PI_2;  // In radians
-float x = 0;      // m TODO: get starting position
-float y = 0;      // m TODO: get starting position
+float x = 1.05;      // m TODO: get starting position
+float y = 0.13;      // m TODO: get starting position
 
 void setup()
 {
