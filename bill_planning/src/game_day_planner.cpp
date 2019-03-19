@@ -701,7 +701,7 @@ void waitForPlannerScan()
 // THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
 TilePosition tileFromPoint(int x_pos, int y_pos)
 {
-    if (x_pos < 0 || x_pos > 5 || y_pos < 0 || y_pos > 5)
+    if (x_pos < 0 || x_pos > 6 || y_pos < 0 || y_pos > 6)
     {
         ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
         return TilePosition(-1,-1);
