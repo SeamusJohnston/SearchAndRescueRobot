@@ -51,7 +51,7 @@ Planner planner;
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
-bool _found_hall = false;
+bool _found_hall = true; // TODO SET TO  WHEN ACTUALLY ATTACHED false;
 bool KILL_SWITCH = false; 
 
 // POSITION
