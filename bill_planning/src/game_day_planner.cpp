@@ -517,7 +517,7 @@ void findClearPathFwd()
 void completeStraightLineSearch()
 {
     ROS_INFO("Findings Clear Path Fwd");
-    findClearPathFwd();
+    //findClearPathFwd();
     ROS_INFO("Found Clear Path Fwd");
 
     desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
