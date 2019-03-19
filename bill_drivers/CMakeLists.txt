@@ -155,9 +155,10 @@ add_executable(localization_node src/localization_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-##add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
+add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(encoder_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})

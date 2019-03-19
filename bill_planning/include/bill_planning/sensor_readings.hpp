@@ -130,7 +130,7 @@ class SensorReadings
         Position _current_position = Position(0,0);
         TilePosition _home_tile = TilePosition(-1,-1);
         TilePosition _flame_tile = TilePosition(-1, -1);
-        TilePosition _current_tile = TilePosition(-1, -1);
+        TilePosition _current_tile = TilePosition(3, 0); //TODO REVERT THIS TO -1-1 WE SHOULD RELY ON OUR POSITION TO SET THIS (NOT HARD CODED)
         TilePosition _current_target_tile = TilePosition(-1, -1);
 };
 

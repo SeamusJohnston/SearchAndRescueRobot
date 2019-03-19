@@ -277,6 +277,5 @@ int main(int argc, char** argv)
     signal(SIGINT, sigIntHandler);
 
     ros::spin();
-    stop();
     return 0;
 }

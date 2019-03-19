@@ -229,8 +229,6 @@ void fusedOdometryCallback(const bill_msgs::Position::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    ROS_INFO("Front Ultra Callback: %f \n", msg->data);
-
     sensor_readings.setUltraFwd(msg->data);
     
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
@@ -238,15 +236,12 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        ROS_INFO("Signalling Front");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    ROS_INFO("Left Ultra Callback: %f \n", msg->data);
-
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
     {
@@ -262,15 +257,12 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        ROS_INFO("Signalling left");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    ROS_INFO("Front Right Callback: %f \n", msg->data);
-
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraRight() - msg->data) > DELTA)
     {
@@ -286,7 +278,6 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
-        ROS_INFO("Signalling Right");
         sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
@@ -525,14 +516,15 @@ void completeStraightLineSearch()
     findClearPathFwd();
     ROS_INFO("Found Clear Path Fwd");
 
-    desired_tile.x = sensor_readings.getCurrentTileX();
+    desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
     desired_tile.y = 5;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.2);
-    
+    ROS_INFO("Published drive");
     waitToHitTile();
+    ROS_INFO("Hit Tile");
 }
 
 void driveToDesiredPoints()

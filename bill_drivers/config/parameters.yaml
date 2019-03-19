@@ -3,4 +3,4 @@ bill:
     kp_drive: 3.0
     ki_drive: 0.3
     kp_turning: 3.0
-    ki_turning: 0.2
+    ki_turning: 0.5
