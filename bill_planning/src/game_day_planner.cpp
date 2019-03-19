@@ -3,6 +3,7 @@
 #include "bill_planning/sensor_readings.hpp"
 #include <math.h>
 #include "bill_planning/position.hpp"
+#include "bill_msgs/Position.h"
 #include <cstddef>
 #include <iostream>
 #include <utility>
@@ -14,7 +15,7 @@
 #include "bill_msgs/Survivor.h"
 
 // CALLBACKS
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg);
+void positionCallback(const bill_msgs::Position::ConstPtr& msg);
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg);
@@ -66,9 +67,9 @@ const float DELTA = 10; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
-// This is in degrees
+// There is a buffer in the robot response time so let's be a bit more generous here. In degrees
 const float HEADING_ACCURACY_BUFFER = 2.0;
-// This is in CM
+// There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
 int main(int argc, char** argv)
@@ -77,11 +78,13 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     // Subscribing to Topics
-    ros::Subscriber sub_odom = nh.subscribe("fused_odometry", 1, fusedOdometryCallback);
+    ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
     ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 1, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 1, fireCallbackRight);
-    ros::Subscriber sub_ultrasonic = nh.subscribe("ultrasonic", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic = nh.subscribe("ultra_front", 1, frontUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic_right = nh.subscribe("ultra_right", 1, rightUltrasonicCallback);
+    ros::Subscriber sub_ultrasonic_left = nh.subscribe("ultra_left", 1, leftUltrasonicCallback);
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
     ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
 
@@ -108,35 +111,31 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-    ROS_INFO("TESTING FLAME OUT");
-
-    //findClearPathFwd();
-
-    while(!sensor_readings.getDetectedFireFwd())
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-
-    if (sensor_readings.getDetectedFireFwd())
-    {
-        //PUT OUT FLAME
-        fireOut();
-    }
-    ROS_INFO("ROBOT COMMENCING");
+    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
 
     completeStraightLineSearch();
 
+
+    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
     // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
     if(sensor_readings.pointsOfInterestSize() < 3)
     {
+        ROS_INFO("STARTING T SEARCH");
         completeTSearch();
+        ROS_INFO("FINISHING T SEARCH");
     }
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
 
+
+    ROS_INFO("DRIVING TO FLAME");
     driveToFlame();
+
+    ROS_INFO("DRIVING TO ALL OTHER SAVED POITNS");
     driveToDesiredPoints();
 
     // Conduct our grid search
@@ -149,19 +148,21 @@ void robotPerformanceThread(int n)
     }
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
+    // Drive to the large building again b/c we must have found the hall
     driveToLargeBuilding();
 
+    // Returning Home
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
     driveHome();
 }
 
-void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
+void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 {
-    sensor_readings.setCurrentHeading((int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
+    sensor_readings.setCurrentHeading(msg->heading);
 
     // Convert units to tiles instead of meters
-    float currentXTileCoordinate = msg->pose.pose.position.x / TILE_WIDTH;
-    float currentYTileCoordinate = msg->pose.pose.position.y / TILE_HEIGHT;
+    float currentXTileCoordinate = msg->x / TILE_WIDTH;
+    float currentYTileCoordinate = msg->y / TILE_HEIGHT;
 
     float currentWholeX;
     float currentWholeY;
@@ -228,8 +229,6 @@ void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    ROS_INFO("Front Ultra Callback: %f \n", msg->data);
-
     sensor_readings.setUltraFwd(msg->data);
     
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
@@ -325,7 +324,7 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFireLeft(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+            sensor_readings.updateFlameTileFromLastSavedPoint(true);
         }
     }
     else
@@ -353,7 +352,7 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFireRight(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+            sensor_readings.updateFlameTileFromLastSavedPoint(false);
         }
     }
     else
@@ -367,6 +366,8 @@ void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 {
     if(!_found_hall && msg->data)
     {
+        // TODO MAKE SURE THIS DOESN'T DO ANYTHING IF NOT CURRENTLY GRID SEARCHING?
+        planner.cancelGridSearch(sensor_readings);
         _found_hall = true;
         planner.signalComplete();
     }
@@ -419,7 +420,7 @@ void fireOut()
 {
     bool initialCall = true;
     bool check_temp_heading = true;
-
+    bool set_desired_heading = false;
     int temp_desired_heading = 0;
 
     do
@@ -427,31 +428,37 @@ void fireOut()
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             planner.putOutFire();
-            desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-            temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+            desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+            temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
 
             planner.publishTurn(temp_desired_heading);
 
             initialCall = false;
             check_temp_heading = true;
+            set_desired_heading = false;
         }
 
         while(check_temp_heading
-              && fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER
+              && !(fabs(temp_desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
               && !KILL_SWITCH)
         {
             if(sensor_readings.getDetectedFireFwd())
             {
                 planner.putOutFire();
-                desired_heading = sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE;
-                temp_desired_heading = sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE;
+                desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
+                temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
                 planner.publishTurn(temp_desired_heading);
             }
+            set_desired_heading = false;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        check_temp_heading = false;
-        planner.publishTurn(desired_heading);
+        check_temp_heading = false; 
+        if (!set_desired_heading)
+        {
+            planner.publishTurn(desired_heading);
+            set_desired_heading = true;
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     } while(shouldKeepTurning() && !KILL_SWITCH);
@@ -505,14 +512,19 @@ void findClearPathFwd()
 
 void completeStraightLineSearch()
 {
-    desired_tile.x = sensor_readings.getCurrentTileX();
+    ROS_INFO("Findings Clear Path Fwd");
+    findClearPathFwd();
+    ROS_INFO("Found Clear Path Fwd");
+
+    desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
     desired_tile.y = 5;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
         desired_tile.y, 0.2);
-        
+    ROS_INFO("Published drive");
     waitToHitTile();
+    ROS_INFO("Hit Tile");
 }
 
 void driveToDesiredPoints()
@@ -646,6 +658,7 @@ void driveToFlame()
 {
     if(sensor_readings.getFlameTileX() >= 0 && sensor_readings.getFlameTileY() >= 0)
     {
+        ROS_INFO("Have a flam tile stored");
         desired_tile.x = sensor_readings.getFlameTileX();
         desired_tile.y = sensor_readings.getFlameTileY();
 
@@ -684,56 +697,14 @@ void waitForPlannerScan()
 // THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
 TilePosition tileFromPoint(int x_pos, int y_pos)
 {
-    int x = -1, y = -1;
-    switch(x_pos) 
+    if (x_pos < 0 || x_pos > 5 || y_pos < 0 || y_pos > 5)
     {
-        case 0 ... 30:
-            x = 0;
-            break;
-        case 31 ... 60:
-            x = 1;
-            break;
-        case 61 ... 90:
-            x = 2;
-            break;
-        case 91 ... 120:
-            x = 3;
-            break;
-        case 121 ... 150:
-            x = 4;
-            break;
-        case 151 ... 180:
-            x = 5;
-            break;
-        default:
-            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            break;
+        ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
+        return TilePosition(-1,-1);
     }
 
-    switch(y_pos)
-    {
-        case 0   ... 30:
-            y = 0;
-            break;
-        case 31 ... 60:
-            y = 1;
-            break;
-        case 61 ... 90:
-            y = 2;
-            break;
-        case 91 ... 120:
-            y = 3;
-            break;
-        case 121 ... 150:
-            y = 4;
-            break;
-        case 151 ... 180:
-            y = 5;
-            break;
-        default:
-            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            break;
-    }
-
+    //Truncated value should be the tile position
+    int x = x_pos/30;
+    int y = y_pos/30;
     return TilePosition(x,y);
 }
