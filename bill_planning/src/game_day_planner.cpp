@@ -175,9 +175,13 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
     //bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
     //bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
 
-    if (isOnXTile && isOnYTile)
+    if (isOnXTile)
     {
         sensor_readings.setCurrentTileX(currentWholeX);
+    }
+
+    if (isOnYTile)
+    {
         sensor_readings.setCurrentTileY(currentWholeY);
     }
 
