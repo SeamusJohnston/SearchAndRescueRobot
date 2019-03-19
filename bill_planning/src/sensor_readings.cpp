@@ -240,17 +240,6 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
         _s.push_back(newVal);  
         // or "s.emplace(q.back());"
     }
-
-    if (_mark_next_tile_as_flame)
-    {
-        if (!_s.empty())
-        {
-            std::pair<int, int> tile_pos = _s.back();
-            _flame_tile.x = tile_pos.first;
-            _flame_tile.y = tile_pos.second;
-            _mark_next_tile_as_flame = false;
-        }
-    }
 }
 
 int SensorReadings::freeRowTile()
@@ -262,19 +251,17 @@ int SensorReadings::freeRowTile()
      return -1;
 }
 
-void SensorReadings::updateFlameTileFromLastSavedPoint(int y)
+void SensorReadings::updateFlameTileFromLastSavedPoint(bool is_left)
 {
     if(!_s.empty())
     {
         std::pair<int, int> tile_pos = _s.back();
-        if(tile_pos.second == y)
+        if(tile_pos.second == getCurrentTileY()
+            && (is_left && tile_pos.first <= getCurrentTileX())
+            || (!is_left && tile_pos.first >= getCurrentTileX()))
         {
             _flame_tile.x = tile_pos.first;
-            _flame_tile.y = y;
-        }
-        else
-        {
-            _mark_next_tile_as_flame = true;
+            _flame_tile.y = getCurrentTileY();
         }
     }
 }

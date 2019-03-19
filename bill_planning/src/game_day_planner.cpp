@@ -324,7 +324,7 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFireLeft(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+            sensor_readings.updateFlameTileFromLastSavedPoint(true);
         }
     }
     else
@@ -352,7 +352,7 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         else
         {
             sensor_readings.setDetectedFireRight(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(sensor_readings.getCurrentTileY());
+            sensor_readings.updateFlameTileFromLastSavedPoint(false);
         }
     }
     else
@@ -697,56 +697,14 @@ void waitForPlannerScan()
 // THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
 TilePosition tileFromPoint(int x_pos, int y_pos)
 {
-    int x = -1, y = -1;
-    switch(x_pos) 
+    if (x_pos < 0 || x_pos > 5 || y_pos < 0 || y_pos > 5)
     {
-        case 0 ... 30:
-            x = 0;
-            break;
-        case 31 ... 60:
-            x = 1;
-            break;
-        case 61 ... 90:
-            x = 2;
-            break;
-        case 91 ... 120:
-            x = 3;
-            break;
-        case 121 ... 150:
-            x = 4;
-            break;
-        case 151 ... 180:
-            x = 5;
-            break;
-        default:
-            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            break;
+        ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
+        return TilePosition(-1,-1);
     }
 
-    switch(y_pos)
-    {
-        case 0   ... 30:
-            y = 0;
-            break;
-        case 31 ... 60:
-            y = 1;
-            break;
-        case 61 ... 90:
-            y = 2;
-            break;
-        case 91 ... 120:
-            y = 3;
-            break;
-        case 121 ... 150:
-            y = 4;
-            break;
-        case 151 ... 180:
-            y = 5;
-            break;
-        default:
-            ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
-            break;
-    }
-
+    //Truncated value should be the tile position
+    int x = x_pos/30;
+    int y = y_pos/30;
     return TilePosition(x,y);
 }

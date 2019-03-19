@@ -75,7 +75,7 @@ class SensorReadings
         void pointsOfInterestEmplace(TilePosition tp);
 
         int freeRowTile();
-        void updateFlameTileFromLastSavedPoint(int y);
+        void updateFlameTileFromLastSavedPoint(bool is_left);
         
         void setFlameTileX(int val);
         void setFlameTileY(int val);
@@ -90,7 +90,6 @@ class SensorReadings
         unsigned char detection_bit;
 
     private:
-
         std::mutex _target_tile_mutex;
         std::mutex _current_tile_mutex;
         std::mutex _current_position_mutex;
@@ -105,6 +104,7 @@ class SensorReadings
         std::mutex _current_heading_mutex;
         std::mutex _target_heading_mutex;
         std::mutex _detection_bit_mutex;
+        std::mutex _detected_fire_mutex;
 
         // Stored y,x for future use
         std::vector<int> _y_Objects = {0,1,2,3,4,5};
@@ -112,10 +112,8 @@ class SensorReadings
         std::queue<TilePosition> _points_of_interest;
         STATE _current_state = INIT_SEARCH;
 
-        bool _start_robot_performance_thread = false;
-        bool _mark_next_tile_as_flame = false;
 
-        std::mutex _detected_fire_mutex;
+        bool _start_robot_performance_thread = false;
         bool _detected_fire_fwd = false;
         bool _detected_fire_left = false;
         bool _detected_fire_right = false;
@@ -130,7 +128,7 @@ class SensorReadings
         Position _current_position = Position(0,0);
         TilePosition _home_tile = TilePosition(-1,-1);
         TilePosition _flame_tile = TilePosition(-1, -1);
-        TilePosition _current_tile = TilePosition(3, 0); //TODO REVERT THIS TO -1-1 WE SHOULD RELY ON OUR POSITION TO SET THIS (NOT HARD CODED)
+        TilePosition _current_tile = TilePosition(-1, -1);
         TilePosition _current_target_tile = TilePosition(-1, -1);
 };
 
