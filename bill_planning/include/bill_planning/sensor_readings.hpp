@@ -113,7 +113,6 @@ class SensorReadings
         std::queue<TilePosition> _points_of_interest;
         STATE _current_state = INIT_SEARCH;
 
-
         bool _start_robot_performance_thread = true;//TODO SET TO FALSE ON START
         bool _detected_fire_fwd = false;
         bool _detected_fire_left = false;
