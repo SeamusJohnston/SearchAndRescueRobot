@@ -255,13 +255,13 @@ void sigIntHandler(int sig)
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "motor_driver", ros::init_options::NoSigintHandler);
-    wiringPiSetupGpio();
-    pinMode(MOTORA_FORWARD, OUTPUT);
-    pinMode(MOTORB_FORWARD, OUTPUT);
-    pinMode(MOTORA_PWM, OUTPUT);
-    pinMode(MOTORB_PWM, OUTPUT);
-    softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
-    softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);
+//    wiringPiSetupGpio();
+//    pinMode(MOTORA_FORWARD, OUTPUT);
+//    pinMode(MOTORB_FORWARD, OUTPUT);
+//    pinMode(MOTORA_PWM, OUTPUT);
+//    pinMode(MOTORB_PWM, OUTPUT);
+//    softPwmCreate(MOTORA_PWM, 0, PWM_RANGE);
+//    softPwmCreate(MOTORB_PWM, 0, PWM_RANGE);
 
     ros::NodeHandle nh;
     ros::Subscriber sub_motor = nh.subscribe("motor_cmd", 1, motorCallback);

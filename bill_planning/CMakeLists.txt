@@ -131,6 +131,7 @@ include_directories(
 add_library(sensor_readings src/sensor_readings.cpp)
 add_library(position src/position.cpp)
 add_library(planner src/planner.cpp)
+add_library(graph_path src/graph_path.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -139,6 +140,7 @@ add_library(planner src/planner.cpp)
 add_dependencies(position ${catkin_EXPORTED_TARGETS})
 add_dependencies(planner ${catkin_EXPORTED_TARGETS})
 add_dependencies(sensor_readings ${catkin_EXPORTED_TARGETS})
+add_dependencies(graph_path ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -155,14 +157,14 @@ add_executable(game_day_planner src/game_day_planner.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner position)
+add_dependencies(game_day_planner ${catkin_EXPORTED_TARGETS} planner position graph_path)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(sensor_readings planner position)
-target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner position)
+target_link_libraries(game_day_planner ${catkin_LIBRARIES} sensor_readings planner position graph_path)
 
 #############
 ## Install ##
