@@ -719,7 +719,7 @@ void runInitialSearch()
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
     ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
-    if ((x == 0 || x == 5)
+    if ((x == 3 && y == 0)
         || (x == 2 && y == 5))
     {
         ROS_INFO("Before Running X independant: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
@@ -733,7 +733,7 @@ void runInitialSearch()
             completeSecondSearchXDependent();
         }
     }
-    else if (y == 0 || y == 5)
+    else if ((x == 0 && y == 2) || (x == 5 && y == 3))
     {
         //BOTTOM
         ROS_INFO("Running y dependant");
@@ -756,7 +756,7 @@ void runInitialSearch()
 void completeSearchXDependent()
 {
     int y = sensor_readings.getCurrentTileY();
-    TilePosition poi[3] = {TilePosition(4,y), TilePosition(3,y), TilePosition(0,y)};
+    TilePosition poi[3] = {TilePosition(3,y), TilePosition(4,y), TilePosition(0,y)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
