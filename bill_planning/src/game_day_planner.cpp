@@ -664,7 +664,7 @@ void runInitialSearch()
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
     
-    if (x == 0 || x == 5)
+    if ((x == 0 || x == 5)
         || (x == 2 && y == 5))
     {
         // TOP OR BOTTOM
@@ -684,13 +684,13 @@ void runInitialSearch()
 void completeSearchXDependent()
 {
     int y = sensor_readings.getCurrentTileY();
-    TilePosition[] poi = {TilePosition(4,y), TilePosition(3,y), TilePosition(0,y)};
+    TilePosition poi[3] = {TilePosition(4,y), TilePosition(3,y), TilePosition(0,y)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
         desired_heading = y == 5 ? 270 : 90;
@@ -711,20 +711,20 @@ void completeSearchXDependent()
     desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = sensor_readings.getCurrentTileY() == 0 ? 5 : 0;
 
-    planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
     waitToHitTile();
 }
 
 void completeSearchYDependent()
 {
     int x = sensor_readings.getCurrentTileX();
-    TilePosition[] poi = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
+    TilePosition poi[3] = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
         desired_heading = x == 0 ? 0 : 180;
@@ -745,7 +745,7 @@ void completeSearchYDependent()
     desired_tile.x = sensor_readings.getCurrentTileX() == 0 ? 5 : 0;
     desired_tile.y = sensor_readings.getCurrentTileY();
 
-    planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
     waitToHitTile();
 }
 
