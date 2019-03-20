@@ -26,8 +26,8 @@ int motorB_counter_prev = 0;
 int direction_right = 1;
 int direction_left = 1;
 float theta = M_PI_2;  // In radians
-float x = 1.05;      // m TODO: get starting position
-float y = 0.13;      // m TODO: get starting position
+float x = 1.05;      // m 
+float y = 0.13;      // m
 
 void setup()
 {
@@ -185,6 +185,11 @@ int main(int argc, char** argv)
     ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 100);
     ros::Rate loop_rate(LOOP_RATE_ENCODER);
     ros::Subscriber motor_sub = nh.subscribe("motor_dir", 1, motorCallback);
+
+    nh.getParam("/bill/starting_params/x", x);
+    nh.getParam("/bill/starting_params/y", y);
+    nh.getParam("/bill/starting_params/theta", theta);
+    theta = angles::from_degrees(theta);
 
     // Call sensor setup
     setup();

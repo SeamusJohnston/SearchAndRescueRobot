@@ -4,3 +4,7 @@ bill:
     ki_drive: 0.4
     kp_turning: 3.0
     ki_turning: 0.43
+  starting_params:
+    x: 0.8
+    y: 1.7
+    theta: 270

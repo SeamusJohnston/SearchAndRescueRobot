@@ -256,6 +256,10 @@ int main(int argc, char** argv)
     position_pub = nh.advertise<bill_msgs::Position>("position", 100);
     odom_ultra_pub = nh.advertise<nav_msgs::Odometry>("odometry_ultra", 100);
 
+    nh.getParam("/bill/starting_params/x", ultra_pos.x);
+    nh.getParam("/bill/starting_params/y", ultra_pos.y);
+    nh.getParam("/bill/starting_params/theta", current_heading);
+
     ros::spin();
     return 0;
 }
