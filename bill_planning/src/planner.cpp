@@ -148,7 +148,7 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
 
         heading = currentY > y ? 270 : 90;
 
-        if (xDistSq == 0)
+        if (xDistSq == 0 && std::abs(heading - sensor_readings.getCurrentHeading()) > 2) 
         {
             // We only need one leg to drive to this point
             //ROS_INFO("Driving in one leg");

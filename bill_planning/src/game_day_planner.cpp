@@ -51,7 +51,7 @@ Planner planner;
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
-bool _found_hall = false;
+bool _found_hall = true;
 bool KILL_SWITCH = false; 
 
 // POSITION
@@ -517,7 +517,7 @@ void findClearPathFwd()
 void completeStraightLineSearch()
 {
     ROS_INFO("Findings Clear Path Fwd");
-    //findClearPathFwd();
+    //findClearPathFwd(); //TODO UNCOMMENT THIS
     ROS_INFO("Found Clear Path Fwd");
 
     desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
