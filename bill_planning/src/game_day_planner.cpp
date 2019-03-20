@@ -819,7 +819,7 @@ void completeSearchYDependent()
 void completeSecondSearchXDependent()
 {
     int x = sensor_readings.getCurrentTileX();
-    TilePosition[] poi = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
+    TilePosition poi[3] = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
