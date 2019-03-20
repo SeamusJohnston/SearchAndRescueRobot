@@ -10,6 +10,8 @@ void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ro
     _motor_pub = mp;
     _fan_pub = fp;
     _led_pub = lp;
+    while(_motor_pub.getNumSubscribers() == 0 && _fan_pub.getNumSubscribers() == 0 && _led_pub.getNumSubscribers() == 0)
+    {}
 }
 
 void Planner::gridSearch(SensorReadings &sensorReadings)

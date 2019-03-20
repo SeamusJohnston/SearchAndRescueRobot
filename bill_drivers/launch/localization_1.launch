@@ -1,0 +1,49 @@
+<!-- Robot Localization Position Filter launch file -->
+<launch>
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se" clear_params="true">
+      <!--Params currently set to default-->
+    <param name="frequency" value="10.0"/>
+    <param name="sensor_timeout" value="0.5"/>
+    <param name="two_d_mode" value="true"/> 
+    <param name="odom_frame" value="odom"/>
+    <param name="base_link_frame" value="base_link"/>
+    <param name="world_frame" value="odom"/>
+    <param name="transform_time_offset" value="0.0"/>
+    <param name="transform_offset" value="0.0"/>
+
+    <param name = "imu0" value="/imu"/>
+    <param name = "imu0_queue_size" value="10"/>
+    <param name = "imu0_nodelay" value="false"/>
+    <param name = "imu0_differential" value="false"/>
+    <param name = "imu0_relative" value="false"/>
+    <param name = "imu0_remove_gravitational_acceleration" value="false"/> <!-- false since we are operating  in planar mode -->
+    <!-- Currently set imu to report absolute orientation as well as the gyro and accel values, since mag readings are not accounted for in the yaw-vel and x-accel values --> 
+    <rosparam param="imu0_config">[false, false, false,
+          false, false, true,
+          false, false, false,
+          false, false, true,
+          true, false, false]</rosparam>
+  
+    <param name = "odom0" value="/odometry"/>
+    <param name = "odom0_queue_size" value="10"/>
+    <param name = "odom0_nodelay" value="false"/>
+    <param name = "odom0_differential" value="false"/>
+    <param name = "odom0_relative" value="false"/> <!-- Could set this to true and ignore starting variables in encoder_driver file, leaving false for now though -->
+    <rosparam param="odom0_config">[false, false, false,
+          false, false, false,
+          true, true, false,
+          false, false, true,
+          false, false, false]</rosparam> 
+      
+    <param name = "publish_tf" value="true"/>
+    <param name = "publish_acceleration" value="false"/>
+    <param name = "print_diagnostics" value="true"/>
+    <param name = "debug" value="false"/>
+    <rosparam param="initial_state">[1.05, 0.15, 0.0,
+          0.0, 0.0, 1.57,
+          0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0,
+          0.0, 0.0, 0.0]</rosparam>  
+    <remap from= "odometry/filtered" to="/fused_odometry"/>
+  </node>
+</launch>

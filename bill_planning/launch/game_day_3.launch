@@ -1,6 +1,6 @@
 <!-- Planner launch file -->
 <launch>
-  <include file="$(find bill_drivers)/launch/drivers.launch" />
+  <include file="$(find bill_drivers)/launch/drivers_3.launch" />
 
   <node pkg="bill_planning" type="game_day_planner"
     name="game_day_planner" output="screen">
