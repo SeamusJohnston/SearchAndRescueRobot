@@ -40,8 +40,8 @@
     <param name = "print_diagnostics" value="true"/>
     <param name = "debug" value="false"/>
     <!-- TODO: Enter x-y starting pose -->
-    <rosparam param="initial_state">[1.05, 0.13, 0.0,
-          0.0, 0.0, 1.57,
+    <rosparam param="initial_state">[0.8, 1.7, 0.0,
+          0.0, 0.0, 4.71,
           0.0, 0.0, 0.0,
           0.0, 0.0, 0.0,
           0.0, 0.0, 0.0]</rosparam>  
