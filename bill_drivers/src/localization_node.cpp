@@ -30,8 +30,8 @@ float left_dist = 0;
 //auto last_comp_msg = std::chrono::high_resolution_clock::now();
 //bool first_comp_msg = true;
 
-//Position odom_pos(0,ROBOT_LENGTH/2.0); // TODO: Determine start position
-Position ultra_pos(1.05, ROBOT_LENGTH/2.0); // TODO: Determine start position
+//Position odom_pos(0,ROBOT_LENGTH/2.0);
+Position ultra_pos(1.05, ROBOT_LENGTH/2.0);
 int current_heading = 90;
 bool turning = false;
 //ComplementaryFilter comp_filter_x(2.0); // TODO: figure out frequency
@@ -57,12 +57,24 @@ void publishPosition()
     msg_odom.header.frame_id = "odom";
     msg_odom.pose.pose.position.x = ultra_pos.x;
     msg_odom.pose.pose.position.y = ultra_pos.y;
-    msg_odom.pose.covariance = {0.05, 0, 0, 0, 0, 0,
-                                0, 0.05, 0, 0, 0, 0,
-                                0, 0, -1, 0, 0, 0,
-                                0, 0, 0, -1, 0, 0,
-                                0, 0, 0, 0, -1, 0,
-                                0, 0, 0, 0, 0, -1};
+    if ((45 < current_heading && current_heading <= 135) || (225 < current_heading && current_heading <= 315)) // Facing y
+    {
+        msg_odom.pose.covariance = {0.02, 0, 0, 0, 0, 0,
+                                    0, 0.05, 0, 0, 0, 0,
+                                    0, 0, -1, 0, 0, 0,
+                                    0, 0, 0, -1, 0, 0,
+                                    0, 0, 0, 0, -1, 0,
+                                    0, 0, 0, 0, 0, -1};
+    }
+    else
+    {
+        msg_odom.pose.covariance = {0.05, 0, 0, 0, 0, 0,
+                                    0, 0.02, 0, 0, 0, 0,
+                                    0, 0, -1, 0, 0, 0,
+                                    0, 0, 0, -1, 0, 0,
+                                    0, 0, 0, 0, -1, 0,
+                                    0, 0, 0, 0, 0, -1};
+    }
     odom_ultra_pub.publish(msg_odom);
 }
 
