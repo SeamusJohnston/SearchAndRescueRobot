@@ -88,7 +88,7 @@ int main(int argc, char** argv)
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
     ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
 
-    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
+    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100, true);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
     ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
@@ -172,8 +172,6 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     bool isOnXTile = fabs(0.5 - fabs(localTileXCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
     bool isOnYTile = fabs(0.5 - fabs(localTileYCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
-    //bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-    //bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
 
     if (isOnXTile)
     {
@@ -222,7 +220,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             return;
         }
         // Regular free driving
-        else if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
+        else if (sensor_readings.getTargetTileX() == sensor_readings.getCurrentTileX() && sensor_readings.getTargetTileY() == sensor_readings.getCurrentTileY())
         {
             //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
             // We have arrived at our current target point
