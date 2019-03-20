@@ -222,7 +222,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             return;
         }
         // Regular free driving
-        else if (sensor_readings.getTargetTileX() == (int)currentWholeX && sensor_readings.getTargetTileY() == (int)currentWholeY)
+        else if (sensor_readings.getTargetTileX() == sensor_readings.getCurrentTileX() && sensor_readings.getTargetTileY() == sensor_readings.getCurrentTileY())
         {
             //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
             // We have arrived at our current target point
@@ -521,7 +521,7 @@ void completeStraightLineSearch()
     ROS_INFO("Found Clear Path Fwd");
 
     desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
-    desired_tile.y = 5;
+    desired_tile.y = 4;
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
