@@ -56,7 +56,7 @@ Planner planner;
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
-bool _found_hall = true;
+bool _found_hall = true; // TODO SET TO  WHEN ACTUALLY ATTACHED false;
 bool KILL_SWITCH = false; 
 
 // POSITION
@@ -122,7 +122,7 @@ void robotPerformanceThread(int n)
     
     ROS_INFO("Starting tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
-
+    ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     runInitialSearch();
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
@@ -171,12 +171,14 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     if (isOnXTile)
     {
-        sensor_readings.setCurrentTileX(currentWholeX);
+        ROS_INFO("Setting x tile = %i", (int)currentWholeX);
+        sensor_readings.setCurrentTileX((int)currentWholeX);
     }
 
     if (isOnYTile)
     {
-        sensor_readings.setCurrentTileY(currentWholeY);
+        ROS_INFO("Setting y tile = %i", (int)currentWholeX);
+        sensor_readings.setCurrentTileY((int)currentWholeY);
     }
 
     // If there is a valid target heading that means we are turning
@@ -716,10 +718,11 @@ void runInitialSearch()
 
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
-    
-    if ((x == 0 || x == 5)
+    ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    if ((x == 3 && y == 0)
         || (x == 2 && y == 5))
     {
+        ROS_INFO("Before Running X independant: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
         // TOP OR BOTTOM
         completeSearchXDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
@@ -730,9 +733,10 @@ void runInitialSearch()
             completeSecondSearchXDependent();
         }
     }
-    else if (y == 0 || y == 5)
+    else if ((x == 0 && y == 2) || (x == 5 && y == 3))
     {
         //BOTTOM
+        ROS_INFO("Running y dependant");
         completeSearchYDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
 
@@ -744,6 +748,7 @@ void runInitialSearch()
     }
     else
     {
+        ROS_INFO("NOT RUNNING ANYTHING");
         ROS_WARN("OUR CURRENT POSITION IS WRONG AND WE CAN'T START");
     }
 }
@@ -751,7 +756,7 @@ void runInitialSearch()
 void completeSearchXDependent()
 {
     int y = sensor_readings.getCurrentTileY();
-    TilePosition poi[3] = {TilePosition(4,y), TilePosition(3,y), TilePosition(0,y)};
+    TilePosition poi[3] = {TilePosition(3,y), TilePosition(4,y), TilePosition(0,y)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
