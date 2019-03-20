@@ -11,6 +11,7 @@
 #include <signal.h>
 
 const int PWM_RANGE = 100;  // Max pwm value
+const int MAX_TURN_SPEED = 85;
 const float INT_CLAMP = 5.0;
 const float MAX_VEL = 0.4;
 float KP_TURNING;
@@ -147,18 +148,18 @@ void drivePI(int heading, float dt)
     if (std::abs(right_speed) >= std::abs(left_speed))
     {
         float ratio = std::abs(float(right_speed) / left_speed);
-        if (std::abs(right_speed) > PWM_RANGE)
+        if (std::abs(right_speed) > MAX_TURN_SPEED)
         {
-            right_speed = (int)(std::copysign(PWM_RANGE, right_speed));
+            right_speed = (int)(std::copysign(MAX_TURN_SPEED, right_speed));
             left_speed = (int)(std::copysign((right_speed / ratio), left_speed));  // Reduce other speed to match the other wheel
         }
     }
     else
     {
         float ratio = std::abs(float(left_speed) / right_speed);
-        if (std::abs(left_speed) > PWM_RANGE)
+        if (std::abs(left_speed) > MAX_TURN_SPEED)
         {
-            left_speed = (int)(std::copysign(PWM_RANGE, left_speed));
+            left_speed = (int)(std::copysign(MAX_TURN_SPEED, left_speed));
             right_speed = (int)(std::copysign((left_speed / ratio), right_speed));  // Reduce other speed to match the other wheel
         }
     }
