@@ -40,10 +40,10 @@ void driveToLargeBuilding();
 void conductGridSearch();
 void waitForPlannerScan();
 void runInitialSearch();
+void startSearchYDependent();
+void startSearchXDependent();
 void completeSearchYDependent();
 void completeSearchXDependent();
-void completeSecondSearchYDependent();
-void completeSecondSearchXDependent();
 
 SensorReadings sensor_readings;
 
@@ -722,28 +722,27 @@ void runInitialSearch()
     if ((x == 3 && y == 0)
         || (x == 2 && y == 5))
     {
-        ROS_INFO("Before Running X independant: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
         // TOP OR BOTTOM
-        completeSearchXDependent();
+        startSearchXDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
         
         if(sensor_readings.pointsOfInterestSize() < 3)
         {
             sensor_readings.setCurrentState(STATE::FINDING_T_SEARCH_TILE);
-            completeSecondSearchXDependent();
+            completeSearchXDependent();
         }
     }
     else if ((x == 0 && y == 2) || (x == 5 && y == 3))
     {
-        //BOTTOM
+        // LEFT OR RIGHT
         ROS_INFO("Running y dependant");
-        completeSearchYDependent();
+        startSearchYDependent();
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
 
         if(sensor_readings.pointsOfInterestSize() < 3)
         {
             sensor_readings.setCurrentState(STATE::FINDING_T_SEARCH_TILE);
-            completeSecondSearchYDependent();
+            completeSearchYDependent();
         }
     }
     else
@@ -753,15 +752,17 @@ void runInitialSearch()
     }
 }
 
-void completeSearchXDependent()
+void startSearchXDependent()
 {
     int y = sensor_readings.getCurrentTileY();
+    ROS_INFO("Current tile Y on straight line search is %i", y);
     TilePosition poi[3] = {TilePosition(3,y), TilePosition(4,y), TilePosition(0,y)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
+        ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
@@ -773,21 +774,28 @@ void completeSearchXDependent()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+        float uf = sensor_readings.getUltraFwd();
+        ROS_INFO("Ultra fwd is %f", uf);
+        if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
         {
+            ROS_INFO("Found a clear path fwd");
             break;
         }
     }
+
+    ROS_INFO("Setting state to init search");
     sensor_readings.setCurrentState(STATE::INIT_SEARCH);
     
     desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = sensor_readings.getCurrentTileY() == 0 ? 5 : 0;
 
+    ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
     waitToHitTile();
+    ROS_INFO("Finished straight line search");
 }
 
-void completeSearchYDependent()
+void startSearchYDependent()
 {
     int x = sensor_readings.getCurrentTileX();
     TilePosition poi[3] = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
@@ -821,10 +829,10 @@ void completeSearchYDependent()
     waitToHitTile();
 }
 
-void completeSecondSearchXDependent()
+void completeSearchXDependent()
 {
     int x = sensor_readings.getCurrentTileX();
-    TilePosition poi[3] = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
+    TilePosition poi[3] = {TilePosition(x,3), TilePosition(x,1), TilePosition(x,5)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
@@ -876,10 +884,10 @@ void completeSecondSearchXDependent()
     }
 }
 
-void completeSecondSearchYDependent()
+void completeSearchYDependent()
 {
     int y = sensor_readings.getCurrentTileY();
-    TilePosition poi[3] = {TilePosition(0,y), TilePosition(3, y), TilePosition(1,y)};
+    TilePosition poi[3] = {TilePosition(3, y), TilePosition(4,y), TilePosition(0,y)};
     for(int i = 0; i < 3; i++)
     {
         desired_tile.x = poi[i].x;
@@ -905,19 +913,19 @@ void completeSecondSearchYDependent()
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
         
-
         sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 0;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
     }
-    else if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
+    else if (((std::abs(ch-360) < HEADING_ACCURACY_BUFFER || ch < HEADING_ACCURACY_BUFFER)
         && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft())
-        || (std::abs(sensor_readings.getCurrentHeading() - 270) < HEADING_ACCURACY_BUFFER
+        || (std::abs(sensor_readings.getCurrentHeading() - 180) < HEADING_ACCURACY_BUFFER
         && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft()))
     {
-        desired_tile.x = 0;
-        desired_tile.y = sensor_readings.getCurrentTileY();
+        desired_tile.x = sensor_readings.getCurrentTileX();
+        desired_tile.y = 0;
+
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
 
@@ -931,6 +939,10 @@ void completeSecondSearchYDependent()
         ROS_WARN("SOMETHING WENT SUPER WRONG COMPLETING T SEARCH");
     }
 }
+
+
+
+
 
 
 //OLD CODE -- MIGHT NEED -- DON'T TOUCH - NEVER CALLED
