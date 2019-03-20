@@ -3,6 +3,7 @@
 Planner::Planner()
 {
     drivePoints = std::list<TilePosition>();
+    graphPath = GraphPath();
 }
 
 void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ros::Publisher lp)
@@ -129,6 +130,11 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     int heading;
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
+
+    ROS_INFO("Using Graph to determine shortest path, starting at %i, %i", currentX, currentY);
+    TilePosition start(currentX, currentY);
+    TilePosition dest(x, y);
+    graphPath.getShortestPath(start, dest);
 
     // We will prioritize driving the longest leg of the horizontal/vertical drive first
     // If they are the same length, we will drive the vertical one first

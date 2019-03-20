@@ -10,6 +10,7 @@
 #include "bill_msgs/MotorCommands.h"
 #include "bill_planning/position.hpp"
 #include "bill_planning/sensor_readings.hpp"
+#include "bill_planning/graph_path.hpp"
 #include <list>
 
 class Planner
@@ -47,6 +48,8 @@ class Planner
     ros::Publisher _fan_pub;
     ros::Publisher _led_pub;
     std::list<TilePosition> drivePoints;
+
+    GraphPath graphPath;
 
     float driveSpeed = 0;
 };
