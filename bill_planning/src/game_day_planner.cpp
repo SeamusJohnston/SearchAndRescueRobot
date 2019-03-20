@@ -825,7 +825,7 @@ void completeSecondSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
         if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
@@ -833,8 +833,6 @@ void completeSecondSearchXDependent()
             break;
         }
     }
-
-    sensor_readings.setCurrentState(STATE::INIT_SEARCH);
 
     if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
         && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft())
@@ -846,6 +844,8 @@ void completeSecondSearchXDependent()
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
         
+
+        sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 0;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
@@ -859,6 +859,8 @@ void completeSecondSearchXDependent()
         desired_tile.y = sensor_readings.getCurrentTileY();
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
+
+        sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 5;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
@@ -867,13 +869,62 @@ void completeSecondSearchXDependent()
     {
         ROS_WARN("SOMETHING WENT SUPER WRONG COMPLETING T SEARCH");
     }
-    
-    // Go to left or right side then go to other side while scanning
 }
 
 void completeSecondSearchYDependent()
 {
+    int y = sensor_readings.getCurrentTileY();
+    TilePosition poi[3] = {TilePosition(0,y), TilePosition(3, y), TilePosition(1,y)};
+    for(int i = 0; i < 3; i++)
+    {
+        desired_tile.x = poi[i].x;
+        desired_tile.y = poi[i].y;
 
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        waitToHitTile();
+
+        if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
+        {
+            break;
+        }
+    }
+
+    int ch = sensor_readings.getCurrentHeading();
+    if (((std::abs(ch-360) < HEADING_ACCURACY_BUFFER || ch < HEADING_ACCURACY_BUFFER)
+        && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft())
+        || (std::abs(sensor_readings.getCurrentHeading() - 180) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft()))
+    {
+        desired_tile.x = sensor_readings.getCurrentTileX();
+        desired_tile.y = 5;
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+        
+
+        sensor_readings.setCurrentState(STATE::INIT_SEARCH);
+        desired_tile.x = 0;
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+    }
+    else if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft())
+        || (std::abs(sensor_readings.getCurrentHeading() - 270) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft()))
+    {
+        desired_tile.x = 0;
+        desired_tile.y = sensor_readings.getCurrentTileY();
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+
+        sensor_readings.setCurrentState(STATE::INIT_SEARCH);
+        desired_tile.x = 5;
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+    }
+    else
+    {
+        ROS_WARN("SOMETHING WENT SUPER WRONG COMPLETING T SEARCH");
+    }
 }
 
 
