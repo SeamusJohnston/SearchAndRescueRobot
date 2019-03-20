@@ -11,7 +11,7 @@
 #include <chrono>
 
 const float TOL = 0.05; // TODO: Determine appropriate range
-const float COURSE_DIM = 1.8; // TODO: Measure
+const float COURSE_DIM = 1.85;
 const float ROBOT_WIDTH = 7.0 * 0.0254;
 const float ROBOT_LENGTH = 0.26;
 
