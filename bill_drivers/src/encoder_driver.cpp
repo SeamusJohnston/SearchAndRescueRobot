@@ -13,7 +13,7 @@ const float DIST_PER_TICK = (M_PI * 4.0 * 0.0254 / (20 * 125));  // pi * diamete
 const float WHEEL_BASE = 7 * 0.0254;
 const int MOTORA_COUNTER_KEY = 0;
 const int MOTORB_COUNTER_KEY = 1;
-const int slip_ratio = 0.6879;
+const float slip_ratio = 0.6879;
 
 int motorA_stateA_prev;
 int motorB_stateA_prev;
@@ -132,8 +132,8 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piUnlock(MOTORA_COUNTER_KEY);
     piUnlock(MOTORB_COUNTER_KEY);
 
-    float v_right = delta_right * DIST_PER_TICK / dt / slip_ratio;
-    float v_left = delta_left * DIST_PER_TICK / dt / slip_ratio;
+    float v_right = (delta_right * DIST_PER_TICK / dt) / slip_ratio;
+    float v_left = (delta_left * DIST_PER_TICK / dt) / slip_ratio;
 
     float v_robot = (v_right + v_left) / 2.0;
     float v_th = (v_right - v_left) / WHEEL_BASE;  // rad/s
@@ -195,8 +195,10 @@ int main(int argc, char** argv)
 
     nh.getParam("/bill/starting_params/x", x);
     nh.getParam("/bill/starting_params/y", y);
-    nh.getParam("/bill/starting_params/theta", theta);
-    theta = angles::from_degrees(theta);
+    float temp_theta;
+    nh.getParam("/bill/starting_params/theta", temp_theta);
+    theta = (temp_theta)*M_PI/180.0;
+    ROS_INFO("Starting values: x= %f, y=%f, theta=%f, temp_theta=%f", x, y, theta, temp_theta);
 
     // Call sensor setup
     setup();
