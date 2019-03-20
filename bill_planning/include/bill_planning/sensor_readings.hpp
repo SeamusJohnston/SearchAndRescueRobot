@@ -14,11 +14,12 @@
 
 enum STATE
 {
-    INIT_SEARCH = 0,
-    FLAME_SEARCH = 1,
-    BUILDING_SEARCH = 2,
-    HALL_SEARCH = 3,
-    RETURN_HOME = 4
+    FINDING_T_SEARCH_TILE = 0,
+    INIT_SEARCH = 1,
+    FLAME_SEARCH = 2,
+    BUILDING_SEARCH = 3,
+    HALL_SEARCH = 4,
+    RETURN_HOME = 5
 };
 
 class SensorReadings

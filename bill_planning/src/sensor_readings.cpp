@@ -2,6 +2,7 @@
 
 SensorReadings::SensorReadings()
 {
+    //TODO PREPOPULATE QUEUE WITH POSSIBLE MAGNET POINTS
     _points_of_interest = std::queue<TilePosition>();
     _flame_tile.x = -1;
     _flame_tile.y = -1;
