@@ -142,15 +142,14 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     }
     if (xDistSq <= yDistSq)
     {
-        sensorReadings.setTargetPoint(currentX, y);
-
-        drivePoints.emplace_back(currentX, y);
         //ROS_INFO("Targeting point: %i, %i", currentX, y);
         sensorReadings.setTargetPoint(currentX, y);
 
+        drivePoints.emplace_back(currentX, y);
+
         heading = currentY > y ? 270 : 90;
 
-        if (xDistSq == 0)
+        if (xDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
         {
             // We only need one leg to drive to this point
             //ROS_INFO("Driving in one leg");
@@ -161,14 +160,14 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     }
     else
     {
+        //ROS_INFO("Targeting point: %i, %i", x, currentY);
         sensorReadings.setTargetPoint(x, currentY);
 
         drivePoints.emplace_back(x,currentY);
-        //ROS_INFO("Targeting point: %i, %i", x, currentY);
-        sensorReadings.setTargetPoint(x, currentY);
+
         heading = currentX > x ? 180 : 0;
 
-        if (yDistSq == 0)
+        if (yDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
         {
             // We only need one leg to drive to this point
             //ROS_INFO("Driving in one leg");

@@ -39,6 +39,11 @@ void driveHome();
 void driveToLargeBuilding();
 void conductGridSearch();
 void waitForPlannerScan();
+void runInitialSearch();
+void completeSearchYDependent();
+void completeSearchXDependent();
+void completeSecondSearchYDependent();
+void completeSecondSearchXDependent();
 
 SensorReadings sensor_readings;
 
@@ -62,6 +67,7 @@ int desired_heading = 90;
 
 // CONSTANTS
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
+const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 10; //cm
 const float TILE_WIDTH = 0.3;
@@ -88,13 +94,14 @@ int main(int argc, char** argv)
     ros::Subscriber sub_food = nh.subscribe("food", 1, hallCallback);
     ros::Subscriber sub_survivors = nh.subscribe("survivors", 1, survivorsCallback);
 
-    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100);
+    ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100, true);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
     ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
 
+    sensor_readings.setCurrentState(STATE::FINDING_T_SEARCH_TILE);
     std::thread robot_execution_thread(robotPerformanceThread, 1);
     ros::spin();
     KILL_SWITCH = true;
@@ -112,22 +119,11 @@ void robotPerformanceThread(int n)
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
+    
+    ROS_INFO("Starting tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
-
-    completeStraightLineSearch();
-
-
-    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
-    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
-    if(sensor_readings.pointsOfInterestSize() < 3)
-    {
-        ROS_INFO("STARTING T SEARCH");
-        completeTSearch();
-        ROS_INFO("FINISHING T SEARCH");
-    }
+    runInitialSearch();
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
 
@@ -172,8 +168,6 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     bool isOnXTile = fabs(0.5 - fabs(localTileXCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
     bool isOnYTile = fabs(0.5 - fabs(localTileYCoverage)) < (POSITION_ACCURACY_BUFFER / TILE_WIDTH);
-    //bool isOnXTile = (localTileXCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileXCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
-    //bool isOnYTile = (localTileYCoverage > (0.5 - (POSITION_ACCURACY_BUFFER / TILE_WIDTH))) && (localTileYCoverage < (0.5 + (POSITION_ACCURACY_BUFFER / TILE_WIDTH)));
 
     if (isOnXTile)
     {
@@ -249,9 +243,33 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
     {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
-        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        int h = sensor_readings.getCurrentHeading();
+        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100 - msg->data);
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100 + msg->data);
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
+        {        
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
+        {        
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
     }
 
     sensor_readings.setUltraLeft(msg->data);
@@ -270,9 +288,33 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && (sensor_readings.getUltraRight() - msg->data) > DELTA)
     {
-        int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
-        int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
-        sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        int h = sensor_readings.getCurrentHeading();
+        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100 + msg->data);
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100 - msg->data);
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
+        {        
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 + msg->data);
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
+        {        
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() * 100 - msg->data);
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() * 100);
+            sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
+        }
     }
 
     sensor_readings.setUltraRight(msg->data);
@@ -296,6 +338,7 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
         {
             found_fire_front++;
             sensor_readings.setDetectedFireFwd(false);
+            fireOut();
         }
         else
         {
@@ -470,6 +513,7 @@ void fireOut()
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 }
 
+<<<<<<< HEAD
 void findClearPathFwd()
 {
     if(!_cleared_fwd && sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
@@ -531,6 +575,8 @@ void completeStraightLineSearch()
     ROS_INFO("Hit Tile");
 }
 
+=======
+>>>>>>> 2855b95b6e2bf19d7dd562d9c7ddcb838413a912
 void driveToDesiredPoints()
 {
     while (!sensor_readings.pointsOfInterestEmpty() && !KILL_SWITCH)
@@ -544,7 +590,7 @@ void driveToDesiredPoints()
             continue;
         }
 
-        sensor_readings.setTargetPoint(newTarget.x, newTarget.y);
+        //sensor_readings.setTargetPoint(newTarget.x, newTarget.y);
 
         desired_tile.x = sensor_readings.getTargetTileX();
         desired_tile.y = sensor_readings.getTargetTileY();
@@ -601,7 +647,7 @@ void driveHome()
 
 void driveToLargeBuilding()
 {
-    sensor_readings.setTargetPoint(large_building_tile.x, large_building_tile.y);
+    //sensor_readings.setTargetPoint(large_building_tile.x, large_building_tile.y);
 
     desired_tile.x = large_building_tile.x;
     desired_tile.y = large_building_tile.y;
@@ -619,7 +665,8 @@ void driveToLargeBuilding()
 
 void waitToHitTile()
 {
-    while((desired_tile.x != sensor_readings.getCurrentTileX() ||
+    while((planner.is_moving 
+        || desired_tile.x != sensor_readings.getCurrentTileX() ||
         desired_tile.y != sensor_readings.getCurrentTileY()) 
         && !KILL_SWITCH)
     {
@@ -711,4 +758,249 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
     int x = x_pos/30;
     int y = y_pos/30;
     return TilePosition(x,y);
+}
+
+void runInitialSearch()
+{
+    /*
+    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
+
+    completeStraightLineSearch();
+
+
+    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
+    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
+    if(sensor_readings.pointsOfInterestSize() < 3)
+    {
+        ROS_INFO("STARTING T SEARCH");
+        completeTSearch();
+        ROS_INFO("FINISHING T SEARCH");
+    }
+    */
+
+    int x = sensor_readings.getCurrentTileX();
+    int y = sensor_readings.getCurrentTileY();
+    
+    if ((x == 0 || x == 5)
+        || (x == 2 && y == 5))
+    {
+        // TOP OR BOTTOM
+        completeSearchXDependent();
+        ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
+        
+        if(sensor_readings.pointsOfInterestSize() < 3)
+        {
+            sensor_readings.setCurrentState(STATE::FINDING_T_SEARCH_TILE);
+            completeSecondSearchXDependent();
+        }
+    }
+    else if (y == 0 || y == 5)
+    {
+        //BOTTOM
+        completeSearchYDependent();
+        ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
+
+        if(sensor_readings.pointsOfInterestSize() < 3)
+        {
+            sensor_readings.setCurrentState(STATE::FINDING_T_SEARCH_TILE);
+            completeSecondSearchYDependent();
+        }
+    }
+    else
+    {
+        ROS_WARN("OUR CURRENT POSITION IS WRONG AND WE CAN'T START");
+    }
+}
+
+void completeSearchXDependent()
+{
+    int y = sensor_readings.getCurrentTileY();
+    TilePosition poi[3] = {TilePosition(4,y), TilePosition(3,y), TilePosition(0,y)};
+    for(int i = 0; i < 3; i++)
+    {
+        desired_tile.x = poi[i].x;
+        desired_tile.y = poi[i].y;
+
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        waitToHitTile();
+
+        desired_heading = y == 5 ? 270 : 90;
+        planner.publishTurn(desired_heading);
+
+        while (shouldKeepTurning() && !KILL_SWITCH)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+        {
+            break;
+        }
+    }
+    sensor_readings.setCurrentState(STATE::INIT_SEARCH);
+    
+    desired_tile.x = sensor_readings.getCurrentTileX();
+    desired_tile.y = sensor_readings.getCurrentTileY() == 0 ? 5 : 0;
+
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+    waitToHitTile();
+}
+
+void completeSearchYDependent()
+{
+    int x = sensor_readings.getCurrentTileX();
+    TilePosition poi[3] = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
+    for(int i = 0; i < 3; i++)
+    {
+        desired_tile.x = poi[i].x;
+        desired_tile.y = poi[i].y;
+
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        waitToHitTile();
+
+        desired_heading = x == 0 ? 0 : 180;
+        planner.publishTurn(desired_heading);
+
+        while (shouldKeepTurning() && !KILL_SWITCH)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+        {
+            break;
+        }
+    }
+    sensor_readings.setCurrentState(STATE::INIT_SEARCH);
+
+    desired_tile.x = sensor_readings.getCurrentTileX() == 0 ? 5 : 0;
+    desired_tile.y = sensor_readings.getCurrentTileY();
+
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+    waitToHitTile();
+}
+
+void completeSecondSearchXDependent()
+{
+    int x = sensor_readings.getCurrentTileX();
+    TilePosition[] poi = {TilePosition(x,1), TilePosition(x,3), TilePosition(x,5)};
+    for(int i = 0; i < 3; i++)
+    {
+        desired_tile.x = poi[i].x;
+        desired_tile.y = poi[i].y;
+
+        planner.publishDriveToTile(desired_tile.x, desired_tile.y, 0.4);
+        waitToHitTile();
+
+        if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
+        {
+            break;
+        }
+    }
+
+    sensor_readings.setCurrentState(STATE::INIT_SEARCH);
+
+    if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft())
+        || (std::abs(sensor_readings.getCurrentHeading() - 270) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft()))
+    {
+        desired_tile.x = 5;
+        desired_tile.y = sensor_readings.getCurrentTileY();
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+        
+        desired_tile.x = 0;
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+    }
+    else if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft())
+        || (std::abs(sensor_readings.getCurrentHeading() - 270) < HEADING_ACCURACY_BUFFER
+        && sensor_readings.getUltraRight() >= sensor_readings.getUltraLeft()))
+    {
+        desired_tile.x = 0;
+        desired_tile.y = sensor_readings.getCurrentTileY();
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+        desired_tile.x = 5;
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+        waitToHitTile();
+    }
+    else
+    {
+        ROS_WARN("SOMETHING WENT SUPER WRONG COMPLETING T SEARCH");
+    }
+    
+    // Go to left or right side then go to other side while scanning
+}
+
+void completeSecondSearchYDependent()
+{
+
+}
+
+
+//OLD CODE -- MIGHT NEED -- DON'T TOUCH - NEVER CALLED
+void completeStraightLineSearch()
+{
+    ROS_INFO("Findings Clear Path Fwd");
+    findClearPathFwd(); //TODO UNCOMMENT THIS
+    ROS_INFO("Found Clear Path Fwd");
+
+    desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
+    desired_tile.y = 5;
+
+    planner.publishDriveToTile(sensor_readings,
+        desired_tile.x,
+        desired_tile.y, 0.2);
+    ROS_INFO("Published drive");
+    waitToHitTile();
+    ROS_INFO("Hit Tile");
+}
+
+
+void findClearPathFwd()
+{
+    if(!_cleared_fwd 
+        && sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+    {
+        _cleared_fwd = true;
+    }
+    else
+    {
+        int increment = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
+            -1 : 1;
+        desired_heading = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
+            180 : 0;
+
+        while(!_cleared_fwd && !KILL_SWITCH)
+        {
+            int temp_ultra = increment == -1 ?
+                             sensor_readings.getUltraRight() :
+                             sensor_readings.getUltraLeft();
+
+            if (desired_tile.x == sensor_readings.getCurrentTileX()
+                && desired_tile.y == sensor_readings.getCurrentTileY()
+                && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
+            {
+                desired_tile.x = sensor_readings.getCurrentTileX() + increment;
+                desired_tile.y = 0;
+
+                planner.publishDriveToTile(
+                        sensor_readings,
+                        desired_tile.x,
+                        desired_tile.y, 0.4);
+                // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
+            }
+            else if (temp_ultra > FULL_COURSE_DETECTION_LENGTH)
+            {
+                _cleared_fwd = true;
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+
+        desired_heading = 90;
+    }
 }
