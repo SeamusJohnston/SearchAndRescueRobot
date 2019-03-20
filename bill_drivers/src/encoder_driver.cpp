@@ -5,13 +5,15 @@
 #include "angles/angles.h"
 #include "bill_drivers/constant_definition.hpp"
 #include "bill_msgs/MotorDirection.h"
+#include "bill_msgs/Position.h"
 #include <cmath>
 
 // TODO: Get an accurate measurement of the wheel's diameter and wheel base
 const float DIST_PER_TICK = (M_PI * 4.0 * 0.0254 / (20 * 125));  // pi * diameter * meters_to_inches / counts per rev
-const float WHEEL_BASE = 7 * 0.0254; // TODO: Get measurement
+const float WHEEL_BASE = 7 * 0.0254;
 const int MOTORA_COUNTER_KEY = 0;
 const int MOTORB_COUNTER_KEY = 1;
+const int slip_ratio = 0.6879;
 
 int motorA_stateA_prev;
 int motorB_stateA_prev;
@@ -110,6 +112,11 @@ void motorCallback(const bill_msgs::MotorDirection::ConstPtr& msg)
     piUnlock(MOTORB_COUNTER_KEY);
 }
 
+void positionCallback(const bill_msgs::Position::ConstPtr& msg)
+{
+    theta = angles::from_degrees(msg->heading);
+}
+
 nav_msgs::Odometry calculateOdometry(float dt)
 {
     // TODO: Account and determine slip coeff, radius inequalities and wheelbase errors
@@ -125,19 +132,19 @@ nav_msgs::Odometry calculateOdometry(float dt)
     piUnlock(MOTORA_COUNTER_KEY);
     piUnlock(MOTORB_COUNTER_KEY);
 
-    float v_right = delta_right * DIST_PER_TICK / dt;
-    float v_left = delta_left * DIST_PER_TICK / dt;
+    float v_right = delta_right * DIST_PER_TICK / dt / slip_ratio;
+    float v_left = delta_left * DIST_PER_TICK / dt / slip_ratio;
 
     float v_robot = (v_right + v_left) / 2.0;
     float v_th = (v_right - v_left) / WHEEL_BASE;  // rad/s
 
-    float delta_x = v_robot * cos(theta) * dt;  // These calcs are done with the prev theta value, should be fine though
+    float delta_x = v_robot * cos(theta) * dt;
     float delta_y = v_robot * sin(theta) * dt;
     float delta_th = v_th * dt;
 
     x += delta_x;
     y += delta_y;
-    theta += delta_th;
+    /*theta += delta_th;
 
     if (theta >= 2 * M_PI)
     {
@@ -146,7 +153,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
     else if (theta < 0)
     {
         theta += 2 * M_PI;
-    }
+    }*/
 
     nav_msgs::Odometry msg;
     msg.header.frame_id = "odom";
@@ -173,7 +180,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
                            0, 0, 0, 0, -1, 0,
                            0, 0, 0, 0, 0, 0.01};
 
-    ROS_INFO("Heading: %f", angles::to_degrees(theta));
+    //ROS_INFO("Heading: %f", angles::to_degrees(theta));
 
     return msg;
 }
