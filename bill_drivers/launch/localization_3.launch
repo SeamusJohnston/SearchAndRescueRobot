@@ -35,9 +35,9 @@
           false, false, true,
           false, false, false]</rosparam> 
       
-    <param name = "publish_tf" value="true"/>
+    <param name = "publish_tf" value="false"/>
     <param name = "publish_acceleration" value="false"/>
-    <param name = "print_diagnostics" value="true"/>
+    <param name = "print_diagnostics" value="false"/>
     <param name = "debug" value="false"/>
     <!-- TODO: Enter x-y starting pose -->
     <rosparam param="initial_state">[0.8, 1.7, 0.0,

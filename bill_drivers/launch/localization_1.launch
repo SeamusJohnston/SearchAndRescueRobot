@@ -47,11 +47,11 @@
           false, false, false,
           false, false, false]</rosparam> -->
       
-    <param name = "publish_tf" value="true"/>
+    <param name = "publish_tf" value="false"/>
     <param name = "publish_acceleration" value="false"/>
-    <param name = "print_diagnostics" value="true"/>
+    <param name = "print_diagnostics" value="false"/>
     <param name = "debug" value="false"/>
-    <rosparam param="initial_state">[0, 0, 0.0,
+    <rosparam param="initial_state">[1.05, 0.15, 0.0,
           0.0, 0.0, 1.57,
           0.0, 0.0, 0.0,
           0.0, 0.0, 0.0,
