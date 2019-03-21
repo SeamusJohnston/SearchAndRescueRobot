@@ -35,9 +35,7 @@ void setup()
 {
     wiringPiSetupGpio();
     pinMode(MOTORA_ENCA_PIN, INPUT);
-    pinMode(MOTORA_ENCB_PIN, INPUT);
     pinMode(MOTORB_ENCA_PIN, INPUT);
-    pinMode(MOTORB_ENCB_PIN, INPUT);
 
     motorA_stateA_prev = digitalRead(MOTORA_ENCA_PIN);
     motorB_stateA_prev = digitalRead(MOTORB_ENCA_PIN);

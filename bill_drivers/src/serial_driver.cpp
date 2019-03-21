@@ -10,11 +10,12 @@
 #include "tf/transform_datatypes.h"
 #include <cmath>
 
-const std::string port = "/dev/ttyUSB0";
+const std::string port = "/dev/ttyACM0";
 const int baud = 9600;
 const std::string delimiter = " ";
 const int msg_length = 13;
 
+float starting_theta = M_PI_2;
 bool first_msg = true;
 tf::Quaternion transformation;
 char sensorData[msg_length];
@@ -24,16 +25,18 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "serial_driver");
     ros::NodeHandle nh;
     ros::Rate loop_rate(LOOP_RATE_SERIAL);
+    float temp_theta;
+    nh.getParam("/bill/starting_params/theta", temp_theta);
+    starting_theta = (temp_theta)*M_PI/180.0;
+
 
     ros::Publisher survivor_pub = nh.advertise<bill_msgs::Survivor>("survivors", 100);
-    ros::Publisher food_pub = nh.advertise<std_msgs::Bool>("food", 100);
     ros::Publisher fire_pub = nh.advertise<std_msgs::Bool>("fire", 100);
     ros::Publisher fire_left_pub = nh.advertise<std_msgs::Bool>("fire_left", 100);
     ros::Publisher fire_right_pub = nh.advertise<std_msgs::Bool>("fire_right", 100);
     ros::Publisher imu_pub = nh.advertise<sensor_msgs::Imu>("imu", 100);
 
     std::bitset<8> fire_bitmap = 0x01;
-    std::bitset<8> food_bitmap = 0x02;
     std::bitset<8> survivor_bitmap = 0x0C;
     std::bitset<8> fire_left_bitmap = 0x10;
     std::bitset<8> fire_right_bitmap = 0x20;
@@ -98,9 +101,9 @@ int main(int argc, char** argv)
             {
                 // Save the initial orientation so that the imu is aligned to the courses axis and not the earth's field
                 tf::Quaternion temp(quatX, quatY, quatZ, quatW);
-                transformation.setRPY(0,0,-tf::getYaw(temp)+M_PI_2);
+                transformation.setRPY(0,0,-tf::getYaw(temp)+starting_theta);
                 ROS_INFO("First Yaw: %f", tf::getYaw(temp));
-                ROS_INFO("Transformation: %f", -tf::getYaw(temp)+M_PI_2);
+                ROS_INFO("Transformation: %f", -tf::getYaw(temp)+starting_theta);
                 first_msg = false;
             }
 
@@ -137,7 +140,6 @@ int main(int argc, char** argv)
             // ROS_INFO("Received arduino data: %i", (int)data_received.to_ulong());
             // Parse the byte, bits 3 and 2 are survivor data, 1 is food and 0 is fire
             survivor_msg.data = (int)((data_received & survivor_bitmap) >> 2).to_ulong();
-            food_msg.data = (bool)(data_received & food_bitmap).to_ulong();
             fire_msg.data = (bool)(data_received & fire_bitmap).to_ulong();
             fire_left_msg.data = (bool)(data_received & fire_left_bitmap).to_ulong();
             fire_right_msg.data = (bool)(data_received & fire_right_bitmap).to_ulong();
@@ -145,7 +147,6 @@ int main(int argc, char** argv)
             // Publish message, and spin thread
             imu_pub.publish(imu_msg);
             survivor_pub.publish(survivor_msg);
-            food_pub.publish(food_msg);
             fire_pub.publish(fire_msg);
             fire_left_pub.publish(fire_left_msg);
             fire_left_pub.publish(fire_right_msg);
