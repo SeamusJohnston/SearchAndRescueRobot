@@ -5,6 +5,7 @@
 #include "bill_planning/position.hpp"
 #include "ros/ros.h"
 #include <math.h>
+#include <algorithm>
 using namespace std;
 
 class GraphPath
@@ -12,6 +13,7 @@ class GraphPath
     public:
         GraphPath();
         void add_edge(int src, int dest);
+        bool remove_edge(int src, int dest);
         void getShortestPath(std::list<TilePosition> &drivePoints, TilePosition start, TilePosition dest, bool scanOnReach);
 
     private:

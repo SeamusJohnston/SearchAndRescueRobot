@@ -66,15 +66,15 @@ TilePosition large_building_tile(-1,-1);
 int desired_heading = 90;
 
 // CONSTANTS
-const int FULL_COURSE_DETECTION_LENGTH = 1.70;
+const int FULL_COURSE_DETECTION_LENGTH = 1.60;
 const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
-const float DELTA = 10; //cm
+const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
+const float HEADING_ACCURACY_BUFFER = 4.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -118,10 +118,11 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    ROS_INFO("Starting tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // We can get this based off of chosed setup ask seamus
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
+    
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     runInitialSearch();
 
@@ -171,13 +172,11 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     if (isOnXTile)
     {
-        ROS_INFO("Setting x tile = %i", (int)currentWholeX);
         sensor_readings.setCurrentTileX((int)currentWholeX);
     }
 
     if (isOnYTile)
     {
-        ROS_INFO("Setting y tile = %i", (int)currentWholeX);
         sensor_readings.setCurrentTileY((int)currentWholeY);
     }
 
@@ -204,15 +203,12 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             planner.publishStop();
 
             // Should move into obstacle avoidance
-            // Left side is blocked
             if (sensor_readings.getUltraLeft() < OBSTACLE_THRESHOLD)
             {
-                planner.driveAroundObstacle(sensor_readings, false);
-            }
-            // Right side is blocked, or both sides are free.
-            else
-            {
-                planner.driveAroundObstacle(sensor_readings, true);
+                planner.driveAroundObstacle(sensor_readings);
+
+                // Buzz, because why not
+                planner.signalComplete();
             }
 
             return;
@@ -700,30 +696,15 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
 
 void runInitialSearch()
 {
-    /*
-    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
-
-    completeStraightLineSearch();
-
-
-    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
-    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
-    if(sensor_readings.pointsOfInterestSize() < 3)
-    {
-        ROS_INFO("STARTING T SEARCH");
-        completeTSearch();
-        ROS_INFO("FINISHING T SEARCH");
-    }
-    */
-
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
-    ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    ROS_INFO("Current Before Running initial search tile: (%i, %i)", x, y);
     if ((x == 3 && y == 0)
         || (x == 2 && y == 5))
     {
         // TOP OR BOTTOM
         startSearchXDependent();
+        
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
         
         if(sensor_readings.pointsOfInterestSize() < 3)
@@ -754,6 +735,7 @@ void runInitialSearch()
 
 void startSearchXDependent()
 {
+    ROS_INFO("Starting search x dependant");
     int y = sensor_readings.getCurrentTileY();
     ROS_INFO("Current tile Y on straight line search is %i", y);
     TilePosition poi[3] = {TilePosition(3,y), TilePosition(4,y), TilePosition(0,y)};
@@ -761,6 +743,11 @@ void startSearchXDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
 
         ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
@@ -776,13 +763,29 @@ void startSearchXDependent()
 
         float uf = sensor_readings.getUltraFwd();
         ROS_INFO("Ultra fwd is %f", uf);
-        if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+
+        int counter = 0;
+        bool set_flag = false;
+        while (counter < 25)
         {
-            ROS_INFO("Found a clear path fwd");
+            counter++;
+
+            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+            {
+                ROS_INFO("Found a clear path fwd");
+                set_flag = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            uf = sensor_readings.getUltraFwd();
+        }
+
+        if (set_flag)
+        {
             break;
         }
     }
 
+    ROS_INFO("Found/Defaulted a path and driving forward now");
     ROS_INFO("Setting state to init search");
     sensor_readings.setCurrentState(STATE::INIT_SEARCH);
     
@@ -804,6 +807,12 @@ void startSearchYDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
+
+
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
 
@@ -815,7 +824,24 @@ void startSearchYDependent()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+        float uf = sensor_readings.getUltraFwd();
+        ROS_INFO("Ultra fwd is %f", uf);
+        int counter = 0;
+        bool set_flag = false;
+        while (counter < 25)
+        {
+            counter++;
+
+            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+            {
+                ROS_INFO("Found a clear path fwd");
+                set_flag = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            uf = sensor_readings.getUltraFwd();
+        }
+
+        if (set_flag)
         {
             break;
         }
@@ -837,6 +863,12 @@ void completeSearchXDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() &&
+            desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
 
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
@@ -892,6 +924,12 @@ void completeSearchYDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && 
+            desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
 
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();

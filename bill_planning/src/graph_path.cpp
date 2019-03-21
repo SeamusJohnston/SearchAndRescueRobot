@@ -6,26 +6,28 @@
 bool isValidVerticalLink(int i)
 {
     return  (i != 2) &&
-            (i != (7 - 6)) && (i != 7) &&
-            (i != (10 - 6)) && (i != 10) &&
+//            (i != (7 - 6)) && (i != 7) &&
+//            (i != (10 - 6)) && (i != 10) &&
             (i != (17 - 6)) && (i != 17) &&
-            (i != (18 - 6)) && (i != 18) &&
-            (i != (20 - 6)) && (i != 20) &&
-            (i != (25 - 6)) && (i != 25) &&
-            (i != (28 - 6)) && (i != 28) &&
-            (i != 27);
+//            (i != (18 - 6)) && (i != 18) &&
+//            (i != (20 - 6)) && (i != 20) &&
+            (i != (25 - 6)) && (i != 25)/*&&*/
+//            (i != (28 - 6)) && (i != 28) &&
+//            (i != 27)
+            ;
 }
 
 bool isValidHorizontalLink(int i)
 {
     return  (i != (2 - 1)) && (i != 2) &&
-            (i != (7 - 1)) && (i != 7) &&
-            (i != (10 - 1)) && (i != 10) &&
+//            (i != (7 - 1)) && (i != 7) &&
+//            (i != (10 - 1)) && (i != 10) &&
             (i != (17 - 1)) &&
-            (i != 18) &&
-            (i != (20 - 1)) && (i != 20) &&
-            (i != (25 - 1)) && (i != 25) &&
-            (i != (28 - 1)) && (i != 28);
+//            (i != 18) &&
+//            (i != (20 - 1)) && (i != 20) &&
+            (i != (25 - 1)) && (i != 25) /*&&*/
+//            (i != (28 - 1)) && (i != 28)
+            ;
 }
 
 GraphPath::GraphPath()
@@ -50,10 +52,7 @@ GraphPath::GraphPath()
     // THIS FOR LOOP POPULATES ROW 5
     for (int i = 30; i < 35; ++i)
     {
-        if ((i != 33) && (i != 32))
-        {
-            add_edge(i, i+1);
-        }
+        add_edge(i, i+1);
     }
 }
 
@@ -62,6 +61,30 @@ void GraphPath::add_edge(int src, int dest)
 {
     adj[src].push_back(dest);
     adj[dest].push_back(src);
+}
+
+// utility function for removing an edge between two vertices source and dest
+bool GraphPath::remove_edge(int src, int dest)
+{
+    if (src > 35 || dest > 35 || src < 0 || dest < 0)
+    {
+        ROS_WARN("Attempting to remove an invalid edge. Bailing");
+        return false;
+    }
+
+    auto srcItr = std::find(adj[src].begin(), adj[src].end(), dest);
+    auto destItr = std::find(adj[dest].begin(), adj[dest].end(), src);
+
+    if ( srcItr != adj[src].end() && destItr != adj[dest].end())
+    {
+        adj[src].erase(srcItr);
+        adj[dest].erase(destItr);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 // a modified version of BFS that stores predecessor of each vertex in array p and its distance from source in array d

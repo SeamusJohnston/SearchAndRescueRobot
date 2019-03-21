@@ -77,7 +77,7 @@ void Planner::publishStop()
     _command_msg.heading = 0;
     _command_msg.speed = 0;
     _motor_pub.publish(_command_msg);
-    is_moving = true;
+    is_moving = false;
 }
 
 void Planner::publishDrive(const int heading, const float speed)
@@ -87,7 +87,7 @@ void Planner::publishDrive(const int heading, const float speed)
     _command_msg.heading = heading;
     _command_msg.speed = speed;
     _motor_pub.publish(_command_msg);
-    is_moving = false;
+    is_moving = true;
 }
 
 void Planner::publishTurn(const int heading)
@@ -97,7 +97,7 @@ void Planner::publishTurn(const int heading)
     _command_msg.heading = heading;
     _command_msg.speed = 0;  // Speed is hardcoded in the motor driver for turning
     _motor_pub.publish(_command_msg);
-    is_moving = false;
+    is_moving = true;
 }
 
 void Planner::putOutFire()
@@ -130,6 +130,12 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     int heading;
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
+
+    if ((currentX == x) && (currentY == y))
+    {
+        ROS_WARN("Attempting to drive to tile we are currently on, bailing.");
+        return;
+    }
 
     ROS_INFO("Using Graph to determine shortest path, starting at %i, %i", currentX, currentY);
     TilePosition start(currentX, currentY);
@@ -211,76 +217,84 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
 //    sensorReadings.setTargetHeading(heading);
 }
 
-void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
-{
+void Planner::driveAroundObstacle(SensorReadings &sensorReadings) {
     int currentHeading = sensorReadings.getCurrentHeading();
-    int targetHeading;
+    int obstacleIndex;
 
+    int currentX = sensorReadings.getCurrentTileX();
+    int currentY = sensorReadings.getCurrentTileY();
+
+    // Place the obstacle in the graph as necessary based on heading
+    // Obstacles are always assumed to be in the next tile forward
+    // Remove the edges around the obstacle
     // Facing 0
-    if (currentHeading >= 0 && currentHeading < 90)
-    {
-        int currentY = sensorReadings.getCurrentTileY();
-        int avoidanceY = takeLeft ? currentY + 1 : currentY - 1;
-        int currentX = sensorReadings.getCurrentTileX();
+    if (currentHeading >= 0 && currentHeading < 90) {
+        int obstacleX = currentX + 1;
+        int obstacleY = currentY;
 
-        drivePoints.emplace_front(currentX + 2, currentY);
-        drivePoints.emplace_front(currentX + 2, avoidanceY);
-        drivePoints.emplace_front(currentX, avoidanceY);
-
-        targetHeading = takeLeft ? 90 : 270;
-
+        obstacleIndex = (obstacleY * 6) + obstacleX;
     }
-    // Facing 90
-    else if(currentHeading >= 90 && currentHeading < 180)
-    {
-        int currentX = sensorReadings.getCurrentTileX();
-        int avoidanceX = takeLeft ? currentX - 1 : currentX + 1;
-        int currentY = sensorReadings.getCurrentTileY();
+        // Facing 90
+    else if (currentHeading >= 90 && currentHeading < 180) {
+        int obstacleX = currentX;
+        int obstacleY = currentY + 1;
 
-        drivePoints.emplace_front(currentX, currentY + 2);
-        drivePoints.emplace_front(avoidanceX, currentY + 2);
-        drivePoints.emplace_front(avoidanceX, currentY);
-
-        targetHeading  = takeLeft ? 180 : 0;
+        obstacleIndex = (obstacleY * 6) + obstacleX;
     }
-    // Facing 180
-    else if (currentHeading >= 180 && currentHeading < 270)
-    {
-        int currentY = sensorReadings.getCurrentTileY();
-        int avoidanceY = takeLeft ? currentY - 1 : currentY + 1;
-        int currentX = sensorReadings.getCurrentTileX();
+        // Facing 180
+    else if (currentHeading >= 180 && currentHeading < 270) {
+        int obstacleX = currentX - 1;
+        int obstacleY = currentY;
 
-        drivePoints.emplace_front(currentX - 2, currentY);
-        drivePoints.emplace_front(currentX - 2, avoidanceY);
-        drivePoints.emplace_front(currentX, avoidanceY);
-
-        targetHeading = takeLeft ? 270 : 90;
+        obstacleIndex = (obstacleY * 6) + obstacleX;
     }
-    // Facing 270
+        // Facing 270
+    else {
+        int obstacleX = currentX;
+        int obstacleY = currentY - 1;
+
+        obstacleIndex = (obstacleY * 6) + obstacleX;
+    }
+
+    // Remove the 4 connecting edges to the obstacle node
+    graphPath.remove_edge(obstacleIndex, obstacleIndex + 1);
+    graphPath.remove_edge(obstacleIndex, obstacleIndex - 1);
+    graphPath.remove_edge(obstacleIndex, obstacleIndex + 6);
+    graphPath.remove_edge(obstacleIndex, obstacleIndex - 6);
+
+    // Get the original target
+    TilePosition originalTarget = drivePoints.back();
+
+    // Lets empty the list
+    drivePoints.clear();
+
+    // Find a new path with the obstacle taken into account
+    graphPath.getShortestPath(drivePoints, TilePosition(currentX, currentY), originalTarget, originalTarget.scanOnReach);
+
+    if (!drivePoints.empty())
+    {
+        // Target the new point from resulting path
+        TilePosition nextLeg = drivePoints.front();
+        int heading;
+
+        // One of the two dimensions should always match
+        if (currentX == nextLeg.x) {
+            // Drive in Y
+            heading = currentY > nextLeg.y ? 270 : 90;
+        } else {
+            // Drive in X
+            heading = currentX > nextLeg.x ? 180 : 0;
+        }
+
+        //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
+        sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
+        sensorReadings.setTargetHeading(heading);
+        publishTurn(heading);
+    }
     else
     {
-        int currentX = sensorReadings.getCurrentTileX();
-        int avoidanceX = takeLeft ? currentX + 1 : currentX - 1;
-        int currentY = sensorReadings.getCurrentTileY();
-
-        drivePoints.emplace_front(currentX, currentY + 2);
-        drivePoints.emplace_front(avoidanceX, currentY + 2);
-        drivePoints.emplace_front(avoidanceX, currentY);
-
-        targetHeading  = takeLeft ? 180 : 0;
+        ROS_WARN("Could not find a new path after adding obstacle");
     }
-//    std::list<TilePosition>::iterator it = drivePoints.begin();
-//
-//    ROS_INFO("Targeting first obstacle avoidance point %i, %i", it->x, it->y);
-//    it++;
-//    ROS_INFO("Targeting second obstacle avoidance point %i, %i", it->x, it->y);
-//    it++;
-//    ROS_INFO("Targeting third obstacle avoidance point %i, %i", it->x, it->y);
-
-    // Target the new point we just injected into the target queue
-    sensorReadings.setTargetPoint(drivePoints.front().x, drivePoints.front().y);
-    sensorReadings.setTargetHeading(targetHeading);
-    publishTurn(targetHeading);
 }
 
 void Planner::scanTimerCallback(const ros::TimerEvent& event)

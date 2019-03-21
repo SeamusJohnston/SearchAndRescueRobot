@@ -28,7 +28,7 @@ class Planner
 
     void publishDriveToTile(SensorReadings &sensorReadings, int x, int y, float speed, bool scanOnReach = false);
 
-    void driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft);
+    void driveAroundObstacle(SensorReadings &sensorReadings);
 
     bool is_moving = false;
 
