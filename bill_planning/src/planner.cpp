@@ -131,6 +131,12 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     int currentX = sensorReadings.getCurrentTileX();
     int currentY = sensorReadings.getCurrentTileY();
 
+    if ((currentX == x) && (currentY == y))
+    {
+        ROS_WARN("Attempting to drive to tile we are currently on, bailing.");
+        return;
+    }
+
     ROS_INFO("Using Graph to determine shortest path, starting at %i, %i", currentX, currentY);
     TilePosition start(currentX, currentY);
     TilePosition dest(x, y);

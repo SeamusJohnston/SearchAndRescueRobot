@@ -64,6 +64,24 @@ void GraphPath::add_edge(int src, int dest)
     adj[dest].push_back(src);
 }
 
+// utility function for removing an edge between two verticies source and dest
+bool GraphPath::remove_edge(int src, int dest)
+{
+    auto srcItr = std::find(adj[src].begin(), adj[src].end(), dest);
+    auto destItr = std::find(adj[dest].begin(), adj[dest].end(), src);
+
+    if ( srcItr != adj[src].end() && destItr != adj[dest].end())
+    {
+        adj[src].erase(srcItr);
+        adj[dest].erase(destItr);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
 // a modified version of BFS that stores predecessor of each vertex in array p and its distance from source in array d
 bool GraphPath::BFS(int src, int dest, int v, int pred[], int dist[])
 {
