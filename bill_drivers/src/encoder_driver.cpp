@@ -140,11 +140,11 @@ nav_msgs::Odometry calculateOdometry(float dt)
 
     float delta_x = 0;
     float delta_y = 0;
-    // TODO: CONVERT TO RADIANS
+
     if (M_PI_4 < theta && theta <= 3*M_PI_4) // Facing positive y
     {
-        delta_x = v_robot * cos(M_PI_2 - theta) * dt;
-        delta_y = v_robot * sin(M_PI_2 - theta) * dt;
+        delta_x = v_robot * sin(M_PI_2 - theta) * dt;
+        delta_y = v_robot * cos(M_PI_2 - theta) * dt;
     }
     else if (3*M_PI_4 < theta && theta <= 5*M_PI_4) // Facing negative x
     {
@@ -153,8 +153,8 @@ nav_msgs::Odometry calculateOdometry(float dt)
     }
     else if (5*M_PI_4 < theta && theta <= 7*M_PI_4) // Facing negative y
     {
-        delta_x = v_robot * cos(3*M_PI_2 - theta) * dt;
-        delta_y = -v_robot * sin(3*M_PI_2 - theta) * dt;
+        delta_x = v_robot * sin(3*M_PI_2 - theta) * dt;
+        delta_y = -v_robot * cos(3*M_PI_2 - theta) * dt;
     }
     else // Facing positive x
     {
@@ -202,7 +202,7 @@ nav_msgs::Odometry calculateOdometry(float dt)
                            0, 0, 0, 0, -1, 0,
                            0, 0, 0, 0, 0, 0.01};
 
-    //ROS_INFO("Heading: %f", angles::to_degrees(theta));
+    ROS_INFO("Heading: %f", angles::to_degrees(theta));
 
     return msg;
 }
@@ -214,6 +214,7 @@ int main(int argc, char** argv)
     ros::Publisher odom_pub = nh.advertise<nav_msgs::Odometry>("odometry", 100);
     ros::Rate loop_rate(LOOP_RATE_ENCODER);
     ros::Subscriber motor_sub = nh.subscribe("motor_dir", 1, motorCallback);
+    ros::Subscriber position_sub = nh.subscribe("position", 1, positionCallback);
 
     nh.getParam("/bill/starting_params/x", x);
     nh.getParam("/bill/starting_params/y", y);

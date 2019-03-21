@@ -66,15 +66,15 @@ TilePosition large_building_tile(-1,-1);
 int desired_heading = 90;
 
 // CONSTANTS
-const float FULL_COURSE_DETECTION_LENGTH = 155.0;
-const float FULL_COURSE_SIDE_ULTRAS = 150.0;
+const int FULL_COURSE_DETECTION_LENGTH = 1.60;
+const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 3.0;
+const float HEADING_ACCURACY_BUFFER = 4.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -744,45 +744,28 @@ void startSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        if (desired_tile.x != sensor_readings.getCurrentTileX() || desired_tile.y != sensor_readings.getCurrentTileY())
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
         {
-            ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
-            planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
-            waitToHitTile();
+            continue;
         }
 
+        ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        waitToHitTile();
+
         desired_heading = y == 5 ? 270 : 90;
+        planner.publishTurn(desired_heading);
 
-        if (desired_heading != sensor_readings.getCurrentHeading())
+        while (shouldKeepTurning() && !KILL_SWITCH)
         {
-            planner.publishTurn(desired_heading);
-
-            while (shouldKeepTurning() && !KILL_SWITCH)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
         float uf = sensor_readings.getUltraFwd();
         ROS_INFO("Ultra fwd is %f", uf);
-
-        int counter = 0;
-        bool set_flag = false;
-        while (counter < 25)
+        if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
         {
-            counter++;
-
-            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
-            {
-                ROS_INFO("Found a clear path fwd value =  %f", uf);
-                set_flag = true;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            uf = sensor_readings.getUltraFwd();
-        }
-
-        if (set_flag)
-        {
+            ROS_INFO("Found a clear path fwd");
             break;
         }
     }
@@ -826,24 +809,7 @@ void startSearchYDependent()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        float uf = sensor_readings.getUltraFwd();
-        ROS_INFO("Ultra fwd is %f", uf);
-        int counter = 0;
-        bool set_flag = false;
-        while (counter < 25)
-        {
-            counter++;
-
-            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
-            {
-                ROS_INFO("Found a clear path fwd");
-                set_flag = true;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            uf = sensor_readings.getUltraFwd();
-        }
-
-        if (set_flag)
+        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
         {
             break;
         }
@@ -866,8 +832,9 @@ void completeSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
+<<<<<<< HEAD
         if (desired_tile.x == sensor_readings.getCurrentTileX() &&
-            desired_tile.y == sensor_readings.getCurrentTileY())
+            desired_tile.y == sensor_readings.getCurrentTileY(
         {
             continue;
         }
@@ -927,8 +894,12 @@ void completeSearchYDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
+<<<<<<< HEAD
         if (desired_tile.x == sensor_readings.getCurrentTileX() && 
             desired_tile.y == sensor_readings.getCurrentTileY())
+=======
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+>>>>>>> 7a09b8e1847ed7d70b790a7890b5c0981668abc8
         {
             continue;
         }
