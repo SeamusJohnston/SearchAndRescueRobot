@@ -55,7 +55,10 @@ Planner planner;
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
 bool _found_hall = true; // TODO SET TO  WHEN ACTUALLY ATTACHED false;
-bool KILL_SWITCH = false; 
+bool KILL_SWITCH = false;
+
+float previous_ultra_left = 0;
+float previous_ultra_right = 0;
 
 // POSITION
 TilePosition desired_tile(0,0);
@@ -118,7 +121,7 @@ void robotPerformanceThread(int n)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileY());
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
     runInitialSearch();
@@ -240,7 +243,8 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && (sensor_readings.getUltraLeft() - msg->data) > DELTA)
+        && ((sensor_readings.getUltraLeft() - msg->data) > DELTA)
+        || (previous_ultra_left - msg->data) > DELTA)
     {
         int h = sensor_readings.getCurrentHeading();
         if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
@@ -271,10 +275,62 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         }
     }
 
+    previous_ultra_left = sensor_readings.getUltraLeft();
     sensor_readings.setUltraLeft(msg->data);
 
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x02;
+    if(!sensor_readings.getStartRobotPerformanceThread()
+       && 0x07 - start_course == 0x00)
+    {
+        sensor_readings.setStartRobotPerformanceThread(true);
+    }
+}
+
+void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
+{
+    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+        && ((sensor_readings.getUltraRight() - msg->data) > DELTA)
+        || (previous_ultra_right - msg->data) > DELTA)
+    {
+        int h = sensor_readings.getCurrentHeading();
+        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
+        {
+            //Then we must be travelling parallel to x axis
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
+        {
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
+        {
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+        }
+        else
+        {
+            ROS_INFO("Found a point but couldn't emplace it due to heading error");
+        }
+    }
+
+    previous_ultra_right = sensor_readings.getUltraRight();
+    sensor_readings.setUltraRight(msg->data);
+
+    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
+    start_course = start_course ^ 0x04;
     if(!sensor_readings.getStartRobotPerformanceThread()
        && 0x07 - start_course == 0x00)
     {
@@ -287,51 +343,6 @@ void emplacePoint(TilePosition tile_position)
     if (tile_position.x >= 0 && tile_position.y >= 0)
     {
         sensor_readings.pointsOfInterestEmplace(tile_position);
-    }
-}
-
-void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
-{
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && (sensor_readings.getUltraRight() - msg->data) > DELTA)
-    {
-        int h = sensor_readings.getCurrentHeading();
-        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-    }
-
-    sensor_readings.setUltraRight(msg->data);
-
-    //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
-    start_course = start_course ^ 0x04;
-    if(!sensor_readings.getStartRobotPerformanceThread()
-       && 0x07 - start_course == 0x00)
-    {
-        sensor_readings.setStartRobotPerformanceThread(true);
     }
 }
 

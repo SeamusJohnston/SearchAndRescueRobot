@@ -8,7 +8,6 @@ SensorReadings::SensorReadings()
     //_home_tile.x = x;
     //_home_tile.y = y;
 }
-}
 
 void SensorReadings::setStartRobotPerformanceThread(bool val)
 {
@@ -235,9 +234,10 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 {
     std::pair <int,int> newVal (tp.x, tp.y);
 
+    ROS_INFO("ATTEMPTING TO EMPLACE POINT");
     if (std::find(_s.begin(), _s.end(), newVal) == _s.end())
     {
-//        ROS_INFO("Adding point to queue x = %i, y = %i", tp.x, tp.y);
+        ROS_INFO("Adding point to queue x = %i, y = %i", tp.x, tp.y);
         std::lock_guard<std::mutex> guard(_points_of_interest_mutex);    
         _y_Objects.erase(std::remove(_y_Objects.begin(), _y_Objects.end(), tp.y), _y_Objects.end());
         _points_of_interest.emplace(tp);
