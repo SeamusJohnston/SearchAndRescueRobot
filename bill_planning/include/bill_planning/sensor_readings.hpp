@@ -19,8 +19,7 @@ enum STATE
     FLAME_SEARCH = 2,
     BUILDING_SEARCH = 3,
     HALL_SEARCH = 4,
-    RETURN_HOME = 5,
-    HALL_SEARCH = 6
+    RETURN_HOME = 5
 };
 
 class SensorReadings

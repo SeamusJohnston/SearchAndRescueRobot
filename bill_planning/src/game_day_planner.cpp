@@ -124,29 +124,22 @@ void robotPerformanceThread(int n)
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileY());
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-    runInitialSearch();
-
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
 
+    // Jiwoo's fire search method here
+    // Note to jiwoo, my current fireOut() puts out fire if we are close enough. we may need to add logic to drive closer to flame
+    // We shall test
 
-    ROS_INFO("DRIVING TO FLAME");
-    driveToFlame();
+    sensor_readings.setCurrentState(STATE::HALL_SEARCH);
 
-    ROS_INFO("DRIVING TO ALL OTHER SAVED POITNS");
-    driveToDesiredPoints();
-
-    // Conduct our grid search
-    if (!_found_hall)
-    {
-        sensor_readings.setCurrentState(STATE::HALL_SEARCH);
-        conductGridSearch();
-        // TODO  If we ever get hall data
-        //      Cancel Grid search
-    }
+    // Bryan Write Here
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
-    // Drive to the large building again b/c we must have found the hall
-    driveToLargeBuilding();
+    //
+    // Bryan Write drive to buildings with new building search function
+    // rename runInitialSearch() to buildingSearch();
+    driveToDesiredPoints();
+    // delete this driveToLargeBuilding();
 
     // Returning Home
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
@@ -229,8 +222,8 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    sensor_readings.setUltraFwd(msg->data);
-    
+//    sensor_readings.setUltraFwd(msg->data);
+//
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x01;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -242,42 +235,42 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && ((sensor_readings.getUltraLeft() - msg->data) > DELTA)
-        || (previous_ultra_left - msg->data) > DELTA)
-    {
-        int h = sensor_readings.getCurrentHeading();
-        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-    }
-
-    previous_ultra_left = sensor_readings.getUltraLeft();
-    sensor_readings.setUltraLeft(msg->data);
-
+//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+//        && ((sensor_readings.getUltraLeft() - msg->data) > DELTA)
+//        || (previous_ultra_left - msg->data) > DELTA)
+//    {
+//        int h = sensor_readings.getCurrentHeading();
+//        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
+//        {
+//            //Then we must be travelling parallel to x axis
+//            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
+//            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
+//        {
+//            //Then we must be travelling parallel to x axis
+//            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
+//            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
+//        {
+//            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
+//            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
+//        {
+//            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
+//            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//    }
+//
+//    previous_ultra_left = sensor_readings.getUltraLeft();
+//    sensor_readings.setUltraLeft(msg->data);
+//
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x02;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -289,46 +282,46 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && ((sensor_readings.getUltraRight() - msg->data) > DELTA)
-        || (previous_ultra_right - msg->data) > DELTA)
-    {
-        int h = sensor_readings.getCurrentHeading();
-        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
-        {
-            //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
-            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
-        {
-            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
-            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
-            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
-        }
-        else
-        {
-            ROS_INFO("Found a point but couldn't emplace it due to heading error");
-        }
-    }
-
-    previous_ultra_right = sensor_readings.getUltraRight();
-    sensor_readings.setUltraRight(msg->data);
-
+//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+//        && ((sensor_readings.getUltraRight() - msg->data) > DELTA)
+//        || (previous_ultra_right - msg->data) > DELTA)
+//    {
+//        int h = sensor_readings.getCurrentHeading();
+//        if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
+//        {
+//            //Then we must be travelling parallel to x axis
+//            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
+//            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
+//        {
+//            //Then we must be travelling parallel to x axis
+//            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
+//            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
+//        {
+//            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
+//            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
+//        {
+//            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
+//            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
+//            emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
+//        }
+//        else
+//        {
+//            ROS_INFO("Found a point but couldn't emplace it due to heading error");
+//        }
+//    }
+//
+//    previous_ultra_right = sensor_readings.getUltraRight();
+//    sensor_readings.setUltraRight(msg->data);
+//
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x04;
     if(!sensor_readings.getStartRobotPerformanceThread()
