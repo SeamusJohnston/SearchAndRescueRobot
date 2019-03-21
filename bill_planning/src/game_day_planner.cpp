@@ -69,12 +69,12 @@ int desired_heading = 90;
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
-const float DELTA = 10; //cm
+const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
+const float HEADING_ACCURACY_BUFFER = 4.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
