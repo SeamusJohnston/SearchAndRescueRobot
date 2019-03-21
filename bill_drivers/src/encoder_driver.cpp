@@ -138,8 +138,30 @@ nav_msgs::Odometry calculateOdometry(float dt)
     float v_robot = (v_right + v_left) / 2.0;
     float v_th = (v_right - v_left) / WHEEL_BASE;  // rad/s
 
-    float delta_x = v_robot * cos(theta) * dt;
-    float delta_y = v_robot * sin(theta) * dt;
+    float delta_x = 0;
+    float delta_y = 0;
+    // TODO: CONVERT TO RADIANS
+    if (M_PI_4 < theta && theta <= 3*M_PI_4) // Facing positive y
+    {
+        delta_x = v_robot * cos(M_PI_2 - theta) * dt;
+        delta_y = v_robot * sin(M_PI_2 - theta) * dt;
+    }
+    else if (3*M_PI_4 < theta && theta <= 5*M_PI_4) // Facing negative x
+    {
+        delta_x = -v_robot * cos(theta - M_PI) * dt;
+        delta_y = v_robot * sin(theta - M_PI) * dt;
+    }
+    else if (5*M_PI_4 < theta && theta <= 7*M_PI_4) // Facing negative y
+    {
+        delta_x = v_robot * cos(3*M_PI_2 - theta) * dt;
+        delta_y = -v_robot * sin(3*M_PI_2 - theta) * dt;
+    }
+    else // Facing positive x
+    {
+        delta_x = v_robot * cos(theta) * dt;
+        delta_y = v_robot * sin(theta) * dt;
+    }
+
     float delta_th = v_th * dt;
 
     x += delta_x;

@@ -143,7 +143,7 @@ int main(int argc, char** argv)
     nh.getParam("filter_freq", freq);
     lp_filter.setFrequency(freq);
 
-    ros::Subscriber motor_sub = nh.subscribe("motor_cmd", 1, motorCallback);
+    ros::Subscriber motor_sub = nh.subscribe("/motor_cmd", 1, motorCallback);
     ros::Publisher ultrasonic_pub = nh.advertise<std_msgs::Float32>(topic, 100);
     ros::Rate loop_rate(LOOP_RATE_ULTRA);
 
