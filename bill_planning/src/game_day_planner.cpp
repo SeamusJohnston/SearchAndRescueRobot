@@ -203,15 +203,12 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             planner.publishStop();
 
             // Should move into obstacle avoidance
-            // Left side is blocked
             if (sensor_readings.getUltraLeft() < OBSTACLE_THRESHOLD)
             {
-                planner.driveAroundObstacle(sensor_readings, false);
-            }
-            // Right side is blocked, or both sides are free.
-            else
-            {
-                planner.driveAroundObstacle(sensor_readings, true);
+                planner.driveAroundObstacle(sensor_readings);
+
+                // Buzz, because why not
+                planner.signalComplete();
             }
 
             return;
