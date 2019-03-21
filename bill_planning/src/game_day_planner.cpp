@@ -763,9 +763,24 @@ void startSearchXDependent()
 
         float uf = sensor_readings.getUltraFwd();
         ROS_INFO("Ultra fwd is %f", uf);
-        if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+
+        int counter = 0;
+        bool set_flag = false;
+        while (counter < 25)
         {
-            ROS_INFO("Found a clear path fwd");
+            counter++;
+
+            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+            {
+                ROS_INFO("Found a clear path fwd");
+                set_flag = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            uf = sensor_readings.getUltraFwd();
+        }
+
+        if (set_flag)
+        {
             break;
         }
     }
@@ -808,7 +823,24 @@ void startSearchYDependent()
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        if(sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
+        float uf = sensor_readings.getUltraFwd();
+        ROS_INFO("Ultra fwd is %f", uf);
+        int counter = 0;
+        bool set_flag = false;
+        while (counter < 25)
+        {
+            counter++;
+
+            if(uf >= FULL_COURSE_DETECTION_LENGTH && uf <= 200)
+            {
+                ROS_INFO("Found a clear path fwd");
+                set_flag = true;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            uf = sensor_readings.getUltraFwd();
+        }
+
+        if (set_flag)
         {
             break;
         }
