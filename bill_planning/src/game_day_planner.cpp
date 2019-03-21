@@ -66,7 +66,7 @@ TilePosition large_building_tile(-1,-1);
 int desired_heading = 90;
 
 // CONSTANTS
-const int FULL_COURSE_DETECTION_LENGTH = 1.70;
+const int FULL_COURSE_DETECTION_LENGTH = 1.60;
 const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
 const float DELTA = 7; //cm
@@ -785,6 +785,7 @@ void startSearchXDependent()
         }
     }
 
+    ROS_INFO("Found/Defaulted a path and driving forward now");
     ROS_INFO("Setting state to init search");
     sensor_readings.setCurrentState(STATE::INIT_SEARCH);
     
@@ -863,7 +864,8 @@ void completeSearchXDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        if (desired_tile.x == sensor_readings.getCurrentTileX() &&
+            desired_tile.y == sensor_readings.getCurrentTileY())
         {
             continue;
         }
@@ -923,7 +925,8 @@ void completeSearchYDependent()
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
 
-        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && 
+            desired_tile.y == sensor_readings.getCurrentTileY())
         {
             continue;
         }
