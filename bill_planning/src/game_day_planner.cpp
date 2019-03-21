@@ -121,10 +121,9 @@ void robotPerformanceThread(int n)
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    // We can get this based off of chosed setup ask seamus
-    sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
-    
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
+
     runInitialSearch();
 
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
@@ -251,26 +250,26 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         {
             //Then we must be travelling parallel to x axis
             int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
-            int signal_point_x = sensor_readings.getCurrentPositionX();
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
             int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
-            int signal_point_x = sensor_readings.getCurrentPositionX();
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
         {
             int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
-            int signal_point_y = sensor_readings.getCurrentPositionY();
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
         {
             int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
-            int signal_point_y = sensor_readings.getCurrentPositionY();
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
     }
@@ -304,26 +303,26 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         {
             //Then we must be travelling parallel to x axis
             int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
-            int signal_point_x = sensor_readings.getCurrentPositionX();
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
             int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
-            int signal_point_x = sensor_readings.getCurrentPositionX();
+            int signal_point_x = (int)sensor_readings.getCurrentPositionX();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
         {
             int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
-            int signal_point_y = sensor_readings.getCurrentPositionY();
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
         {
             int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
-            int signal_point_y = sensor_readings.getCurrentPositionY();
+            int signal_point_y = (int)sensor_readings.getCurrentPositionY();
             emplacePoint(tileFromPoint(signal_point_x, signal_point_y));
         }
     }

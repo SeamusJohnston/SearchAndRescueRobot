@@ -157,6 +157,8 @@ void GraphPath::getShortestPath(std::list<TilePosition> &drivePoints, TilePositi
         crawl = pred[crawl];
     }
 
+    // Second point in the list is the first new point we must travel to
+    // Check to see whether we will be driving in X or Y to start with
     int firstX = path[path.size() - 2] % 6;
     int firstY = (int)floor(path[path.size() - 2]/6);
 

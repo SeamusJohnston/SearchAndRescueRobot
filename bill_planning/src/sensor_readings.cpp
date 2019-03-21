@@ -5,6 +5,9 @@ SensorReadings::SensorReadings()
     //TODO PREPOPULATE QUEUE WITH POSSIBLE MAGNET POINTS
     _points_of_interest = std::queue<TilePosition>();
     _target_heading = -1;
+    //_home_tile.x = x;
+    //_home_tile.y = y;
+}
 }
 
 void SensorReadings::setStartRobotPerformanceThread(bool val)
