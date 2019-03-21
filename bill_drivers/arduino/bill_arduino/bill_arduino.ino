@@ -1,5 +1,8 @@
 #include <Wire.h>
 
+// CURRENT AVAILABLE BITS
+// 0X02
+
 // Digital
 #define S0 4
 #define S1 5
@@ -116,7 +119,7 @@ void loop()
   data[10] = Wire.read();  // Z Gyro LSB
   data[11] = Wire.read();  // Z Gyro MSB
   
-  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ readColourSensor();
+  data[12] = readFlameSensor() ^ readColourSensor();
 
   for (int i = 0; i < 13; ++i)
   {
@@ -182,33 +185,11 @@ byte readFlameSensor()
   return returnVal;
 }
 
-byte readHallEffectSensor()
-{
-  int sensorValue = analogRead(Hall);
-  
-  //Serial.print("Hall: ");
-  //Serial.print(sensorValue);
-  if(sensorValue <= 510 || sensorValue >= 540)
-  {
-    //Serial.println(" True");
-    return 0x02;
-  }
-  else
-  {
-    //Serial.println(" False");
-    return 0x00;
-  }
-}
-
 byte readColourSensor()
 {
   ReadRGBC();
   
-  if (LargeBuilding())
-  {
-    return 0x08;
-  }
-  else if (SmallBuilding())
+  if (buildingDetection())
   {
     return 0x04;
   }
@@ -237,8 +218,8 @@ void ReadRGBC()
   digitalWrite(S2,HIGH);
   digitalWrite(S3,LOW);
   colours[3] = pulseIn(Colour, LOW);
-/*
-  Serial.print("rgbc: ");
+
+  /*
   Serial.print(colours[0]);
   Serial.print(", ");
   Serial.print(colours[1]);
@@ -246,24 +227,16 @@ void ReadRGBC()
   Serial.print(colours[2]);
   Serial.print(", ");
   Serial.println(colours[3]);
-*/
+  */
 }
 
-bool LargeBuilding()
+bool buildingDetection()
 {
-  bool returnVal = colours[3] < 65 && // Clear Building Detected
-    colours[0] > 50 && colours[0] < 100 && // Red in range
-    colours[1] > 125 && colours[1] < 175 && // Blue in range
-    colours[2] > 100 && colours[2] < 150; // Green in range
-  return returnVal;
-}
-
-bool SmallBuilding()
-{
-  bool returnVal = colours[3] < 60 && // Clear Building Detected
-    colours[0] > 30 && colours[0] < 80 && // Red in range
-    colours[1] > 50 && colours[1] < 100 && // Blue in range
-    colours[2] > 85 && colours[2] < 135;
+  bool returnVal = 
+    colours[0] > 88 && colours[0] < 125 && // Red in range
+    colours[1] > 150 && colours[1] < 221 && // Blue in range
+    colours[2] > 177 && colours[2] < 122 && // Green in range
+    colours[3] > 45 && colours[3] < 65;
   return returnVal;
 }
 
