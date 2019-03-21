@@ -27,13 +27,11 @@ void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg);
 
 // HELPER FUNCTIONS
 void fireOut();
-void findClearPathFwd();
-void completeStraightLineSearch();
 void driveToDesiredPoints();
 void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
-void completeTSearch();
+
 void driveToFlame();
 void driveHome();
 void driveToLargeBuilding();
@@ -49,8 +47,7 @@ void emplacePoint(TilePosition tile_position);
 SensorReadings sensor_readings;
 
 int found_fire_front = 0;
-int found_fire_left = 0;
-int found_fire_right = 0;
+
 unsigned char start_course = 0x00;
 Planner planner;
 
@@ -364,6 +361,11 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 {
+    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
+    {
+        return;
+    }
+    
     if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
     {
         return;
@@ -372,27 +374,21 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
     if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
         && msg->data)
     {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_left < 1)
-        {
-            found_fire_left++;
-            sensor_readings.setDetectedFireLeft(false);
-        }
-        else
-        {
-            sensor_readings.setDetectedFireLeft(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(true);
-        }
+        sensor_readings.setDetectedFireLeft(false);
     }
     else
     {
-        found_fire_left = 0;
         sensor_readings.setDetectedFireLeft(false);
     }
 }
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 {
+    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
+    {
+        return;
+    }
+
     if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
     {
         return;
@@ -400,21 +396,10 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
     
     if (msg->data)
     {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_right < 1)
-        {
-            found_fire_right++;
-            sensor_readings.setDetectedFireRight(false);
-        }
-        else
-        {
-            sensor_readings.setDetectedFireRight(true);
-            sensor_readings.updateFlameTileFromLastSavedPoint(false);
-        }
+        sensor_readings.setDetectedFireRight(false);
     }
     else
     {
-        found_fire_right = 0;
         sensor_readings.setDetectedFireRight(false);
     }
 }
@@ -615,60 +600,6 @@ void waitToHitTile()
         && !KILL_SWITCH)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-}
-
-void completeTSearch()
-{
-    ROS_INFO("FOUND LESS THAN 3 POINTS OF INTEREST");
-
-    desired_tile.x = sensor_readings.getCurrentTileX();
-    desired_tile.y = sensor_readings.freeRowTile();
-
-    planner.publishDriveToTile(
-        sensor_readings,
-        desired_tile.x,
-        desired_tile.y, 0.3);
-    waitToHitTile();
-
-    desired_tile.x = 0;
-    desired_tile.y = sensor_readings.getCurrentTileY();
-
-    planner.publishDriveToTile(
-        sensor_readings,
-        desired_tile.x,
-        desired_tile.y, 0.3);
-    waitToHitTile();
-
-    desired_tile.x = 5;
-
-    planner.publishDriveToTile(
-        sensor_readings,
-        desired_tile.x,
-        desired_tile.y, 0.3);
-    waitToHitTile();
-}
-
-void driveToFlame()
-{
-    if(sensor_readings.getFlameTileX() >= 0 && sensor_readings.getFlameTileY() >= 0)
-    {
-        ROS_INFO("Have a flame tile stored");
-        desired_tile.x = sensor_readings.getFlameTileX();
-        desired_tile.y = sensor_readings.getFlameTileY();
-
-        planner.publishDriveToTile(
-            sensor_readings,
-            desired_tile.x,
-            desired_tile.y, 0.3);
-
-        waitForPlannerScan();
-
-        if (sensor_readings.getDetectedFireFwd())
-        {
-            //PUT OUT FLAME
-            fireOut();
-        }
     }
 }
 
@@ -990,75 +921,5 @@ void completeSearchYDependent()
     else
     {
         ROS_WARN("SOMETHING WENT SUPER WRONG COMPLETING T SEARCH");
-    }
-}
-
-
-
-
-
-
-//OLD CODE -- MIGHT NEED -- DON'T TOUCH - NEVER CALLED
-void completeStraightLineSearch()
-{
-    ROS_INFO("Findings Clear Path Fwd");
-    findClearPathFwd(); //TODO UNCOMMENT THIS
-    ROS_INFO("Found Clear Path Fwd");
-
-    desired_tile.x = 3;// TODO CHANGE TO THIS sensor_readings.getCurrentTileX();
-    desired_tile.y = 5;
-
-    planner.publishDriveToTile(sensor_readings,
-        desired_tile.x,
-        desired_tile.y, 0.2);
-    ROS_INFO("Published drive");
-    waitToHitTile();
-    ROS_INFO("Hit Tile");
-}
-
-
-void findClearPathFwd()
-{
-    if(!_cleared_fwd 
-        && sensor_readings.getUltraFwd() >= FULL_COURSE_DETECTION_LENGTH)
-    {
-        _cleared_fwd = true;
-    }
-    else
-    {
-        int increment = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
-            -1 : 1;
-        desired_heading = sensor_readings.getUltraLeft() > sensor_readings.getUltraRight() ?
-            180 : 0;
-
-        while(!_cleared_fwd && !KILL_SWITCH)
-        {
-            int temp_ultra = increment == -1 ?
-                             sensor_readings.getUltraRight() :
-                             sensor_readings.getUltraLeft();
-
-            if (desired_tile.x == sensor_readings.getCurrentTileX()
-                && desired_tile.y == sensor_readings.getCurrentTileY()
-                && temp_ultra < FULL_COURSE_DETECTION_LENGTH)
-            {
-                desired_tile.x = sensor_readings.getCurrentTileX() + increment;
-                desired_tile.y = 0;
-
-                planner.publishDriveToTile(
-                        sensor_readings,
-                        desired_tile.x,
-                        desired_tile.y, 0.3);
-
-                // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
-            }
-            else if (temp_ultra > FULL_COURSE_DETECTION_LENGTH)
-            {
-                _cleared_fwd = true;
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-
-        desired_heading = 90;
     }
 }
