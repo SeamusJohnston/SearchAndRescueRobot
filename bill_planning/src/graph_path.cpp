@@ -177,6 +177,7 @@ void GraphPath::getShortestPath(std::list<TilePosition> &drivePoints, TilePositi
             {
                 prevXDelta = true;
                 prevYDelta = false;
+                ROS_INFO("Graph path will take point: %i, %i", pointX, pointY);
                 drivePoints.emplace_back(pointX, pointY);
             }
 
@@ -184,11 +185,13 @@ void GraphPath::getShortestPath(std::list<TilePosition> &drivePoints, TilePositi
             {
                 prevXDelta = false;
                 prevYDelta = true;
+                ROS_INFO("Graph path will take point: %i, %i", pointX, pointY);
                 drivePoints.emplace_back(pointX, pointY);
             }
         }
         else
         {
+            ROS_INFO("Graph path will take point: %i, %i", pointX, pointY);
             drivePoints.emplace_back(pointX, pointY, scanOnReach);
         }
     }
