@@ -141,7 +141,8 @@ void GraphPath::getShortestPath(std::list<TilePosition> &drivePoints, TilePositi
 
     if (BFS(s, dest, v, pred, dist) == false)
     {
-        ROS_INFO("Given target and destination are not connected");
+        ROS_WARN("Given target and destination are not connected");
+        drivePoints.clear();
         return;
     }
 

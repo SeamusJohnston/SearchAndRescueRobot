@@ -85,7 +85,7 @@ void Planner::publishDrive(const int heading, const float speed)
     ROS_INFO("Commanding drive, heading: %i and speed: %f", heading, speed);
     _command_msg.command = bill_msgs::MotorCommands::DRIVE;
     _command_msg.heading = heading;
-    _command_msg.speed = speed;
+    _command_msg.speed =  speed < 0.3 ? speed : 0.3;
     _motor_pub.publish(_command_msg);
     is_moving = true;
 }
@@ -142,24 +142,35 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     TilePosition dest(x, y);
     graphPath.getShortestPath(drivePoints, start, dest, scanOnReach);
 
-    TilePosition nextLeg = drivePoints.front();
-
-    // One of the two dimensions should always match
-    if (currentX == nextLeg.x)
+    // If we successfully found a path
+    // If the list returns empty, that means the path could not be generated.
+    if (!drivePoints.empty())
     {
-        // Drive in Y
-        heading = currentY > nextLeg.y ? 270 : 90;
+        TilePosition nextLeg = drivePoints.front();
+
+        // One of the two dimensions should always match
+        if (currentX == nextLeg.x)
+        {
+            // Drive in Y
+            heading = currentY > nextLeg.y ? 270 : 90;
+        }
+        else
+        {
+            // Drive in X
+            heading = currentX > nextLeg.x ? 180 : 0;
+        }
+
+        //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
+        sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
+        sensorReadings.setTargetHeading(heading);
+        publishTurn(heading);
     }
     else
     {
-        // Drive in X
-        heading = currentX > nextLeg.x ? 180 : 0;
+        // If for some reason we cant make it to this point, then stop movement and invalidate.
+        publishStop();
+        sensorReadings.setTargetHeading(-1);
     }
-
-    //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
-    sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
-    sensorReadings.setTargetHeading(heading);
-    publishTurn(heading);
 
 //    // We will prioritize driving the longest leg of the horizontal/vertical drive first
 //    // If they are the same length, we will drive the vertical one first
@@ -361,14 +372,14 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
 
                 // Scan at quarter driving speed
                 publishDrive(sensorReadings.getCurrentHeading(), 0.16);
-		return;
+		        return;
             }
 
             // Write an invalid target value
             // Maybe do this for position as well
-            sensorReadings.setTargetHeading(-1);
-	    publishStop();
             ROS_INFO("Completed drive to point");
+            sensorReadings.setTargetHeading(-1);
+	        publishStop();
             return;
         }
     }
