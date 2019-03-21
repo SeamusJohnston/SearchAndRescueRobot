@@ -254,15 +254,18 @@ int SensorReadings::freeRowTile()
 
 void SensorReadings::updateFlameTileFromLastSavedPoint(bool is_left)
 {
+    ROS_INFO("We found a fire to the left of right");
     if(!_s.empty())
     {
+        ROS_INFO("POI's not empty, will try to set a flame tile");
         std::pair<int, int> tile_pos = _s.back();
+        ROS_INFO("Last Recorded point x = %i, y = %i", tile_pos.first, tile_pos.second);
         if(tile_pos.second == getCurrentTileY()
             && (is_left && tile_pos.first <= getCurrentTileX())
             || (!is_left && tile_pos.first >= getCurrentTileX()))
         {
-            _flame_tile.x = tile_pos.first;
-            _flame_tile.y = getCurrentTileY();
+            setFlameTileX(tile_pos.first);
+            setFlameTileY(tile_pos.second);
         }
     }
 }

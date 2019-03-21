@@ -9,8 +9,8 @@
 #include "position.hpp"
 #include <set>
 #include <utility>  
-#include <vector>    // std::pair, std::make_pair
-//#include "bill_planning/planner.hpp"
+#include <vector>
+#include "ros/ros.h"
 
 enum STATE
 {

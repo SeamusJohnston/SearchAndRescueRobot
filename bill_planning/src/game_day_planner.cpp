@@ -365,7 +365,7 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         && msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_left < 3)
+        if (found_fire_left < 1)
         {
             found_fire_left++;
             sensor_readings.setDetectedFireLeft(false);
@@ -393,7 +393,7 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
     if (msg->data)
     {
         // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_right < 3)
+        if (found_fire_right < 1)
         {
             found_fire_right++;
             sensor_readings.setDetectedFireRight(false);
@@ -528,10 +528,8 @@ void driveToDesiredPoints()
             continue;
         }
 
-        //sensor_readings.setTargetPoint(newTarget.x, newTarget.y);
-
-        desired_tile.x = sensor_readings.getTargetTileX();
-        desired_tile.y = sensor_readings.getTargetTileY();
+        desired_tile.x = newTarget.x;
+        desired_tile.y = newTarget.y;
 
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
@@ -647,7 +645,7 @@ void driveToFlame()
 {
     if(sensor_readings.getFlameTileX() >= 0 && sensor_readings.getFlameTileY() >= 0)
     {
-        ROS_INFO("Have a flam tile stored");
+        ROS_INFO("Have a flame tile stored");
         desired_tile.x = sensor_readings.getFlameTileX();
         desired_tile.y = sensor_readings.getFlameTileY();
 
