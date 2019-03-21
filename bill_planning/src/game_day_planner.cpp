@@ -690,7 +690,7 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
     int x = x_pos/30;
     int y = y_pos/30;
 
-    if (x_pos < 0 || x_pos > 6 || y_pos < 0 || y_pos > 6)
+    if (x < 0 || x > 6 || y < 0 || y > 6)
     {
         ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
         return TilePosition(-1,-1);
