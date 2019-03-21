@@ -203,15 +203,12 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             planner.publishStop();
 
             // Should move into obstacle avoidance
-            // Left side is blocked
             if (sensor_readings.getUltraLeft() < OBSTACLE_THRESHOLD)
             {
-                planner.driveAroundObstacle(sensor_readings, false);
-            }
-            // Right side is blocked, or both sides are free.
-            else
-            {
-                planner.driveAroundObstacle(sensor_readings, true);
+                planner.driveAroundObstacle(sensor_readings);
+
+                // Buzz, because why not
+                planner.signalComplete();
             }
 
             return;
@@ -701,7 +698,7 @@ void runInitialSearch()
 {
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
-    ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    ROS_INFO("Current Before Running initial search tile: (%i, %i)", x, y);
     if ((x == 3 && y == 0)
         || (x == 2 && y == 5))
     {
@@ -738,6 +735,7 @@ void runInitialSearch()
 
 void startSearchXDependent()
 {
+    ROS_INFO("Starting search x dependant");
     int y = sensor_readings.getCurrentTileY();
     ROS_INFO("Current tile Y on straight line search is %i", y);
     TilePosition poi[3] = {TilePosition(3,y), TilePosition(4,y), TilePosition(0,y)};
@@ -745,6 +743,11 @@ void startSearchXDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
 
         ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
@@ -788,6 +791,12 @@ void startSearchYDependent()
     {
         desired_tile.x = poi[i].x;
         desired_tile.y = poi[i].y;
+
+        if (desired_tile.x == sensor_readings.getCurrentTileX() && desired_tile.y == sensor_readings.getCurrentTileY())
+        {
+            continue;
+        }
+
 
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
         waitToHitTile();
