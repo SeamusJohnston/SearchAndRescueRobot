@@ -69,12 +69,12 @@ int desired_heading = 90;
 const int FULL_COURSE_DETECTION_LENGTH = 1.70;
 const int FULL_COURSE_SIDE_ULTRAS = 1.5;
 const int FIRE_SCAN_ANGLE = 20;
-const float DELTA = 10; //cm
+const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
+const float HEADING_ACCURACY_BUFFER = 4.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -118,10 +118,11 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    ROS_INFO("Starting tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    // We can get this based off of chosed setup ask seamus
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
+    
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
     runInitialSearch();
 
@@ -171,13 +172,11 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     if (isOnXTile)
     {
-        ROS_INFO("Setting x tile = %i", (int)currentWholeX);
         sensor_readings.setCurrentTileX((int)currentWholeX);
     }
 
     if (isOnYTile)
     {
-        ROS_INFO("Setting y tile = %i", (int)currentWholeX);
         sensor_readings.setCurrentTileY((int)currentWholeY);
     }
 
@@ -700,22 +699,6 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
 
 void runInitialSearch()
 {
-    /*
-    ROS_INFO("STARTING STRAIGHT LINE SEARCH");
-
-    completeStraightLineSearch();
-
-
-    ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
-    // THERE SHOULD BE NO DUPLICATES IN OUR POINTS OF INTEREST QUEUE
-    if(sensor_readings.pointsOfInterestSize() < 3)
-    {
-        ROS_INFO("STARTING T SEARCH");
-        completeTSearch();
-        ROS_INFO("FINISHING T SEARCH");
-    }
-    */
-
     int x = sensor_readings.getCurrentTileX();
     int y = sensor_readings.getCurrentTileY();
     ROS_INFO("Current Before Running initial search tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileX());
@@ -724,6 +707,7 @@ void runInitialSearch()
     {
         // TOP OR BOTTOM
         startSearchXDependent();
+        
         ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
         
         if(sensor_readings.pointsOfInterestSize() < 3)
