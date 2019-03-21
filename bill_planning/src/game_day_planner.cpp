@@ -44,6 +44,8 @@ void completeSearchYDependent();
 void completeSearchXDependent();
 void emplacePoint(TilePosition tile_position);
 
+void findMagnet();
+
 SensorReadings sensor_readings;
 
 int found_fire_front = 0;
@@ -54,7 +56,7 @@ Planner planner;
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
-bool _found_hall = true; // TODO SET TO  WHEN ACTUALLY ATTACHED false;
+bool _found_hall = false;
 bool KILL_SWITCH = false;
 
 float previous_ultra_left = 0;
@@ -376,7 +378,7 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
     {
         return;
     }
-    
+
     if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
     {
         return;
@@ -417,10 +419,12 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 
 void hallCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-    if(!_found_hall && msg->data)
+    if (msg->data
+    && !_found_hall
+    && sensor_readings.getCurrentState() == STATE::HALL_SEARCH)
     {
         // TODO MAKE SURE THIS DOESN'T DO ANYTHING IF NOT CURRENTLY GRID SEARCHING?
-        planner.cancelGridSearch(sensor_readings);
+        planner.publishStop();
         _found_hall = true;
         planner.signalComplete();
     }
@@ -646,6 +650,41 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
     else
     {
         return TilePosition(x,y);
+    }
+}
+
+void findMagnet()
+{
+    ROS_INFO("Starting magnet search");
+    TilePosition poi[3] = {TilePosition(1,1), TilePosition(4,4), TilePosition(2,3)};
+
+    for(int i = 0; i < 3; i++)
+    {
+        desired_tile.x = poi[i].x;
+        desired_tile.y = poi[i].y;
+
+        if (_found_hall)
+        {
+            break;
+        }
+
+        if (desired_tile.x != sensor_readings.getCurrentTileX() || desired_tile.y != sensor_readings.getCurrentTileY())
+        {
+            ROS_INFO("LOOKING FOR MAGNET, DRIVING TO x = %i, y = %i ", desired_tile.x, desired_tile.y);
+            planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+            waitToHitTile();
+        }
+
+        if (_found_hall)
+        {
+            break;
+        }
+    }
+
+    if (!_found_hall)
+    {
+        _found_hall = true;
+        planner.signalComplete();
     }
 }
 
