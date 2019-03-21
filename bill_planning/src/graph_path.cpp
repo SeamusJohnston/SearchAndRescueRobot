@@ -107,7 +107,7 @@ bool GraphPath::BFS(int src, int dest, int v, int pred[], int dist[])
 }
 
 // utility function to print the shortest distance between source vertex and destination vertex
-void GraphPath::getShortestPath(TilePosition startTile, TilePosition targetTile)
+void GraphPath::getShortestPath(std::list<TilePosition> &drivePoints, TilePosition startTile, TilePosition targetTile, bool scanOnReach)
 {
     int s = (startTile.y * 6) + startTile.x;
     int dest = (targetTile.y * 6) + targetTile.x;
@@ -154,19 +154,19 @@ void GraphPath::getShortestPath(TilePosition startTile, TilePosition targetTile)
             {
                 prevXDelta = true;
                 prevYDelta = false;
-                ROS_INFO("Point on path is: %i, %i", pointX, pointY);
+                drivePoints.emplace_back(pointX, pointY);
             }
 
             if ((nextY != pointY) && (prevXDelta))
             {
                 prevXDelta = false;
                 prevYDelta = true;
-                ROS_INFO("Point on path is: %i, %i", pointX, pointY);
+                drivePoints.emplace_back(pointX, pointY);
             }
         }
         else
         {
-            ROS_INFO("Point on path is: %i, %i", pointX, pointY);
+            drivePoints.emplace_back(pointX, pointY, scanOnReach);
         }
     }
 }

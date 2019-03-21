@@ -12,7 +12,7 @@ class GraphPath
     public:
         GraphPath();
         void add_edge(int src, int dest);
-        void getShortestPath(TilePosition start, TilePosition dest);
+        void getShortestPath(std::list<TilePosition> &drivePoints, TilePosition start, TilePosition dest, bool scanOnReach);
 
     private:
         bool BFS(int src, int dest, int v, int pred[], int dist[]);

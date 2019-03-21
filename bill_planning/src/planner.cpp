@@ -134,62 +134,81 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     ROS_INFO("Using Graph to determine shortest path, starting at %i, %i", currentX, currentY);
     TilePosition start(currentX, currentY);
     TilePosition dest(x, y);
-    graphPath.getShortestPath(start, dest);
+    graphPath.getShortestPath(drivePoints, start, dest, scanOnReach);
 
-    // We will prioritize driving the longest leg of the horizontal/vertical drive first
-    // If they are the same length, we will drive the vertical one first
-    int xDistSq = (currentX - x)*(currentX - x);
-    int yDistSq = (currentY - y)*(currentY - y);
+    TilePosition nextLeg = drivePoints.front();
 
-    if (xDistSq == 0 && yDistSq == 0)
+    // One of the two dimensions should always match
+    if (currentX == nextLeg.x)
     {
-        ROS_WARN("Attempting to drive to the same tile we are already on, bailing");
-        return;
-    }
-    if (xDistSq <= yDistSq)
-    {
-        //ROS_INFO("Targeting point: %i, %i", currentX, y);
-        sensorReadings.setTargetPoint(currentX, y);
-
-        drivePoints.emplace_back(currentX, y);
-
-        heading = currentY > y ? 270 : 90;
-
-        if (xDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
-        {
-            // We only need one leg to drive to this point
-            //ROS_INFO("Driving in one leg");
-            publishTurn(heading);
-            sensorReadings.setTargetHeading(heading);
-            return;
-        }
+        // Drive in Y
+        heading = currentY > nextLeg.y ? 270 : 90;
     }
     else
     {
-        //ROS_INFO("Targeting point: %i, %i", x, currentY);
-        sensorReadings.setTargetPoint(x, currentY);
-
-        drivePoints.emplace_back(x,currentY);
-
-        heading = currentX > x ? 180 : 0;
-
-        if (yDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
-        {
-            // We only need one leg to drive to this point
-            //ROS_INFO("Driving in one leg");
-            publishTurn(heading);
-            sensorReadings.setTargetHeading(heading);
-            return;
-        }
+        // Drive in X
+        heading = currentX > nextLeg.x ? 180 : 0;
     }
 
-    // Scan at the end of a drive to point if needed
-    drivePoints.emplace_back(x,y, scanOnReach);
-    //ROS_INFO("Targeting point: %i, %i", x, y);
-
-    // Publish a drive to the first queued point
-    publishTurn(heading);
+    //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
+    sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
     sensorReadings.setTargetHeading(heading);
+    publishTurn(heading);
+
+//    // We will prioritize driving the longest leg of the horizontal/vertical drive first
+//    // If they are the same length, we will drive the vertical one first
+//    int xDistSq = (currentX - x)*(currentX - x);
+//    int yDistSq = (currentY - y)*(currentY - y);
+//
+//    if (xDistSq == 0 && yDistSq == 0)
+//    {
+//        ROS_WARN("Attempting to drive to the same tile we are already on, bailing");
+//        return;
+//    }
+//    if (xDistSq <= yDistSq)
+//    {
+//        //ROS_INFO("Targeting point: %i, %i", currentX, y);
+//        sensorReadings.setTargetPoint(currentX, y);
+//
+//        drivePoints.emplace_back(currentX, y);
+//
+//        heading = currentY > y ? 270 : 90;
+//
+//        if (xDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
+//        {
+//            // We only need one leg to drive to this point
+//            //ROS_INFO("Driving in one leg");
+//            publishTurn(heading);
+//            sensorReadings.setTargetHeading(heading);
+//            return;
+//        }
+//    }
+//    else
+//    {
+//        //ROS_INFO("Targeting point: %i, %i", x, currentY);
+//        sensorReadings.setTargetPoint(x, currentY);
+//
+//        drivePoints.emplace_back(x,currentY);
+//
+//        heading = currentX > x ? 180 : 0;
+//
+//        if (yDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
+//        {
+//            // We only need one leg to drive to this point
+//            //ROS_INFO("Driving in one leg");
+//            publishTurn(heading);
+//            sensorReadings.setTargetHeading(heading);
+//            return;
+//        }
+//    }
+//
+//    // Scan at the end of a drive to point if needed
+//    drivePoints.emplace_back(x,y, scanOnReach);
+//    //ROS_INFO("Targeting point: %i, %i", x, y);
+//
+//    // Publish a drive to the first queued point
+//    publishTurn(heading);
+//    sensorReadings.setTargetHeading(heading);
 }
 
 void Planner::driveAroundObstacle(SensorReadings &sensorReadings, bool takeLeft)
