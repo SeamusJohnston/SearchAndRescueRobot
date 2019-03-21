@@ -42,7 +42,7 @@ void Planner::gridSearch(SensorReadings &sensorReadings)
     }
 
     // Drive to the first point
-    publishDriveToTile(sensorReadings, startingX, startingY, 0.4);
+    publishDriveToTile(sensorReadings, startingX, startingY, 0.3);
 
     int xIncrement = (quadrant == 1) || (quadrant == 2) ? -1 : 1;
 

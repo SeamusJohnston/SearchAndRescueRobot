@@ -191,7 +191,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
         {
             //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
             planner.publishStop();
-            planner.publishDrive(sensor_readings.getCurrentHeading(), 0.4);
+            planner.publishDrive(sensor_readings.getCurrentHeading(), 0.3);
 
             // publish an invalid target heading
             sensor_readings.setTargetHeading(-1);
@@ -535,7 +535,7 @@ void driveToDesiredPoints()
 
         planner.publishDriveToTile(sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4, true);
+            desired_tile.y, 0.3, true);
         
         waitForPlannerScan();
 
@@ -579,7 +579,7 @@ void driveHome()
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.3);
     waitToHitTile();
 }
 
@@ -592,7 +592,7 @@ void driveToLargeBuilding()
 
     planner.publishDriveToTile(sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4, true);
+        desired_tile.y, 0.3, true);
     waitForPlannerScan();
 
     while (sensor_readings.getDetectionBit() == 0x00 && !KILL_SWITCH)
@@ -622,7 +622,7 @@ void completeTSearch()
     planner.publishDriveToTile(
         sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.3);
     waitToHitTile();
 
     desired_tile.x = 0;
@@ -631,7 +631,7 @@ void completeTSearch()
     planner.publishDriveToTile(
         sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.3);
     waitToHitTile();
 
     desired_tile.x = 5;
@@ -639,7 +639,7 @@ void completeTSearch()
     planner.publishDriveToTile(
         sensor_readings,
         desired_tile.x,
-        desired_tile.y, 0.4);
+        desired_tile.y, 0.3);
     waitToHitTile();
 }
 
@@ -654,7 +654,7 @@ void driveToFlame()
         planner.publishDriveToTile(
             sensor_readings,
             desired_tile.x,
-            desired_tile.y, 0.4);
+            desired_tile.y, 0.3);
 
         waitForPlannerScan();
 
@@ -754,7 +754,7 @@ void startSearchXDependent()
         if (desired_tile.x != sensor_readings.getCurrentTileX() || desired_tile.y != sensor_readings.getCurrentTileY())
         {
             ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
-            planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+            planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
             waitToHitTile();
         }
 
@@ -802,7 +802,7 @@ void startSearchXDependent()
     desired_tile.y = sensor_readings.getCurrentTileY() == 0 ? 5 : 0;
 
     ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
-    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
     waitToHitTile();
     ROS_INFO("Finished straight line search");
 }
@@ -822,7 +822,7 @@ void startSearchYDependent()
         }
 
 
-        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
 
         desired_heading = x == 0 ? 0 : 180;
@@ -860,7 +860,7 @@ void startSearchYDependent()
     desired_tile.x = sensor_readings.getCurrentTileX() == 0 ? 5 : 0;
     desired_tile.y = sensor_readings.getCurrentTileY();
 
-    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
     waitToHitTile();
 }
 
@@ -879,7 +879,7 @@ void completeSearchXDependent()
             continue;
         }
 
-        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
 
         if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
@@ -940,7 +940,7 @@ void completeSearchYDependent()
             continue;
         }
 
-        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.4);
+        planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
         waitToHitTile();
 
         if(sensor_readings.getUltraRight() + sensor_readings.getUltraLeft() >= FULL_COURSE_SIDE_ULTRAS)
@@ -1041,7 +1041,8 @@ void findClearPathFwd()
                 planner.publishDriveToTile(
                         sensor_readings,
                         desired_tile.x,
-                        desired_tile.y, 0.4);
+                        desired_tile.y, 0.3);
+
                 // THE ULTRASONIC CALLBACK WILL BE IN CHARGE OF SAVING THE POINT OF INTEREST
             }
             else if (temp_ultra > FULL_COURSE_DETECTION_LENGTH)
