@@ -232,7 +232,7 @@ void SensorReadings::pointsOfInterestEmplace(TilePosition tp)
 {
     std::pair <int,int> newVal (tp.x, tp.y);
 
-    if (std::find(_s.begin(), _s.end(), newVal) != _s.end())
+    if (std::find(_s.begin(), _s.end(), newVal) == _s.end())
     {
 //        ROS_INFO("Adding point to queue x = %i, y = %i", tp.x, tp.y);
         std::lock_guard<std::mutex> guard(_points_of_interest_mutex);    

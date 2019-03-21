@@ -157,6 +157,10 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 {
     sensor_readings.setCurrentHeading(msg->heading);
 
+    // Convert stored units to CM
+    sensor_readings.setCurrentPositionX(msg->x * 100.0);
+    sensor_readings.setCurrentPositionY(msg->y * 100.0);
+
     // Convert units to tiles instead of meters
     float currentXTileCoordinate = msg->x / TILE_WIDTH;
     float currentYTileCoordinate = msg->y / TILE_HEIGHT;
@@ -245,27 +249,27 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)floor(sensor_readings.getCurrentTileY() - (msg->data / 30.0));
-            int signal_point_x = sensor_readings.getCurrentTileX();
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
+            int signal_point_x = sensor_readings.getCurrentPositionX();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)floor(sensor_readings.getCurrentTileY() + (msg->data / 30.0));
-            int signal_point_x = sensor_readings.getCurrentTileX();
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
+            int signal_point_x = sensor_readings.getCurrentPositionX();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
         {
-            int signal_point_x = (int)floor(sensor_readings.getCurrentTileX() - (msg->data / 30.0));
-            int signal_point_y = sensor_readings.getCurrentTileY();
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
+            int signal_point_y = sensor_readings.getCurrentPositionY();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
         {
-            int signal_point_x = (int)floor(sensor_readings.getCurrentTileX() + (msg->data / 30.0));
-            int signal_point_y = sensor_readings.getCurrentTileY();
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
+            int signal_point_y = sensor_readings.getCurrentPositionY();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
     }
@@ -290,27 +294,27 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
         if (std::abs(h-180) < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)floor(sensor_readings.getCurrentTileY() + (msg->data / 30.0));
-            int signal_point_x = sensor_readings.getCurrentTileX();
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() + msg->data);
+            int signal_point_x = sensor_readings.getCurrentPositionX();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-360) < HEADING_ACCURACY_BUFFER || h < HEADING_ACCURACY_BUFFER)
         {
             //Then we must be travelling parallel to x axis
-            int signal_point_y = (int)floor(sensor_readings.getCurrentTileY() - (msg->data / 30.0));
-            int signal_point_x = sensor_readings.getCurrentTileX();
+            int signal_point_y = (int)(sensor_readings.getCurrentPositionY() - msg->data);
+            int signal_point_x = sensor_readings.getCurrentPositionX();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-90) < HEADING_ACCURACY_BUFFER)
         {
-            int signal_point_x = (int)floor(sensor_readings.getCurrentTileX() + (msg->data / 30.0));
-            int signal_point_y = sensor_readings.getCurrentTileY();
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() + msg->data);
+            int signal_point_y = sensor_readings.getCurrentPositionY();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
         else if (std::abs(h-270) < HEADING_ACCURACY_BUFFER)
         {
-            int signal_point_x = (int)floor(sensor_readings.getCurrentTileX() - (msg->data / 30.0));
-            int signal_point_y = sensor_readings.getCurrentTileY();
+            int signal_point_x = (int)(sensor_readings.getCurrentPositionX() - msg->data);
+            int signal_point_y = sensor_readings.getCurrentPositionY();
             sensor_readings.pointsOfInterestEmplace(tileFromPoint(signal_point_x, signal_point_y));
         }
     }
@@ -682,16 +686,19 @@ void waitForPlannerScan()
 // THIS SHOULD BE PROVIDED IN CM AND TRUNCATED
 TilePosition tileFromPoint(int x_pos, int y_pos)
 {
+    //Truncated value should be the tile position
+    int x = x_pos/30;
+    int y = y_pos/30;
+
     if (x_pos < 0 || x_pos > 6 || y_pos < 0 || y_pos > 6)
     {
         ROS_INFO("TRIED TO CONVERT A TILE OUT OF RANGE");
         return TilePosition(-1,-1);
     }
-
-    //Truncated value should be the tile position
-    int x = x_pos/30;
-    int y = y_pos/30;
-    return TilePosition(x,y);
+    else
+    {
+        return TilePosition(x,y);
+    }
 }
 
 void runInitialSearch()
