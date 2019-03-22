@@ -32,7 +32,7 @@ TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
 
 void waitToHitTileWithBuildingSearch(bool firstLeg);
-void driveBuildingFromSearch();
+void driveToBuilding(bool isRight);
 void driveHome();
 void findAndExtinguishFire();
 
@@ -129,10 +129,10 @@ void robotPerformanceThread(int n)
 
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileY());
 
-    if ((sensor_readings.getCurrentTileX() == 0 && sensor_readings.getCurrentTileY() ==  2 && (std::abs(sensor_readings.getCurrentHeading - 360) > HEADING_ACCURACY_BUFFER || std::abs(sensor_readings.getCurrentHeading) > HEADING_ACCURACY_BUFFER))
-        || (sensor_readings.getCurrentTileX() == 5 && sensor_readings.getCurrentTileY() ==  3 && std::abs(sensor_readings.getCurrentHeading - 180) > HEADING_ACCURACY_BUFFER)
-        || (sensor_readings.getCurrentTileX() == 3 && sensor_readings.getCurrentTileY() ==  0 && std::abs(sensor_readings.getCurrentHeading - 90) > HEADING_ACCURACY_BUFFER)
-        || (sensor_readings.getCurrentTileX() == 2 && sensor_readings.getCurrentTileY() ==  5 && std::abs(sensor_readings.getCurrentHeading - 270) > HEADING_ACCURACY_BUFFER))
+    if ((sensor_readings.getCurrentTileX() == 0 && sensor_readings.getCurrentTileY() ==  2 && (std::abs(sensor_readings.getCurrentHeading() - 360) > HEADING_ACCURACY_BUFFER || std::abs(sensor_readings.getCurrentHeading()) > HEADING_ACCURACY_BUFFER))
+        || (sensor_readings.getCurrentTileX() == 5 && sensor_readings.getCurrentTileY() ==  3 && std::abs(sensor_readings.getCurrentHeading() - 180) > HEADING_ACCURACY_BUFFER)
+        || (sensor_readings.getCurrentTileX() == 3 && sensor_readings.getCurrentTileY() ==  0 && std::abs(sensor_readings.getCurrentHeading() - 90) > HEADING_ACCURACY_BUFFER)
+        || (sensor_readings.getCurrentTileX() == 2 && sensor_readings.getCurrentTileY() ==  5 && std::abs(sensor_readings.getCurrentHeading() - 270) > HEADING_ACCURACY_BUFFER))
     {
         ROS_WARN("POOR INITIAL HEADING RESTART LAUNCH FILE OR FAIL MISERABLY");
     }
@@ -526,11 +526,6 @@ void fireOut()
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 }
 
-void conductGridSearch()
-{
-    planner.gridSearch(sensor_readings);
-}
-
 void driveHome()
 {
     desired_tile.x = sensor_readings.getHomeTileX();
@@ -554,7 +549,7 @@ void waitToHitTileWithBuildingSearch(bool firstLeg)
 
             if(_building_left || _building_right)
             {
-                driveBuilding(_building_right);
+                driveToBuilding(_building_right);
 
                 desired_tile.y = 5;
                 planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
@@ -568,12 +563,12 @@ void waitToHitTileWithBuildingSearch(bool firstLeg)
                 break;
             }
         }
-        else
-        {
-            /* code */
-            ROS_INFO("THIS IS A SUPER RARE CASE AND WE WON'T CODE THIS RIGHT NOW, IF WE TEST EVERYTHING ELSE WE CAN CONTINUE");
-        }
         
+    }
+    else
+    {
+        /* code */
+        ROS_INFO("THIS IS A SUPER RARE CASE AND WE WON'T CODE THIS RIGHT NOW, IF WE TEST EVERYTHING ELSE WE CAN CONTINUE");
     }
 }
 
@@ -629,7 +624,7 @@ void findAndExtinguishFire()
     planner.publishDriveToTile(sensor_readings, fireScanTargetTile.x, fireScanTargetTile.y, 0.3);
 }
 
-void driveBuilding(bool isRight)
+void driveToBuilding(bool isRight)
 {
     int pre_x = sensor_readings.getCurrentTileX();
     int pre_y = sensor_readings.getCurrentTileY();
