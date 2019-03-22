@@ -62,6 +62,8 @@ class SensorReadings
         void setTargetPoint(int x, int y);
         int getTargetTileX();
         int getTargetTileY();
+        bool isTargetTileValid();
+        void invalidateTargetTile();
 
         void setCurrentState(STATE val);
         STATE getCurrentState();

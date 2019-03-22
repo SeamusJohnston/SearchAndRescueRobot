@@ -32,10 +32,9 @@ void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
 
-void driveToFlame();
+void findAndExtinguishFire();
 void driveHome();
 void driveToLargeBuilding();
-void conductGridSearch();
 void waitForPlannerScan();
 void runInitialSearch();
 void startSearchYDependent();
@@ -56,8 +55,11 @@ Planner planner;
 // FLAGS
 bool _cleared_fwd = false;
 bool _driven_fwd = false;
+bool _extinguished_fire = false;
 bool _found_hall = false;
 bool KILL_SWITCH = false;
+
+bool _fan_on_reached_heading = false;
 
 float previous_ultra_left = 0;
 float previous_ultra_right = 0;
@@ -131,6 +133,13 @@ void robotPerformanceThread(int n)
     // Jiwoo's fire search method here
     // Note to jiwoo, my current fireOut() puts out fire if we are close enough. we may need to add logic to drive closer to flame
     // We shall test
+    findAndExtinguishFire();
+
+    // Wait until fire has been put out before moving on
+    while (!_extinguished_fire)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     sensor_readings.setCurrentState(STATE::HALL_SEARCH);
 
@@ -186,7 +195,21 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
         {
             //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
             planner.publishStop();
-            planner.publishDrive(sensor_readings.getCurrentHeading(), 0.3);
+
+            // If there is somewhere to actually drive to, then start a drive
+            if (!planner.isDrivePointsEmpty())
+            {
+                planner.publishDrive(sensor_readings.getCurrentHeading(), 0.3);
+            }
+
+            // If we are turning to yeet the fire, yeet that fire boi
+            if (_fan_on_reached_heading)
+            {
+                // Buzz and put out fire
+                planner.signalComplete();
+                planner.putOutFire();
+                _extinguished_fire = true;
+            }
 
             // publish an invalid target heading
             sensor_readings.setTargetHeading(-1);
@@ -213,7 +236,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             return;
         }
         // Regular free driving
-        else if (sensor_readings.getTargetTileX() == sensor_readings.getCurrentTileX() && sensor_readings.getTargetTileY() == sensor_readings.getCurrentTileY())
+        else if (sensor_readings.isTargetTileValid() && sensor_readings.getTargetTileX() == sensor_readings.getCurrentTileX() && sensor_readings.getTargetTileY() == sensor_readings.getCurrentTileY())
         {
             //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
             // We have arrived at our current target point
@@ -343,25 +366,36 @@ void emplacePoint(TilePosition tile_position)
 
 void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && msg->data)
+//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+//        && msg->data)
+//    {
+//        // Multiple hits in case of noise or bumps (causing sensor to point at light)
+//        if (found_fire_front < 3)
+//        {
+//            found_fire_front++;
+//            sensor_readings.setDetectedFireFwd(false);
+//            fireOut();
+//        }
+//        else
+//        {
+//            sensor_readings.setDetectedFireFwd(true);
+//        }
+//    }
+//    else
+//    {
+//        found_fire_front = 0;
+//        sensor_readings.setDetectedFireFwd(false);
+//    }
+    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
     {
-        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-        if (found_fire_front < 3)
-        {
-            found_fire_front++;
-            sensor_readings.setDetectedFireFwd(false);
-            fireOut();
-        }
-        else
-        {
-            sensor_readings.setDetectedFireFwd(true);
-        }
+        return;
     }
-    else
+
+    if (msg->data && !_extinguished_fire)
     {
-        found_fire_front = 0;
-        sensor_readings.setDetectedFireFwd(false);
+        planner.cancelDriveToTile(sensor_readings);
+        planner.putOutFire();
+        _extinguished_fire = true;
     }
 }
 
@@ -372,19 +406,30 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         return;
     }
 
-    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
-    {
-        return;
-    }
+//    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
+//    {
+//        return;
+//    }
+//
+//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+//        && msg->data)
+//    {
+//        sensor_readings.setDetectedFireLeft(false);
+//    }
+//    else
+//    {
+//        sensor_readings.setDetectedFireLeft(false);
+//    }
 
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-        && msg->data)
+    if (msg->data && !_extinguished_fire)
     {
-        sensor_readings.setDetectedFireLeft(false);
-    }
-    else
-    {
-        sensor_readings.setDetectedFireLeft(false);
+        planner.cancelDriveToTile(sensor_readings);
+
+        int headingOfFire = sensor_readings.getCurrentHeading() + 90.0;
+        sensor_readings.setTargetHeading(headingOfFire);
+        planner.publishTurn(headingOfFire);
+
+        _fan_on_reached_heading = true;
     }
 }
 
@@ -395,18 +440,29 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         return;
     }
 
-    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
+//    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
+//    {
+//        return;
+//    }
+//
+//    if (msg->data)
+//    {
+//        sensor_readings.setDetectedFireRight(false);
+//    }
+//    else
+//    {
+//        sensor_readings.setDetectedFireRight(false);
+//    }
+
+    if (msg->data && !_extinguished_fire)
     {
-        return;
-    }
-    
-    if (msg->data)
-    {
-        sensor_readings.setDetectedFireRight(false);
-    }
-    else
-    {
-        sensor_readings.setDetectedFireRight(false);
+        planner.cancelDriveToTile(sensor_readings);
+
+        int headingOfFire = sensor_readings.getCurrentHeading() - 90.0;
+        sensor_readings.setTargetHeading(headingOfFire);
+        planner.publishTurn(headingOfFire);
+
+        _fan_on_reached_heading = true;
     }
 }
 
@@ -566,9 +622,56 @@ void driveToDesiredPoints()
     }
 }
 
-void conductGridSearch()
+void findAndExtinguishFire()
 {
-    planner.gridSearch(sensor_readings);
+    TilePosition fireScanTargetTile;
+
+    // Switch based on which home tile we started in
+    int homeX = sensor_readings.getHomeTileX();
+    int homeY = sensor_readings.getHomeTileY();
+
+    if (sensor_readings.getCurrentTileX() != homeX || sensor_readings.getCurrentTileY() != homeY)
+    {
+        ROS_WARN("Starting fire search while not in a home tile, this is invalid. bailing");
+        return;
+    }
+
+    if (homeX == 3 && homeY == 0)
+    {
+        ROS_INFO("Starting fire search in tile 3, 0");
+        fireScanTargetTile.x = 3;
+        fireScanTargetTile.y = 5;
+        ROS_INFO("Driving to 3, 5 for fire search");
+    }
+    else if (homeX == 0 && homeY == 2)
+    {
+        ROS_INFO("Starting fire search in tile 0, 2");
+        fireScanTargetTile.x = 5;
+        fireScanTargetTile.y = 3;
+        ROS_INFO("Driving to 5, 3 for fire search");
+    }
+    else if (homeX == 2 && homeY == 5)
+    {
+        ROS_INFO("Starting fire search in tile 2, 5");
+        fireScanTargetTile.x = 3;
+        fireScanTargetTile.y = 0;
+        ROS_INFO("Driving to 3, 0 for fire search");
+    }
+    else if (homeX == 5 && homeY == 3)
+    {
+        ROS_INFO("Starting fire search in tile 5, 3");
+        fireScanTargetTile.x = 0;
+        fireScanTargetTile.y = 3;
+        ROS_INFO("Driving to 0, 3 for fire search");
+    }
+    else
+    {
+        ROS_WARN("We are starting fire search when our home tile is not one of the possible starting tiles, bailing");
+        return;
+    }
+
+    // Drive to our target
+    planner.publishDriveToTile(sensor_readings, fireScanTargetTile.x, fireScanTargetTile.y, 0.3);
 }
 
 void driveHome()
@@ -602,7 +705,7 @@ void driveToLargeBuilding()
 
 void waitToHitTile()
 {
-    while((planner.is_moving 
+    while((planner.is_moving
         || desired_tile.x != sensor_readings.getCurrentTileX() ||
         desired_tile.y != sensor_readings.getCurrentTileY()) 
         && !KILL_SWITCH)

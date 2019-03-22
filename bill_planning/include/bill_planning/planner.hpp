@@ -17,8 +17,6 @@ class Planner
   public:
     Planner();
     void setPubs(ros::Publisher mp, ros::Publisher fp, ros::Publisher lp);
-    void gridSearch(SensorReadings &sensorReadings);
-    void cancelGridSearch(SensorReadings &sensorReadings);
     void publishStop();
     void publishDrive(int heading, float speed);
     void publishTurn(int heading);
@@ -26,6 +24,7 @@ class Planner
     void signalComplete();
 
     void publishDriveToTile(SensorReadings &sensorReadings, int x, int y, float speed, bool scanOnReach = false);
+    void cancelDriveToTile(SensorReadings &sensorReadings);
 
     void driveAroundObstacle(SensorReadings &sensorReadings);
 
@@ -36,6 +35,7 @@ class Planner
 
     // This function returns a pointer so that we can return a nullptr if the queue is empty
     void ProcessNextDrivePoint(SensorReadings &sensorReadings);
+    bool isDrivePointsEmpty();
 
   private:
     std::mutex _is_scanning_mutex;

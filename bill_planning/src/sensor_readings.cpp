@@ -4,7 +4,10 @@ SensorReadings::SensorReadings()
 {
     //TODO PREPOPULATE QUEUE WITH POSSIBLE MAGNET POINTS
     _points_of_interest = std::queue<TilePosition>();
+
+    // Start targets as invalid
     _target_heading = -1;
+    _current_target_tile = TilePosition(-1,-1);
     //_home_tile.x = x;
     //_home_tile.y = y;
 }
@@ -155,6 +158,16 @@ int SensorReadings::getTargetTileY()
 {
     std::lock_guard<std::mutex> guard(_target_tile_mutex);
     return _current_target_tile.y;
+}
+
+bool SensorReadings::isTargetTileValid()
+{
+    return _current_target_tile.x >= 0 && _current_target_tile.x <= 5 && _current_target_tile.y >=0 && _current_target_tile.y <= 5;
+}
+
+void SensorReadings::invalidateTargetTile()
+{
+    setTargetPoint(-1, -1);
 }
 
 void SensorReadings::setCurrentState(STATE val)

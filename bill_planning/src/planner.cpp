@@ -15,61 +15,6 @@ void Planner::setPubs(const ros::Publisher mp, const ros::Publisher fp, const ro
     {}
 }
 
-void Planner::gridSearch(SensorReadings &sensorReadings)
-{
-    // Starting quadrants go:
-    //   3   2
-    //   4   1
-    // Origin on bottom left
-
-    int quadrant = 0;
-    int startingX = sensorReadings.getCurrentTileX() < 3 ? 0 : 5;
-    int startingY = sensorReadings.getCurrentTileY() < 3 ? 0 : 5;
-
-    if (sensorReadings.getCurrentTileX() < 3)
-    {
-        quadrant = sensorReadings.getCurrentTileY() < 3 ? 4 : 3;
-
-        startingY = quadrant == 3 ? 5 : 0;
-        startingX = 0;
-    }
-    else
-    {
-        quadrant = sensorReadings.getCurrentTileY() < 3 ? 1 : 2;
-
-        startingY = quadrant == 2 ? 5 : 0;
-        startingX = 6;
-    }
-
-    // Drive to the first point
-    publishDriveToTile(sensorReadings, startingX, startingY, 0.3);
-
-    int xIncrement = (quadrant == 1) || (quadrant == 2) ? -1 : 1;
-
-    for (int i = 0; i < 11; ++i)
-    {
-        if (i % 2 == 1)
-        {
-            startingX += xIncrement;
-        }
-        else if (i % 2 == 0)
-        {
-            startingY = startingY == 5 ? 0 : 5;
-        }
-
-        // Queue up the rest of the grid search points
-        drivePoints.emplace_back(startingX, startingY);
-    }
-}
-
-void Planner::cancelGridSearch(SensorReadings &sensorReadings)
-{
-    // Stop all driving
-    publishStop();
-    sensorReadings.setTargetHeading(-1);
-    drivePoints.clear();
-}
-
 void Planner::publishStop()
 {
     ROS_INFO("Commanding stop");
@@ -171,61 +116,17 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
         publishStop();
         sensorReadings.setTargetHeading(-1);
     }
+}
 
-//    // We will prioritize driving the longest leg of the horizontal/vertical drive first
-//    // If they are the same length, we will drive the vertical one first
-//    int xDistSq = (currentX - x)*(currentX - x);
-//    int yDistSq = (currentY - y)*(currentY - y);
-//
-//    if (xDistSq == 0 && yDistSq == 0)
-//    {
-//        ROS_WARN("Attempting to drive to the same tile we are already on, bailing");
-//        return;
-//    }
-//    if (xDistSq <= yDistSq)
-//    {
-//        //ROS_INFO("Targeting point: %i, %i", currentX, y);
-//        sensorReadings.setTargetPoint(currentX, y);
-//
-//        drivePoints.emplace_back(currentX, y);
-//
-//        heading = currentY > y ? 270 : 90;
-//
-//        if (xDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
-//        {
-//            // We only need one leg to drive to this point
-//            //ROS_INFO("Driving in one leg");
-//            publishTurn(heading);
-//            sensorReadings.setTargetHeading(heading);
-//            return;
-//        }
-//    }
-//    else
-//    {
-//        //ROS_INFO("Targeting point: %i, %i", x, currentY);
-//        sensorReadings.setTargetPoint(x, currentY);
-//
-//        drivePoints.emplace_back(x,currentY);
-//
-//        heading = currentX > x ? 180 : 0;
-//
-//        if (yDistSq == 0 && std::abs(heading - sensorReadings.getCurrentHeading()) > 2)
-//        {
-//            // We only need one leg to drive to this point
-//            //ROS_INFO("Driving in one leg");
-//            publishTurn(heading);
-//            sensorReadings.setTargetHeading(heading);
-//            return;
-//        }
-//    }
-//
-//    // Scan at the end of a drive to point if needed
-//    drivePoints.emplace_back(x,y, scanOnReach);
-//    //ROS_INFO("Targeting point: %i, %i", x, y);
-//
-//    // Publish a drive to the first queued point
-//    publishTurn(heading);
-//    sensorReadings.setTargetHeading(heading);
+void Planner::cancelDriveToTile(SensorReadings &sensorReadings)
+{
+    // Reset all data structures and targets
+    sensorReadings.setTargetHeading(-1);
+    sensorReadings.invalidateTargetTile();
+    drivePoints.clear();
+
+    // Stop all movement
+    publishStop();
 }
 
 void Planner::driveAroundObstacle(SensorReadings &sensorReadings) {
@@ -383,6 +284,11 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
             return;
         }
     }
+}
+
+bool Planner::isDrivePointsEmpty()
+{
+    return drivePoints.empty();
 }
 
 void Planner::setIsScanning(bool val)
