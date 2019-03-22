@@ -31,7 +31,7 @@ void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
 void driveForwardXTiles(int numTiles);
-void waitToHitTileWithBuildingSearch(bool firstLeg);
+void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, float right_dist);
 void driveToBuilding(bool isRight);
 void driveHome();
 void findAndExtinguishFire();
@@ -166,23 +166,6 @@ void robotPerformanceThread(int n)
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
-
-//    driveForwardXTiles(1);
-//    sensor_readings.setDetectedFireFwd(false);
-//    desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
-
-//    planner.publishTurn(desired_heading);
-//    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
-//    {
-//        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//    }
-
-//    desired_heading = (sensor_readings.getCurrentHeading() - 2 * 90 - 5) % 360;
-//    planner.publishTurn(desired_heading);
-//    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
-//    {
-//        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-//    }
 
     fireOut();
 
@@ -521,10 +504,11 @@ void driveHome()
         desired_tile.y, 0.3);
     waitToHitTile();
 }
-void waitToHitTileWithBuildingSearch(bool firstLeg)
+void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_dist)
 {
     if (firstLeg)
     {
+        int droveOnPreviousY = -1;
         while((planner.is_moving 
             || desired_tile.x != sensor_readings.getCurrentTileX() ||
             5 != sensor_readings.getCurrentTileY()) 
@@ -532,17 +516,24 @@ void waitToHitTileWithBuildingSearch(bool firstLeg)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-            if(_building_left || _building_right)
+            float curr_left_dist = sensor_readings.getUltraLeft();
+            float curr_right_dist = sensor_readings.getUltraRight();
+
+            if(sensor_readings.getCurrentTileY() != droveOnPreviousY 
+                && (curr_left_dist < (left_dist - 32)
+                || curr_right_dist < (right_dist - 32)))
             {
+                planner.cancelDriveToTile();
+
                 sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
+
+                droveOnPreviousY = sensor_readings.getCurrentTileY();
+                bool _building_right = curr_right_dist < (right_dist - 32);
                 driveToBuilding(_building_right);
 
                 desired_tile.y = 5;
                 planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
                 sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
-
-                _building_left = false;
-                _building_right = false;
             }
             if (buildings_found == 2)
             {
@@ -796,6 +787,9 @@ void startSearch()
         float uf = sensor_readings.getUltraFwd();
         ROS_INFO("Ultra fwd is %f", uf);
 
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        
         int counter = 0;
         bool set_flag = false;
         while (counter < 25)
@@ -827,9 +821,11 @@ void startSearch()
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 
+    float left_dist = sensor_readings.getUltraLeft();
+    float right_dist = sensor_readings.getUltraRight();
     ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-    waitToHitTileWithBuildingSearch(true);
+    waitToHitTileWithBuildingSearch(true, left_dist, right_dist);
     ROS_INFO("Finished straight line search");
 }
 
@@ -873,6 +869,7 @@ void driveForwardXTiles(int numTiles)
 
 void completeSearch()
 {
+    //This won't get run, don't worry about it
     int x = sensor_readings.getCurrentTileX();
     TilePosition poi[3] = {TilePosition(5,3), TilePosition(5,1), TilePosition(5,5)};
     for(int i = 0; i < 3; i++)
@@ -909,7 +906,7 @@ void completeSearch()
         sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 0;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-        waitToHitTileWithBuildingSearch(false);
+        //waitToHitTileWithBuildingSearch(false);
     }
     else if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
         && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft())
@@ -924,7 +921,7 @@ void completeSearch()
         sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 5;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-        waitToHitTileWithBuildingSearch(false);
+        //waitToHitTileWithBuildingSearch(false);
     }
     else
     {
