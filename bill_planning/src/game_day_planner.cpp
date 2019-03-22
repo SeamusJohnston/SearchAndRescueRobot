@@ -42,6 +42,7 @@ void completeSearch();
 void emplacePoint(TilePosition tile_position);
 void preBuildingSearchSetup();
 void findMagnet();
+bool shouldKeepTurning();
 
 SensorReadings sensor_readings;
 
@@ -162,17 +163,17 @@ void robotPerformanceThread(int n)
 
     driveForwardXTiles(1);
     sensor_readings.setDetectedFireFwd(false);
-    desired_heading = (sensor_readings.current_heading + 90) % 360;
+    desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
 
     planner.publishTurn(desired_heading);
-    while(shouldKeepTurning && !sensor_readings.getDetectedFireFwd)
+    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    desired_heading = (sensor_readings.current_heading - 2 * 90 - 5) % 360;
+    desired_heading = (sensor_readings.getCurrentHeading() - 2 * 90 - 5) % 360;
     planner.publishTurn(desired_heading);
-    while(shouldKeepTurning && !sensor_readings.getDetectedFireFwd)
+    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -438,7 +439,7 @@ void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 bool shouldKeepTurning()
 {
     if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
-    {   
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         planner.publishStop();
         return false;
