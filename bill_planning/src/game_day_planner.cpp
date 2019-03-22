@@ -30,20 +30,19 @@ void fireOut();
 void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
-
+void driveForwardXTiles(int numTiles);
 void waitToHitTileWithBuildingSearch(bool firstLeg);
 void driveToBuilding(bool isRight);
 void driveHome();
 void findAndExtinguishFire();
-
 void waitForPlannerScan();
 void runBuildingSearch();
 void startSearch();
 void completeSearch();
 void emplacePoint(TilePosition tile_position);
 void preBuildingSearchSetup();
-
 void findMagnet();
+bool shouldKeepTurning();
 
 SensorReadings sensor_readings;
 
@@ -78,11 +77,11 @@ int desired_heading = 90;
 // CONSTANTS
 const float FULL_COURSE_DETECTION_LENGTH = 155.0;
 const float FULL_COURSE_SIDE_ULTRAS = 160.0;
-const int FIRE_SCAN_ANGLE = 30;
+const int FIRE_SCAN_ANGLE = 45;
 const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
-const float POSITION_ACCURACY_BUFFER = 0.075;
+const float POSITION_ACCURACY_BUFFER = 0.09;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
 const float HEADING_ACCURACY_BUFFER = 3.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
@@ -99,7 +98,7 @@ int main(int argc, char** argv)
 
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
-    ros::Subscriber sub_fire = nh.subscribe("fire", 1, fireCallbackFront);
+    ros::Subscriber sub_fire = nh.subscribe("fire", 3, fireCallbackFront);
     ros::Subscriber sub_fire_left = nh.subscribe("fire_left", 3, fireCallbackLeft);
     ros::Subscriber sub_fire_right = nh.subscribe("fire_right", 3, fireCallbackRight);
     ros::Subscriber sub_ultrasonic = nh.subscribe("ultra_front", 1, frontUltrasonicCallback);
@@ -161,13 +160,33 @@ void robotPerformanceThread(int n)
         }
         else if (sensor_readings.getDetectedFireRight() && !planner.is_moving)
         {
+            ROS_INFO("Detected fire right, turning to heading %i",(sensor_readings.getCurrentHeading() - 90 + 360) % 360 );
             desired_heading = (sensor_readings.getCurrentHeading() - 90 + 360) % 360;
             planner.publishTurn(desired_heading);
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
+    driveForwardXTiles(1);
+    sensor_readings.setDetectedFireFwd(false);
+    desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
+
+    planner.publishTurn(desired_heading);
+    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    desired_heading = (sensor_readings.getCurrentHeading() - 2 * 90 - 5) % 360;
+    planner.publishTurn(desired_heading);
+    while(shouldKeepTurning() && !sensor_readings.getDetectedFireFwd())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
     fireOut();
+
+    planner.signalComplete();
 
     ROS_INFO("Finding Magnet");
     sensor_readings.setCurrentState(STATE::HALL_SEARCH);
@@ -180,6 +199,7 @@ void robotPerformanceThread(int n)
     runBuildingSearch();
 
     // Returning Home
+    ROS_INFO("driving home");
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
     driveHome();
 }
@@ -220,13 +240,14 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
     {
         if (fabs(sensor_readings.getTargetHeading() - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(750));
             //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
             planner.publishStop();
 
             // If there is somewhere to actually drive to, then start a drive
             if (!planner.isDrivePointsEmpty())
             {
-                planner.publishDrive(sensor_readings.getCurrentHeading(), 0.3);
+                planner.publishDrive(sensor_readings.getCurrentHeading(), 0.2);
             }
 
             // If we are turning to yeet the fire, yeet that fire boi
@@ -274,8 +295,8 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-//    sensor_readings.setUltraFwd(msg->data);
-//
+    sensor_readings.setUltraFwd(msg->data);
+
     //WHEN FRONT, RIGHT AND LEFT EACH HAVE VALID DATA:
     start_course = start_course ^ 0x01;
     if(!sensor_readings.getStartRobotPerformanceThread()
@@ -337,7 +358,7 @@ void emplacePoint(TilePosition tile_position)
 void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 {
 
-    if (sensor_readings.getCurrentState() == STATE::FLAME_SEARCH && msg->data && !_extinguished_fire)
+    if (sensor_readings.getCurrentState() == STATE::FLAME_SEARCH && msg->data)
     {
         planner.cancelDriveToTile(sensor_readings);
         sensor_readings.setDetectedFireFwd(true);
@@ -345,7 +366,6 @@ void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
     }
     else
     {
-        sensor_readings.setDetectedFireFwd(false);
     }
 }
 
@@ -426,6 +446,7 @@ bool shouldKeepTurning()
 {
     if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
     {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         planner.publishStop();
         return false;
     }
@@ -447,6 +468,8 @@ void fireOut()
         if (initialCall || sensor_readings.getDetectedFireFwd())
         {
             planner.putOutFire();
+            sensor_readings.setDetectedFireFwd(false);
+
             desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
             temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
 
@@ -464,6 +487,8 @@ void fireOut()
             if(sensor_readings.getDetectedFireFwd())
             {
                 planner.putOutFire();
+                sensor_readings.setDetectedFireFwd(false);
+
                 desired_heading = (sensor_readings.getCurrentHeading() + 2 * FIRE_SCAN_ANGLE + 360) % 360;
                 temp_desired_heading = (sensor_readings.getCurrentHeading() - FIRE_SCAN_ANGLE + 360) % 360;
                 planner.publishTurn(temp_desired_heading);
@@ -475,6 +500,7 @@ void fireOut()
         check_temp_heading = false; 
         if (!set_desired_heading)
         {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             planner.publishTurn(desired_heading);
             set_desired_heading = true;
         }
@@ -580,7 +606,7 @@ void findAndExtinguishFire()
     }
 
     // Drive to our target
-    planner.publishDriveToTile(sensor_readings, fireScanTargetTile.x, fireScanTargetTile.y, 0.3);
+    planner.publishDriveToTile(sensor_readings, fireScanTargetTile.x, fireScanTargetTile.y, 0.2);
 }
 
 void driveToBuilding(bool isRight)
@@ -624,6 +650,7 @@ void waitToHitTile()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+    std::this_thread::sleep_for(std::chrono::milliseconds(750));
 }
 
 void waitForPlannerScan()
@@ -664,7 +691,7 @@ TilePosition tileFromPoint(int x_pos, int y_pos)
 void findMagnet()
 {
     ROS_INFO("Starting magnet search");
-    TilePosition poi[3] = {TilePosition(1,1), TilePosition(4,4), TilePosition(2,3)};
+    TilePosition poi[3] = {TilePosition(1,2), TilePosition(4,4), TilePosition(2,3)};
 
     for(int i = 0; i < 3; i++)
     {
@@ -691,6 +718,7 @@ void findMagnet()
 
     if (!_found_hall)
     {
+        ROS_INFO("Signalling magnet found");
         _found_hall = true;
         planner.signalComplete();
     }
@@ -798,6 +826,44 @@ void startSearch()
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
     waitToHitTileWithBuildingSearch(true);
     ROS_INFO("Finished straight line search");
+}
+
+void driveForwardXTiles(int numTiles)
+{
+    int curr_heading = sensor_readings.getCurrentHeading();
+
+    switch (curr_heading)
+    {
+        case 316 ... 359:
+        case 0 ... 45:
+            // right side
+            desired_tile.x = sensor_readings.getCurrentHeading() + numTiles;
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            break;
+        case 46 ... 135:
+            // top side
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading() + numTiles;
+            break;
+        case 136 ... 225:
+            // left
+            desired_tile.x = sensor_readings.getCurrentHeading() - numTiles;
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            break;
+        case 226 ... 315:
+            // bottom
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading() - numTiles;
+            break;
+        default:
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            ROS_WARN("Some weird crap just happened");
+            break;
+    }
+
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.2);
+    waitToHitTile();
 }
 
 void completeSearch()

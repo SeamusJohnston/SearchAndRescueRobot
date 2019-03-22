@@ -53,7 +53,7 @@ void Planner::putOutFire()
     std_msgs::Bool cmd;
     cmd.data = true;
     _fan_pub.publish(cmd);  // Turn on fan
-    ros::Duration(2).sleep();
+    ros::Duration(5).sleep();
     cmd.data = false;
     _fan_pub.publish(cmd);  // Turn off fan
 }
