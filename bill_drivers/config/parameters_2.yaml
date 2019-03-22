@@ -1,10 +1,13 @@
 bill:
   motor_params:
     kp_drive: 3.0
-    ki_drive: 0.4
-    kp_turning: 3.0
-    ki_turning: 0.43
+    ki_drive: 0.8
+    kp_turning: 2.8
+    ki_turning: 0.44
   starting_params:
     x: 1.7
     y: 1.05
     theta: 180
+  thresholds:
+    magnet: 3000
+
