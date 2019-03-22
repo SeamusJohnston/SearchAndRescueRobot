@@ -506,6 +506,8 @@ void driveHome()
 }
 void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_dist)
 {
+    float detection_left = (left_dist - left_dist * 0.3) < 20 ? 20 : left_dist - left_dist * 0.3;
+    float detection_right = (right_dist - right_dist * 0.3) < 20 ? 20 : right_dist - right_dist * 0.3;
     if (firstLeg)
     {
         int droveOnPreviousY = -1;
@@ -520,8 +522,8 @@ void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_d
             float curr_right_dist = sensor_readings.getUltraRight();
 
             if(sensor_readings.getCurrentTileY() != droveOnPreviousY 
-                && (curr_left_dist < (left_dist - 32)
-                || curr_right_dist < (right_dist - 32)))
+                && (curr_left_dist < detection_left
+                || curr_right_dist < detection_right)
             {
                 planner.cancelDriveToTile();
 
@@ -535,6 +537,9 @@ void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_d
                 planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
                 sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
             }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
             if (buildings_found == 2)
             {
                 ROS_INFO("FOUND 2 BUILDINGS");
