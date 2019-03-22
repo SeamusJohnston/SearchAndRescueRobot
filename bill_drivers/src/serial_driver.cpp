@@ -149,7 +149,7 @@ int main(int argc, char** argv)
             survivor_pub.publish(survivor_msg);
             fire_pub.publish(fire_msg);
             fire_left_pub.publish(fire_left_msg);
-            fire_left_pub.publish(fire_right_msg);
+            fire_right_pub.publish(fire_right_msg);
             ros::spinOnce();
         }
         loop_rate.sleep();
