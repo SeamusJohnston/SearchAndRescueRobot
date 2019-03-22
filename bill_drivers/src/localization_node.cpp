@@ -9,6 +9,7 @@
 #include "bill_drivers/filters.hpp"
 #include <limits>
 #include <chrono>
+#include <math.h>
 
 const float TOL = 0.05; // TODO: Determine appropriate range
 const float COURSE_DIM = 1.85;
@@ -142,8 +143,11 @@ void updatePosition()
                 ultra_pos.y = average;
             }
         }
+    } else {
+        // If we are turning, update all axis' using odometry
+        ultra_pos.y += odom_pos.y - odom_pos_prev.y;
+        ultra_pos.x += odom_pos.x - odom_pos_prev.x;
     }
-
     ROS_INFO("Current ultrasonic position x: %f, y: %f, Heading: %i, Turning: %i", ultra_pos.x, ultra_pos.y, current_heading, turning);
     publishPosition();
 }
@@ -280,7 +284,7 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
+    current_heading = (int)round(angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
     if(current_heading < 0)
     {
         current_heading += 360;

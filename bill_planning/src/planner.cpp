@@ -93,17 +93,16 @@ void Planner::publishDriveToTile(SensorReadings &sensorReadings, const int x, co
     {
         TilePosition nextLeg = drivePoints.front();
 
-        // One of the two dimensions should always match
-        if (currentX == nextLeg.x)
-        {
-            // Drive in Y
-            heading = currentY > nextLeg.y ? 270 : 90;
-        }
-        else
-        {
-            // Drive in X
-            heading = currentX > nextLeg.x ? 180 : 0;
-        }
+        float vX = (nextLeg.x + 0.5) - (sensorReadings.getCurrentPositionX() / 30.0);
+        float vY = (nextLeg.y + 0.5) - (sensorReadings.getCurrentPositionY() / 30.0);
+
+        float oX = 1;
+        float oY = 0;
+
+        double dot = oX*vX + oY*vY;
+        double det = oX*vY - oY*vX;
+
+        heading = (int)round(atan2(det, dot) * (180.0 / M_PI));
 
         //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
         sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
@@ -189,14 +188,16 @@ void Planner::driveAroundObstacle(SensorReadings &sensorReadings) {
         TilePosition nextLeg = drivePoints.front();
         int heading;
 
-        // One of the two dimensions should always match
-        if (currentX == nextLeg.x) {
-            // Drive in Y
-            heading = currentY > nextLeg.y ? 270 : 90;
-        } else {
-            // Drive in X
-            heading = currentX > nextLeg.x ? 180 : 0;
-        }
+        float vX = (nextLeg.x + 0.5) - (sensorReadings.getCurrentPositionX() / 30.0);
+        float vY = (nextLeg.y + 0.5) - (sensorReadings.getCurrentPositionY() / 30.0);
+
+        float oX = 1;
+        float oY = 0;
+
+        double dot = oX*vX + oY*vY;
+        double det = oX*vY - oY*vX;
+
+        heading = (int)round(atan2(det, dot) * (180.0 / M_PI));
 
         //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
         sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
@@ -242,17 +243,16 @@ void Planner::ProcessNextDrivePoint(SensorReadings &sensorReadings)
             TilePosition nextLeg = drivePoints.front();
             int heading;
 
-            // One of the two dimensions should always match
-            if (currentX == nextLeg.x)
-            {
-                // Drive in Y
-                heading = currentY > nextLeg.y ? 270 : 90;
-            }
-            else
-            {
-                // Drive in X
-                heading = currentX > nextLeg.x ? 180 : 0;
-            }
+            float vX = (nextLeg.x + 0.5) - (sensorReadings.getCurrentPositionX() / 30.0);
+            float vY = (nextLeg.y + 0.5) - (sensorReadings.getCurrentPositionY() / 30.0);
+
+            float oX = 1;
+            float oY = 0;
+
+            double dot = oX*vX + oY*vY;
+            double det = oX*vY - oY*vX;
+
+            heading = (int)round(atan2(det, dot) * (180.0 / M_PI));
 
             //ROS_INFO("Targeting new point: %i, %i", nextLeg.x, nextLeg.y);
             sensorReadings.setTargetPoint(nextLeg.x, nextLeg.y);
