@@ -4,6 +4,7 @@
 #include "std_msgs/Bool.h"
 #include <wiringPi.h>
 #include <stdio.h>
+#include <cmath>
 
 static const MPUIMU::Gscale_t  GSCALE    = MPUIMU::GFS_250DPS;
 static const MPUIMU::Ascale_t  ASCALE    = MPUIMU::AFS_2G;
@@ -15,6 +16,7 @@ static MPU9250_Passthru imu(ASCALE, GSCALE, MSCALE, MMODE, SAMPLE_RATE_DIVISOR);
 
 bool prev_magnet_state = false;
 bool magnet_state = false;
+float mag_threshold;
 
 void setup()
 {
@@ -48,12 +50,13 @@ std_msgs::Bool isMagnetPresent() {
     // Detect magnet
     std_msgs::Bool msg;
     msg.data = false;
-    float mx, my, mz;
-    if (imu.checkNewMagData()) {
+    float mx, my, mz, mtotal;
+    if (imu.checkNewMagData()) 
+    {
         imu.readMagnetometer(mx, my, mz);
-        ROS_INFO("New Mag Data: X: %f Y: %f Z: %f", mx, my, mz);
-
-        // TODO: Add threshold and logic for returning true here
+        mtotal = sqrt(mx*mx + my*my + mz*mz);
+        ROS_INFO("New Mag Data: X: %f Y: %f Z: %f, Total: %f", mx, my, mz, mtotal);
+        msg.data = (mtotal >= mag_threshold);
     }
     magnet_state = msg.data;
     return msg;
@@ -65,8 +68,9 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
     ros::Publisher food_pub = nh.advertise<std_msgs::Bool>("food", 100, true);
     ros::Rate loop_rate(LOOP_RATE_MAGNET);
-
+    nh.getParam("/bill/thresholds/magnet", mag_threshold);
     // Call sensor setup
+    ROS_INFO("Mag threshold: %f", mag_threshold);
     setup();
 
     while (ros::ok())

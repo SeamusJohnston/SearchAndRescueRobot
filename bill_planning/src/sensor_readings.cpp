@@ -8,7 +8,6 @@ SensorReadings::SensorReadings()
     //_home_tile.x = x;
     //_home_tile.y = y;
 }
-}
 
 void SensorReadings::setStartRobotPerformanceThread(bool val)
 {

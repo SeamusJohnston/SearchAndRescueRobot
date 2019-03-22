@@ -126,7 +126,9 @@ set(MPU_SOURCES
     src/MPU6x00.cpp
     src/MPU6500.cpp
     src/MPU9250.cpp
-    src/MPU9250_Passthru.cpp)
+    src/MPU9250_Passthru.cpp
+    src/WiringPiI2C.cpp
+    src/WiringPiSPI.cpp)
 
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
@@ -169,6 +171,7 @@ add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
 add_dependencies(encoder_driver ${catkin_EXPORTED_TARGETS})
+add_dependencies(magnet_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
