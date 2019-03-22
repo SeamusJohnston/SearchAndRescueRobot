@@ -356,10 +356,6 @@ void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
         planner.publishStop();
         sensor_readings.setDetectedFireLeft(true);
     }
-    else if (!msg->data)
-    {
-        sensor_readings.setDetectedFireLeft(false);
-    }
 }
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
@@ -375,11 +371,6 @@ void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
         planner.publishStop();
         sensor_readings.setDetectedFireRight(true);
     }
-    else if (!msg->data)
-    {
-        sensor_readings.setDetectedFireRight(false);
-    }
-
 }
 
 void hallCallback(const std_msgs::Bool::ConstPtr& msg)
