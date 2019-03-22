@@ -1,5 +1,6 @@
 <!-- Planner launch file -->
 <launch>
+  <rosparam file ="$(find bill_planning)/config/goals.yaml" command="load" />
   <include file="$(find bill_drivers)/launch/drivers_4.launch" />
 
   <node pkg="bill_planning" type="game_day_planner"

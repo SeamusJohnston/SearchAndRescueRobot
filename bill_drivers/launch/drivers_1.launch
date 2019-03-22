@@ -5,7 +5,7 @@
   <rosparam file ="$(find bill_drivers)/config/parameters_1.yaml" command="load" />
 
   <node pkg="bill_drivers" type="encoder_driver"
-    name="encoder_driver" output="screen">
+    name="encoder_driver">
   </node>
 
   <node pkg="bill_drivers" type="fan_driver"
@@ -19,11 +19,11 @@
   <node pkg="bill_drivers" type="localization_node"
     name="localization_node" output="screen">
   </node>  
-<!--
+
   <node pkg="bill_drivers" type="led_driver"
     name="led_driver">
   </node>
--->
+
   <node pkg="bill_drivers" type="motor_driver"
     name="motor_driver" output="screen">
   </node>

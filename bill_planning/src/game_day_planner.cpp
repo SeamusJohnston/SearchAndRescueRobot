@@ -61,6 +61,9 @@ bool _driven_fwd = false;
 bool _extinguished_fire = false;
 bool _found_hall = false;
 bool KILL_SWITCH = false;
+bool FIND_BUILDINGS = true;
+bool FIND_FIRE = true;
+bool FIND_MAGNET = true;
 
 bool _fan_on_reached_heading = false;
 
@@ -89,6 +92,10 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "game_day_planner");
     ros::NodeHandle nh;
+    nh.getParam("/goals/fire", FIND_FIRE);
+    nh.getParam("/goals/magnet", FIND_MAGNET);
+    nh.getParam("/goals/buildings", FIND_BUILDINGS);
+    ROS_INFO("Goals are Fire: %i Magnet: %i Buildings: %i", FIND_FIRE, FIND_MAGNET, FIND_BUILDINGS);  
 
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
@@ -103,7 +110,6 @@ int main(int argc, char** argv)
 
     ros::Publisher motor_pub = nh.advertise<bill_msgs::MotorCommands>("motor_cmd", 100, true);
     ros::Publisher fan_pub = nh.advertise<std_msgs::Bool>("fan", 100);
-    ros::Publisher state_pub;  //= nh.advertise<bill_msgs::State>("state", 100);
     ros::Publisher led_pub = nh.advertise<std_msgs::Bool>("led", 100);
 
     planner.setPubs(motor_pub, fan_pub, led_pub);
