@@ -168,15 +168,15 @@ byte readFlameSensor()
   Serial.print(sensorValueLeft);
   */
   
-  if(sensorValueFront < 100)
+  if(sensorValueFront < 400)
   {
     returnVal = returnVal ^ 0x01;
   }
-  if(sensorValueLeft < 400)
+  if(sensorValueLeft < 600)
   {
     returnVal = returnVal ^ 0x10;
   }
-  if(sensorValueRight < 400)
+  if(sensorValueRight < 600)
   {
     returnVal = returnVal ^ 0x20;
   }
