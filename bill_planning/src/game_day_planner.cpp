@@ -30,19 +30,17 @@ void fireOut();
 void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
-
+void driveForwardXTiles(int numTiles);
 void waitToHitTileWithBuildingSearch(bool firstLeg);
 void driveToBuilding(bool isRight);
 void driveHome();
 void findAndExtinguishFire();
-
 void waitForPlannerScan();
 void runBuildingSearch();
 void startSearch();
 void completeSearch();
 void emplacePoint(TilePosition tile_position);
 void preBuildingSearchSetup();
-
 void findMagnet();
 
 SensorReadings sensor_readings;
@@ -81,7 +79,7 @@ const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.09;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 2.0;
+const float HEADING_ACCURACY_BUFFER = 3.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -159,6 +157,23 @@ void robotPerformanceThread(int n)
             desired_heading = (sensor_readings.getCurrentHeading() - 90 + 360) % 360;
             planner.publishTurn(desired_heading);
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    driveForwardXTiles(1);
+    sensor_readings.setDetectedFireFwd(false);
+    desired_heading = (sensor_readings.current_heading + 90) % 360;
+
+    planner.publishTurn(desired_heading);
+    while(shouldKeepTurning && !sensor_readings.getDetectedFireFwd)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    desired_heading = (sensor_readings.current_heading - 2 * 90 - 5) % 360;
+    planner.publishTurn(desired_heading);
+    while(shouldKeepTurning && !sensor_readings.getDetectedFireFwd)
+    {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
@@ -804,6 +819,44 @@ void startSearch()
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
     waitToHitTileWithBuildingSearch(true);
     ROS_INFO("Finished straight line search");
+}
+
+void driveForwardXTiles(int numTiles)
+{
+    int curr_heading = sensor_readings.getCurrentHeading();
+
+    switch (curr_heading)
+    {
+        case 316 ... 359:
+        case 0 ... 45:
+            // right side
+            desired_tile.x = sensor_readings.getCurrentHeading() + numTiles;
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            break;
+        case 46 ... 135:
+            // top side
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading() + numTiles;
+            break;
+        case 136 ... 225:
+            // left
+            desired_tile.x = sensor_readings.getCurrentHeading() - numTiles;
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            break;
+        case 226 ... 315:
+            // bottom
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading() - numTiles;
+            break;
+        default:
+            desired_tile.x = sensor_readings.getCurrentHeading();
+            desired_tile.y = sensor_readings.getCurrentHeading();
+            ROS_WARN("Some weird crap just happened");
+            break;
+    }
+
+    planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.2);
+    waitToHitTile();
 }
 
 void completeSearch()
