@@ -148,10 +148,22 @@ void robotPerformanceThread(int n)
     findAndExtinguishFire();
 
     // Wait until fire has been put out before moving on
-    while (!_extinguished_fire)
+    while (!sensor_readings.getDetectedFireFwd() && !KILL_SWITCH)
     {
+        if (sensor_readings.getDetectedFireLeft() && !planner.is_moving)
+        {
+            desired_heading = (sensor_readings.getCurrentHeading() + 90) % 360;
+            planner.publishTurn(desired_heading);
+        }
+        else if (sensor_readings.getDetectedFireRight() && !planner.is_moving)
+        {
+            desired_heading = (sensor_readings.getCurrentHeading() - 90 + 360) % 360;
+            planner.publishTurn(desired_heading);
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
+
+    fireOut();
 
     ROS_INFO("Finding Magnet");
     sensor_readings.setCurrentState(STATE::HALL_SEARCH);
@@ -320,103 +332,44 @@ void emplacePoint(TilePosition tile_position)
 
 void fireCallbackFront(const std_msgs::Bool::ConstPtr& msg)
 {
-//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-//        && msg->data)
-//    {
-//        // Multiple hits in case of noise or bumps (causing sensor to point at light)
-//        if (found_fire_front < 3)
-//        {
-//            found_fire_front++;
-//            sensor_readings.setDetectedFireFwd(false);
-//            fireOut();
-//        }
-//        else
-//        {
-//            sensor_readings.setDetectedFireFwd(true);
-//        }
-//    }
-//    else
-//    {
-//        found_fire_front = 0;
-//        sensor_readings.setDetectedFireFwd(false);
-//    }
-    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
-    {
-        return;
-    }
 
-    if (msg->data && !_extinguished_fire)
+    if (sensor_readings.getCurrentState() == STATE::FLAME_SEARCH && msg->data && !_extinguished_fire)
     {
         planner.cancelDriveToTile(sensor_readings);
-        planner.putOutFire();
+        sensor_readings.setDetectedFireFwd(true);
         _extinguished_fire = true;
+    }
+    else
+    {
+        sensor_readings.setDetectedFireFwd(false);
     }
 }
 
 void fireCallbackLeft(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
-    {
-        return;
-    }
-
-//    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
-//    {
-//        return;
-//    }
-//
-//    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
-//        && msg->data)
-//    {
-//        sensor_readings.setDetectedFireLeft(false);
-//    }
-//    else
-//    {
-//        sensor_readings.setDetectedFireLeft(false);
-//    }
-
-    if (msg->data && !_extinguished_fire)
+    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH
+        && msg->data && !_extinguished_fire)
     {
         planner.cancelDriveToTile(sensor_readings);
-
-        int headingOfFire = sensor_readings.getCurrentHeading() + 90.0;
-        sensor_readings.setTargetHeading(headingOfFire);
-        planner.publishTurn(headingOfFire);
-
-        _fan_on_reached_heading = true;
+        sensor_readings.setDetectedFireLeft(true);
+    }
+    else
+    {
+        sensor_readings.setDetectedFireLeft(false);
     }
 }
 
 void fireCallbackRight(const std_msgs::Bool::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH)
-    {
-        return;
-    }
-
-//    if (sensor_readings.getFlameTileX() != -1 || sensor_readings.getFlameTileY() != -1)
-//    {
-//        return;
-//    }
-//
-//    if (msg->data)
-//    {
-//        sensor_readings.setDetectedFireRight(false);
-//    }
-//    else
-//    {
-//        sensor_readings.setDetectedFireRight(false);
-//    }
-
-    if (msg->data && !_extinguished_fire)
+    if (sensor_readings.getCurrentState() != STATE::FLAME_SEARCH
+      && msg->data && !_extinguished_fire)
     {
         planner.cancelDriveToTile(sensor_readings);
-
-        int headingOfFire = sensor_readings.getCurrentHeading() - 90.0;
-        sensor_readings.setTargetHeading(headingOfFire);
-        planner.publishTurn(headingOfFire);
-
-        _fan_on_reached_heading = true;
+        sensor_readings.setDetectedFireRight(true);
+    }
+    else
+    {
+        sensor_readings.setDetectedFireRight(false);
     }
 }
 
