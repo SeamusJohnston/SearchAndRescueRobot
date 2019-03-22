@@ -195,7 +195,7 @@ void robotPerformanceThread(int n)
     ROS_INFO("Running Building Search Setup");
     preBuildingSearchSetup();
     ROS_INFO("Starting Building Search");
-    sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
+    sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
     runBuildingSearch();
 
     // Returning Home
@@ -308,7 +308,7 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
-    if (sensor_readings.getCurrentState() == STATE::INIT_SEARCH
+    if (sensor_readings.getCurrentState() == STATE::BUILDING_SEARCH
         && (((sensor_readings.getUltraLeft() - msg->data) > DELTA)
         || (previous_ultra_left - msg->data) > DELTA))
     {
@@ -534,10 +534,12 @@ void waitToHitTileWithBuildingSearch(bool firstLeg)
 
             if(_building_left || _building_right)
             {
+                sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
                 driveToBuilding(_building_right);
 
                 desired_tile.y = 5;
                 planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
+                sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 
                 _building_left = false;
                 _building_right = false;
@@ -743,8 +745,6 @@ void runBuildingSearch()
     {
         startSearch();
         
-        ROS_INFO("Found %i POIs", sensor_readings.pointsOfInterestSize());
-        
         if(buildings_found < 2)
         {
             sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
@@ -821,6 +821,8 @@ void startSearch()
     
     desired_tile.x = sensor_readings.getCurrentTileX();
     desired_tile.y = 5;
+
+    sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 
     ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
