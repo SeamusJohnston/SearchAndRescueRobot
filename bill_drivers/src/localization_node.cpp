@@ -9,6 +9,7 @@
 #include "bill_drivers/filters.hpp"
 #include <limits>
 #include <chrono>
+#include <math.h>
 
 const float TOL = 0.05; // TODO: Determine appropriate range
 const float COURSE_DIM = 1.85;
@@ -283,7 +284,7 @@ void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 
 void fusedOdometryCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
-    current_heading = (int)angles::to_degrees(tf::getYaw(msg->pose.pose.orientation));
+    current_heading = (int)round(angles::to_degrees(tf::getYaw(msg->pose.pose.orientation)));
     if(current_heading < 0)
     {
         current_heading += 360;
