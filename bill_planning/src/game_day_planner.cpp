@@ -247,7 +247,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
             // If there is somewhere to actually drive to, then start a drive
             if (!planner.isDrivePointsEmpty())
             {
-                planner.publishDrive(sensor_readings.getCurrentHeading(), 0.2);
+                planner.publishDrive(sensor_readings.getTargetHeading(), 0.2);
             }
 
             // If we are turning to yeet the fire, yeet that fire boi
