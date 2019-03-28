@@ -31,7 +31,7 @@ void robotPerformanceThread(int n);
 TilePosition tileFromPoint(int x_pos, int y_pos);
 void waitToHitTile();
 void driveForwardXTiles(int numTiles);
-void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, float right_dist);
+void waitToHitTileWithBuildingSearch(bool firstLeg);
 void driveToBuilding(bool isRight);
 void driveHome();
 void findAndExtinguishFire();
@@ -73,17 +73,18 @@ float previous_ultra_right = 0;
 TilePosition desired_tile(0,0);
 
 int desired_heading = 90;
+int start_heading = 90;
 
 // CONSTANTS
 const float FULL_COURSE_DETECTION_LENGTH = 155.0;
 const float FULL_COURSE_SIDE_ULTRAS = 160.0;
-const int FIRE_SCAN_ANGLE = 45;
+const int FIRE_SCAN_ANGLE = 25;
 const float DELTA = 7; //cm
 const float TILE_WIDTH = 0.3;
 const float TILE_HEIGHT = 0.3;
 const float POSITION_ACCURACY_BUFFER = 0.075;
 // There is a buffer in the robot response time so let's be a bit more generous here. In degrees
-const float HEADING_ACCURACY_BUFFER = 3.0;
+const float HEADING_ACCURACY_BUFFER = 5.0;
 // There is a buffer in the robot response time so let's be a bit more generous here. In cm
 const float OBSTACLE_THRESHOLD = 3.0;
 
@@ -95,6 +96,7 @@ int main(int argc, char** argv)
     nh.getParam("/goals/magnet", FIND_MAGNET);
     nh.getParam("/goals/buildings", FIND_BUILDINGS);
     ROS_INFO("Goals are Fire: %i Magnet: %i Buildings: %i", FIND_FIRE, FIND_MAGNET, FIND_BUILDINGS);  
+    nh.getParam("/bill/starting_params/theta", start_heading);
 
     // Subscribing to Topics
     ros::Subscriber sub_odom = nh.subscribe("position", 1, positionCallback);
@@ -130,9 +132,10 @@ void robotPerformanceThread(int n)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3000));
 
     ROS_INFO("Current tile: (%i,%i)", sensor_readings.getCurrentTileX(), sensor_readings.getCurrentTileY());
+//    sensor_readings.setCurrentHeading(start_heading);
 
     if ((sensor_readings.getCurrentTileX() == 0 && sensor_readings.getCurrentTileY() ==  2 && (std::abs(sensor_readings.getCurrentHeading() - 360) > HEADING_ACCURACY_BUFFER || std::abs(sensor_readings.getCurrentHeading()) > HEADING_ACCURACY_BUFFER))
         || (sensor_readings.getCurrentTileX() == 5 && sensor_readings.getCurrentTileY() ==  3 && std::abs(sensor_readings.getCurrentHeading() - 180) > HEADING_ACCURACY_BUFFER)
@@ -143,10 +146,10 @@ void robotPerformanceThread(int n)
     }
     sensor_readings.setHomeTile(sensor_readings.getCurrentTileX(),sensor_readings.getCurrentTileY());
 
-
+    if (FIND_FIRE)
+    {
     ROS_INFO("Running Flame Search");
     sensor_readings.setCurrentState(STATE::FLAME_SEARCH);
-
     findAndExtinguishFire();
 
     // Wait until fire has been put out before moving on
@@ -170,21 +173,28 @@ void robotPerformanceThread(int n)
     fireOut();
 
     planner.signalComplete();
-
+    }
+    if (FIND_MAGNET)
+    {
     ROS_INFO("Finding Magnet");
     sensor_readings.setCurrentState(STATE::HALL_SEARCH);
     findMagnet();
-
+    }
+    if (FIND_BUILDINGS)
+    {
     ROS_INFO("Running Building Search Setup");
     preBuildingSearchSetup();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     ROS_INFO("Starting Building Search");
     sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
     runBuildingSearch();
-
+    }
     // Returning Home
     ROS_INFO("driving home");
     sensor_readings.setCurrentState(STATE::RETURN_HOME);
     driveHome();
+    planner.signalComplete();
+    planner.signalComplete();
 }
 
 void positionCallback(const bill_msgs::Position::ConstPtr& msg)
@@ -210,7 +220,7 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
     if (isOnXTile)
     {
-        sensor_readings.setCurrentTileX((int)currentWholeX);
+      sensor_readings.setCurrentTileX((int)currentWholeX);
     }
 
     if (isOnYTile)
@@ -221,7 +231,18 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
     // If there is a valid target heading that means we are turning
     if (sensor_readings.getTargetHeading() >= 0)
     {
-        if (fabs(sensor_readings.getTargetHeading() - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
+    	int heading_error = sensor_readings.getTargetHeading() - sensor_readings.getCurrentHeading();
+
+    	// Keep heading error centered at 0 between -180 and 180
+    	if (heading_error > 180)
+    	{
+            heading_error -= 360;
+    	}
+    	else if (heading_error < -180)
+    	{
+            heading_error += 360;
+    	}
+        if (fabs(heading_error) < HEADING_ACCURACY_BUFFER)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(750));
             //ROS_INFO("Arrived at target heading %i, publishing drive", sensor_readings.getTargetHeading());
@@ -266,14 +287,38 @@ void positionCallback(const bill_msgs::Position::ConstPtr& msg)
 
             return;
         }
-        // Regular free driving
-        else if (sensor_readings.isTargetTileValid() && sensor_readings.getTargetTileX() == sensor_readings.getCurrentTileX() && sensor_readings.getTargetTileY() == sensor_readings.getCurrentTileY())
-        {
+	else if (sensor_readings.isTargetTileValid())
+	{
+	    bool shouldStop = false;
+            int current_heading = sensor_readings.getCurrentHeading();
+
+            if (45 < current_heading && current_heading <= 135) // Facing positive y
+            {
+                shouldStop = (sensor_readings.getCurrentPositionY() / 30.0) >= (sensor_readings.getTargetTileY() + 0.5);
+            }
+            else if (135 < current_heading && current_heading <= 225) // Facing negative x
+            {
+                shouldStop = (sensor_readings.getCurrentPositionX() / 30.0) <= (sensor_readings.getTargetTileX() + 0.5);
+            }
+            else if (225 < current_heading && current_heading <= 315) // Facing negative y
+            {
+                shouldStop = (sensor_readings.getCurrentPositionY() / 30.0) <= (sensor_readings.getTargetTileY() + 0.5);
+            }
+            else // Facing positive x
+            {
+                shouldStop = (sensor_readings.getCurrentPositionX() / 30.0) >= (sensor_readings.getTargetTileX() + 0.5);
+            }
+
             //ROS_INFO("Arrived at target point: %i, %i", sensor_readings.getTargetTileX(), sensor_readings.getTargetTileY());
             // We have arrived at our current target point
-            planner.ProcessNextDrivePoint(sensor_readings);
-        }
-    }
+            if (shouldStop)
+            {
+		sensor_readings.setCurrentTileY((int)currentWholeY);
+		sensor_readings.setCurrentTileX((int)currentWholeX);
+                planner.ProcessNextDrivePoint(sensor_readings);
+            }
+	}
+    }       
 }
 
 void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
@@ -292,8 +337,8 @@ void frontUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::BUILDING_SEARCH
-        && (((sensor_readings.getUltraLeft() - msg->data) > DELTA)
-        || (previous_ultra_left - msg->data) > DELTA))
+        && (((sensor_readings.getUltraLeft() - msg->data) > DELTA)))
+//        || (previous_ultra_left - msg->data) > DELTA))
     {
         planner.publishStop();
         _building_left = true;
@@ -311,8 +356,8 @@ void leftUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 void rightUltrasonicCallback(const std_msgs::Float32::ConstPtr& msg)
 {
     if (sensor_readings.getCurrentState() == STATE::BUILDING_SEARCH
-        && (((sensor_readings.getUltraRight() - msg->data) > DELTA)
-        || (previous_ultra_right - msg->data) > DELTA))
+        && (((sensor_readings.getUltraRight() - msg->data) > DELTA)))
+//        || (previous_ultra_right - msg->data) > DELTA))
     {
         _building_right = true;
         planner.publishStop();
@@ -427,7 +472,19 @@ void survivorsCallback(const bill_msgs::Survivor::ConstPtr& msg)
 
 bool shouldKeepTurning()
 {
-    if (fabs(desired_heading - sensor_readings.getCurrentHeading()) < HEADING_ACCURACY_BUFFER)
+    int heading_error = desired_heading - sensor_readings.getCurrentHeading();
+
+    // Keep heading error centered at 0 between -180 and 180
+    if (heading_error > 180)
+    {
+        heading_error -= 360;
+    }
+    else if (heading_error < -180)
+    {
+        heading_error += 360;
+    }
+
+    if (fabs(heading_error) < HEADING_ACCURACY_BUFFER)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         planner.publishStop();
@@ -504,13 +561,10 @@ void driveHome()
         desired_tile.y, 0.3);
     waitToHitTile();
 }
-void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_dist)
+void waitToHitTileWithBuildingSearch(bool firstLeg)
 {
-    float detection_left = (left_dist - left_dist * 0.3) < 20 ? 20 : left_dist - left_dist * 0.3;
-    float detection_right = (right_dist - right_dist * 0.3) < 20 ? 20 : right_dist - right_dist * 0.3;
     if (firstLeg)
     {
-        int droveOnPreviousY = -1;
         while((planner.is_moving 
             || desired_tile.x != sensor_readings.getCurrentTileX() ||
             5 != sensor_readings.getCurrentTileY()) 
@@ -518,28 +572,18 @@ void waitToHitTileWithBuildingSearch(bool firstLeg, float left_dist, int right_d
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-            float curr_left_dist = sensor_readings.getUltraLeft();
-            float curr_right_dist = sensor_readings.getUltraRight();
-
-            if(sensor_readings.getCurrentTileY() != droveOnPreviousY 
-                && (curr_left_dist < detection_left
-                || curr_right_dist < detection_right)
+            if(_building_left || _building_right)
             {
-                planner.cancelDriveToTile();
-
                 sensor_readings.setCurrentState(STATE::INTERMEDIATE_STAGE);
-
-                droveOnPreviousY = sensor_readings.getCurrentTileY();
-                bool _building_right = curr_right_dist < (right_dist - 32);
                 driveToBuilding(_building_right);
 
                 desired_tile.y = 5;
                 planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
                 sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
+
+                _building_left = false;
+                _building_right = false;
             }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
             if (buildings_found == 2)
             {
                 ROS_INFO("FOUND 2 BUILDINGS");
@@ -792,9 +836,6 @@ void startSearch()
         float uf = sensor_readings.getUltraFwd();
         ROS_INFO("Ultra fwd is %f", uf);
 
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        
         int counter = 0;
         bool set_flag = false;
         while (counter < 25)
@@ -826,11 +867,9 @@ void startSearch()
 
     sensor_readings.setCurrentState(STATE::BUILDING_SEARCH);
 
-    float left_dist = sensor_readings.getUltraLeft();
-    float right_dist = sensor_readings.getUltraRight();
     ROS_INFO("Driving to tile x = %i, y = %i", desired_tile.x, desired_tile.y);
     planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-    waitToHitTileWithBuildingSearch(true, left_dist, right_dist);
+    waitToHitTileWithBuildingSearch(true);
     ROS_INFO("Finished straight line search");
 }
 
@@ -874,7 +913,6 @@ void driveForwardXTiles(int numTiles)
 
 void completeSearch()
 {
-    //This won't get run, don't worry about it
     int x = sensor_readings.getCurrentTileX();
     TilePosition poi[3] = {TilePosition(5,3), TilePosition(5,1), TilePosition(5,5)};
     for(int i = 0; i < 3; i++)
@@ -911,7 +949,7 @@ void completeSearch()
         sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 0;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-        //waitToHitTileWithBuildingSearch(false);
+        waitToHitTileWithBuildingSearch(false);
     }
     else if ((std::abs(sensor_readings.getCurrentHeading() - 90) < HEADING_ACCURACY_BUFFER
         && sensor_readings.getUltraRight() <= sensor_readings.getUltraLeft())
@@ -926,7 +964,7 @@ void completeSearch()
         sensor_readings.setCurrentState(STATE::INIT_SEARCH);
         desired_tile.x = 5;
         planner.publishDriveToTile(sensor_readings, desired_tile.x, desired_tile.y, 0.3);
-        //waitToHitTileWithBuildingSearch(false);
+        waitToHitTileWithBuildingSearch(false);
     }
     else
     {

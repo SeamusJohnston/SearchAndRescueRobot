@@ -1,4 +1,4 @@
 goals:
-  fire: true
-  magnet: false
-  buildings: true
+  fire: false
+  magnet: true
+  buildings: false
