@@ -143,7 +143,7 @@ int main(int argc, char** argv)
     nh.getParam("filter_freq", freq);
     lp_filter.setFrequency(freq);
 
-    ros::Subscriber motor_sub = nh.subscribe("motor_cmd", 1, motorCallback);
+    ros::Subscriber motor_sub = nh.subscribe("/motor_cmd", 1, motorCallback);
     ros::Publisher ultrasonic_pub = nh.advertise<std_msgs::Float32>(topic, 100);
     ros::Rate loop_rate(LOOP_RATE_ULTRA);
 
@@ -155,7 +155,7 @@ int main(int argc, char** argv)
         std_msgs::Float32 msg = read();
 
         // Publish message if valid, and spin thread
-        if (!std::isnan(msg.data))
+        if (!std::isnan(msg.data) && !turning)
             ultrasonic_pub.publish(msg);
         ros::spinOnce();
         loop_rate.sleep();

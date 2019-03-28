@@ -1,0 +1,59 @@
+<!-- Driver launch file -->
+<launch>
+  <include file="$(find bill_drivers)/launch/localization_3.launch" />
+
+  <rosparam file ="$(find bill_drivers)/config/parameters_3.yaml" command="load" />
+
+  <node pkg="bill_drivers" type="encoder_driver"
+    name="encoder_driver">
+  </node>
+
+  <node pkg="bill_drivers" type="fan_driver"
+    name="fan_driver">
+  </node>
+
+  <node pkg="bill_drivers" type="serial_driver"
+    name="serial_driver">
+  </node>
+  
+  <node pkg="bill_drivers" type="localization_node"
+    name="localization_node" output="screen">
+  </node>  
+
+  <node pkg="bill_drivers" type="led_driver"
+    name="led_driver">
+  </node>
+
+  <node pkg="bill_drivers" type="motor_driver"
+    name="motor_driver" output="screen">
+  </node>
+<!--
+  <node pkg="bill_drivers" type="reset_driver"
+    name="reset_driver">
+  </node>
+-->
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver_front">
+    <param name="topic" value="/ultra_front"/>
+    <param name="trigger_pin" value="17"/>
+    <param name="echo_pin" value="27"/>
+    <param name="filter_freq" value="2.0"/>
+  </node>
+
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver_left">
+    <param name="topic" value="/ultra_left"/>
+    <param name="trigger_pin" value="9"/>
+    <param name="echo_pin" value="11"/>
+    <param name="filter_freq" value="1.0"/>
+  </node>
+
+  <node pkg="bill_drivers" type="ultrasonic_driver" name="ultrasonic_driver_right">
+    <param name="topic" value="/ultra_right"/>
+    <param name="trigger_pin" value="20"/>
+    <param name="echo_pin" value="21"/>
+    <param name="filter_freq" value="1.0"/>
+  </node>
+
+  <node pkg="bill_drivers" type="magnet_driver"
+    name="magnet_driver">
+  </node>
+</launch>

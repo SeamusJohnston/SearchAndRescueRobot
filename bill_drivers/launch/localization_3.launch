@@ -11,7 +11,7 @@
     <param name="transform_time_offset" value="0.0"/>
     <param name="transform_offset" value="0.0"/>
 
-    <param name = "imu0" value="/test_imu"/>
+    <param name = "imu0" value="/imu"/>
     <param name = "imu0_queue_size" value="10"/>
     <param name = "imu0_nodelay" value="false"/>
     <param name = "imu0_differential" value="false"/>
@@ -24,7 +24,7 @@
           false, false, true,
           true, false, false]</rosparam>
   
-    <param name = "odom0" value="/test_odometry"/>
+    <param name = "odom0" value="/odometry"/>
     <param name = "odom0_queue_size" value="10"/>
     <param name = "odom0_nodelay" value="false"/>
     <param name = "odom0_differential" value="false"/>
@@ -35,13 +35,13 @@
           false, false, true,
           false, false, false]</rosparam> 
       
-    <param name = "publish_tf" value="true"/>
+    <param name = "publish_tf" value="false"/>
     <param name = "publish_acceleration" value="false"/>
-    <param name = "print_diagnostics" value="true"/>
+    <param name = "print_diagnostics" value="false"/>
     <param name = "debug" value="false"/>
     <!-- TODO: Enter x-y starting pose -->
-    <rosparam param="initial_state">[0.0, 0.0, 0.0,
-          0.0, 0.0, 1.57,
+    <rosparam param="initial_state">[0.8, 1.7, 0.0,
+          0.0, 0.0, 4.71,
           0.0, 0.0, 0.0,
           0.0, 0.0, 0.0,
           0.0, 0.0, 0.0]</rosparam>  

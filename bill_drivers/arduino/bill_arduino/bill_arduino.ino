@@ -1,5 +1,8 @@
 #include <Wire.h>
 
+// CURRENT AVAILABLE BITS
+// 0X02
+
 // Digital
 #define S0 4
 #define S1 5
@@ -8,8 +11,10 @@
 #define Colour 3
 
 // Analog
-#define Flame A0
-#define Hall A1
+#define Flame A1
+#define FlameRight A2
+#define FlameLeft A0
+#define Hall A3
 
 // IMU Registers 
 #define PAGE_SWAP     0x07
@@ -48,6 +53,8 @@ void setup()
   
   pinMode(Colour, INPUT);
   pinMode(Flame, INPUT);
+  pinMode(FlameLeft, INPUT);
+  pinMode(FlameRight, INPUT);
   pinMode(Hall, INPUT);
   
   // Setting frequency-scaling
@@ -112,7 +119,8 @@ void loop()
   data[10] = Wire.read();  // Z Gyro LSB
   data[11] = Wire.read();  // Z Gyro MSB
   
-  data[12] = readFlameSensor() ^ readHallEffectSensor(); // ^ breadColourSensor();
+  data[12] = readFlameSensor() ^ readColourSensor();
+
   for (int i = 0; i < 13; ++i)
   {
     Serial.print(data[i]);
@@ -145,49 +153,43 @@ void receiveEvent(int numBytes)
 
 byte readFlameSensor()
 {
-  int sensorValue = analogRead(Flame);
-  
-  //Serial.print("Flame: ");
-  //Serial.print(sensorValue);
-  if(sensorValue < 70)
-  {
-    //Serial.println(" True");
-    return 0x01;
-  }
-  else
-  {
-    //Serial.println(" False");
-    return 0x00;
-  }
-}
+  int sensorValueFront = analogRead(Flame);
+  int sensorValueLeft = analogRead(FlameLeft);
+  int sensorValueRight = analogRead(FlameRight);
 
-byte readHallEffectSensor()
-{
-  int sensorValue = analogRead(Hall);
+  byte returnVal = 0x00;
   
-  //Serial.print("Hall: ");
-  //Serial.print(sensorValue);
-  if(sensorValue <= 510 || sensorValue >= 540)
+  /*
+  Serial.print("Flame Front: ");
+  Serial.print(sensorValueFront);
+  Serial.print(" Flame Right: ");
+  Serial.print(sensorValueRight);
+  Serial.print(" Flame Left: ");
+  Serial.print(sensorValueLeft);
+  */
+  
+  if(sensorValueFront < 400)
   {
-    //Serial.println(" True");
-    return 0x02;
+    returnVal = returnVal ^ 0x01;
   }
-  else
+  if(sensorValueLeft < 600)
   {
-    //Serial.println(" False");
-    return 0x00;
+    returnVal = returnVal ^ 0x10;
   }
+  if(sensorValueRight < 600)
+  {
+    returnVal = returnVal ^ 0x20;
+  }
+  Serial.println("");
+  
+  return returnVal;
 }
 
 byte readColourSensor()
 {
   ReadRGBC();
   
-  if (LargeBuilding())
-  {
-    return 0x08;
-  }
-  else if (SmallBuilding())
+  if (buildingDetection())
   {
     return 0x04;
   }
@@ -216,8 +218,8 @@ void ReadRGBC()
   digitalWrite(S2,HIGH);
   digitalWrite(S3,LOW);
   colours[3] = pulseIn(Colour, LOW);
-/*
-  Serial.print("rgbc: ");
+
+  /*
   Serial.print(colours[0]);
   Serial.print(", ");
   Serial.print(colours[1]);
@@ -225,24 +227,16 @@ void ReadRGBC()
   Serial.print(colours[2]);
   Serial.print(", ");
   Serial.println(colours[3]);
-*/
+  */
 }
 
-bool LargeBuilding()
+bool buildingDetection()
 {
-  bool returnVal = colours[3] < 65 && // Clear Building Detected
-    colours[0] > 50 && colours[0] < 100 && // Red in range
-    colours[1] > 125 && colours[1] < 175 && // Blue in range
-    colours[2] > 100 && colours[2] < 150; // Green in range
-  return returnVal;
-}
-
-bool SmallBuilding()
-{
-  bool returnVal = colours[3] < 60 && // Clear Building Detected
-    colours[0] > 30 && colours[0] < 80 && // Red in range
-    colours[1] > 50 && colours[1] < 100 && // Blue in range
-    colours[2] > 85 && colours[2] < 135;
+  bool returnVal = 
+    colours[0] > 88 && colours[0] < 125 && // Red in range
+    colours[1] > 150 && colours[1] < 221 && // Blue in range
+    colours[2] > 177 && colours[2] < 122 && // Green in range
+    colours[3] > 45 && colours[3] < 65;
   return returnVal;
 }
 

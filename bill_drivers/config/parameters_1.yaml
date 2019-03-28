@@ -1,0 +1,12 @@
+bill:
+  motor_params:
+    kp_drive: 3.0
+    ki_drive: 0.8
+    kp_turning: 2.8
+    ki_turning: 0.44
+  starting_params:
+    x: 1.05
+    y: 0.15
+    theta: 90
+  thresholds:
+    magnet: 2500

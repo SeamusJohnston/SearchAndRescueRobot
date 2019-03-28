@@ -120,6 +120,16 @@ catkin_package(
 
 FIND_LIBRARY(WIRINGPI_LIBRARY wiringPi ~/wiringPi)
 FIND_LIBRARY(SERIAL_LIBRARY serial ~/serial)
+set(MPU_SOURCES
+    src/MPU.cpp
+    src/MPU6xx0.cpp
+    src/MPU6x00.cpp
+    src/MPU6500.cpp
+    src/MPU9250.cpp
+    src/MPU9250_Passthru.cpp
+    src/WiringPiI2C.cpp
+    src/WiringPiSPI.cpp)
+
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
@@ -129,6 +139,7 @@ include_directories(
 
 ## Declare a C++ library
 add_library(filters src/filters.cpp)
+add_library(mpu_lib ${MPU_SOURCES})
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -146,6 +157,7 @@ add_executable(fan_driver src/fan_driver.cpp)
 add_executable(motor_driver src/motor_driver.cpp)
 add_executable(serial_driver src/serial_driver.cpp)
 add_executable(localization_node src/localization_node.cpp)
+add_executable(magnet_driver src/magnet_driver.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -158,6 +170,8 @@ add_executable(localization_node src/localization_node.cpp)
 add_dependencies(serial_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(motor_driver ${catkin_EXPORTED_TARGETS})
 add_dependencies(localization_node ${catkin_EXPORTED_TARGETS})
+add_dependencies(encoder_driver ${catkin_EXPORTED_TARGETS})
+add_dependencies(magnet_driver ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(encoder_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
@@ -168,6 +182,8 @@ target_link_libraries(fan_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(motor_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY})
 target_link_libraries(serial_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} ${SERIAL_LIBRARY})
 target_link_libraries(localization_node ${catkin_LIBRARIES} filters)
+target_link_libraries(magnet_driver ${catkin_LIBRARIES} ${WIRINGPI_LIBRARY} mpu_lib)
+
 
 #############
 ## Install ##
